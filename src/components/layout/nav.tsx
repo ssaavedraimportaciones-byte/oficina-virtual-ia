@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { NAV_ITEMS } from '@/lib/permissions/routes'
+import OfflineStatusBar from '@/components/offline/OfflineStatusBar'
+import ConflictResolver from '@/components/offline/ConflictResolver'
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: 'Trabajador',
@@ -18,6 +21,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function Nav() {
   const { user, can, logout } = useAuth()
   const pathname = usePathname()
+  const [showConflicts, setShowConflicts] = useState(false)
 
   if (!user) return null
 
@@ -54,8 +58,9 @@ export default function Nav() {
         })}
       </div>
 
-      <div className="p-4 border-t border-gray-800">
-        <div className="mb-3">
+      <div className="p-4 border-t border-gray-800 space-y-3">
+        <OfflineStatusBar compact onConflictClick={() => setShowConflicts(true)} />
+        <div>
           <p className="text-sm font-medium text-white truncate">{user.name}</p>
           <span className="inline-block text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full mt-1">
             {ROLE_LABELS[user.role] ?? user.role}
@@ -68,6 +73,13 @@ export default function Nav() {
           Cerrar sesión
         </button>
       </div>
+
+      {showConflicts && (
+        <ConflictResolver
+          onClose={() => setShowConflicts(false)}
+          onResolved={() => setShowConflicts(false)}
+        />
+      )}
     </nav>
   )
 }

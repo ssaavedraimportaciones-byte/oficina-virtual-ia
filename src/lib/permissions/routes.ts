@@ -21,6 +21,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', permission: 'dashboard:view', icon: 'layout-dashboard' },
   { label: 'Documentos', href: '/documents', permission: 'documents:view_own', icon: 'file-text' },
+  { label: 'Offline / Faena', href: '/documents/offline', permission: 'documents:create', icon: 'wifi-off' },
   { label: 'Aprobaciones', href: '/approvals', permission: 'approvals:view', icon: 'check-circle' },
   { label: 'Trabajadores', href: '/workers', permission: 'workers:view', icon: 'hard-hat' },
   { label: 'Empresas', href: '/companies', permission: 'companies:view', icon: 'building-2' },

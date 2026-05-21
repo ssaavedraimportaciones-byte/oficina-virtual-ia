@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TRABAJADOR
+  SUPERVISOR
+  PREVENCIONISTA
+  JEFE_AREA
+  ADMIN
+  AUDITOR
+}
+
+enum Habilitacion {
+  ALTURA
+  ESPACIO_CONFINADO
+  IZAJE
+  LOTO
+}
+
+enum DocumentTipo {
+  CHARLA
+  DET
+  ART
+  AST
+  PERMISO
+  LOTO
+  ALTURA
+  IZAJE
+  ESPACIO_CONFINADO
+}
+
+enum DocumentEstado {
+  BORRADOR
+  COMPLETADO
+  FIRMADO
+  PENDIENTE_APROBACION
+  APROBADO
+  RECHAZADO
+  TIMBRADO
+  ARCHIVADO
+}
+
+enum AuditAccion {
+  CREATE
+  READ
+  UPDATE
+  SIGN
+  APPROVE
+  REJECT
+  STAMP
+  ARCHIVE
+  REVERT
+  LOGIN
+  LOGOUT
+  DELETE_ATTEMPT
+  ACCESS_DENIED
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  nombre    String
+  rut       String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  faenas    Faena[]
+  users     User[]
+
+  @@map("companies")
+}
+
+model Faena {
+  id        String   @id @default(cuid())
+  nombre    String
+  codigo    String   @unique
+  region    String
+  direccion String?
+  activo    Boolean  @default(true)
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company    @relation(fields: [companyId], references: [id])
+  users     User[]
+  documents Document[]
+
+  @@map("faenas")
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  passwordHash   String
+  nombre         String
+  rut            String         @unique
+  cargo          String
+  role           UserRole       @default(TRABAJADOR)
+  habilitaciones Habilitacion[]
+  activo         Boolean        @default(true)
+  companyId      String?
+  faenaId        String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  company          Company?              @relation(fields: [companyId], references: [id])
+  faena            Faena?                @relation(fields: [faenaId], references: [id])
+  documentsCreated Document[]            @relation("DocumentCreatedBy")
+  signatures       Signature[]
+  approvals        Approval[]
+  stamps           Stamp[]
+  auditLogs        AuditLog[]
+  refreshTokens    RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Document {
+  id                      String         @id @default(cuid())
+  tipo                    DocumentTipo
+  version                 Int            @default(1)
+  estado                  DocumentEstado @default(BORRADOR)
+  estadoAnterior          DocumentEstado?
+  faenaId                 String
+  area                    String
+  fechaTrabajo            DateTime
+  createdById             String
+  campos                  Json
+  aprobacionesRequeridas  Int
+  aprobacionesCompletadas Int            @default(0)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  faena         Faena                 @relation(fields: [faenaId], references: [id])
+  createdBy     User                  @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  participantes DocumentParticipant[]
+  signatures    Signature[]
+  approvals     Approval[]
+  stamp         Stamp?
+  auditLogs     AuditLog[]
+
+  @@map("documents")
+}
+
+model DocumentParticipant {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String
+  firmado    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, userId])
+  @@map("document_participants")
+}
+
+model Signature {
+  id            String   @id @default(cuid())
+  documentId    String
+  userId        String
+  firmaBase64   String   @db.Text
+  hashDocumento String
+  gpsLat        Float?
+  gpsLng        Float?
+  gpsPrecision  Float?
+  gpsStatus     String?
+  ip            String
+  userAgent     String   @db.Text
+  firmadoAt     DateTime @default(now())
+
+  document      Document @relation(fields: [documentId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([documentId, userId])
+  @@map("signatures")
+}
+
+model Approval {
+  id           String   @id @default(cuid())
+  documentId   String
+  nivel        Int
+  aprobadorId  String
+  decision     String
+  comentario   String?
+  gpsLat       Float?
+  gpsLng       Float?
+  gpsPrecision Float?
+  ip           String
+  timestamp    DateTime @default(now())
+
+  document     Document @relation(fields: [documentId], references: [id])
+  aprobador    User     @relation(fields: [aprobadorId], references: [id])
+
+  @@map("approvals")
+}
+
+model Stamp {
+  id            String   @id @default(cuid())
+  documentId    String   @unique
+  numeroTimbre  String   @unique
+  hashFinal     String
+  generadoPorId String
+  ip            String
+  timestamp     DateTime @default(now())
+
+  document      Document @relation(fields: [documentId], references: [id])
+  generadoPor   User     @relation(fields: [generadoPorId], references: [id])
+
+  @@map("stamps")
+}
+
+// Inmutable — nunca DELETE ni UPDATE en esta tabla
+model AuditLog {
+  id           String      @id @default(cuid())
+  timestamp    DateTime    @default(now())
+  userId       String
+  userEmail    String
+  userRole     String
+  accion       AuditAccion
+  documentId   String?
+  documentTipo String?
+  ip           String
+  userAgent    String      @db.Text
+  gpsLat       Float?
+  gpsLng       Float?
+  antes        Json?
+  despues      Json?
+  metadata     Json?
+
+  user         User      @relation(fields: [userId], references: [id])
+  document     Document? @relation(fields: [documentId], references: [id])
+
+  @@index([userId])
+  @@index([documentId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}

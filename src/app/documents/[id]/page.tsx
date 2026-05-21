@@ -4,7 +4,9 @@ import AppShell from '@/components/layout/shell'
 import DocumentDetailHeader from '@/components/documents/DocumentDetailHeader'
 import DocumentTimeline from '@/components/documents/DocumentTimeline'
 import AIClassificationPanel from '@/components/documents/AIClassificationPanel'
+import ValidationResultPanel from '@/components/documents/ValidationResultPanel'
 import FieldConfidenceBadge from '@/components/scanner/FieldConfidenceBadge'
+import type { EvaluationResult } from '@/modules/rules-engine'
 import Link from 'next/link'
 
 interface Props {
@@ -96,6 +98,11 @@ export default async function DocumentDetailPage({ params }: Props) {
             </div>
           </section>
         )}
+
+        <ValidationResultPanel
+          documentId={doc.id}
+          initialResult={doc.validationResult as EvaluationResult | null}
+        />
 
         <AIClassificationPanel documentId={doc.id} />
 

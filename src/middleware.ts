@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { canAccess, getRoutePermission } from '@/lib/permissions'
+import { JWT_SECRET } from '@/lib/env'
 import type { UserRole } from '@/types/user'
 
 const PUBLIC_PATHS = new Set(['/login', '/unauthorized'])
@@ -37,9 +38,7 @@ export async function middleware(req: NextRequest) {
   }
 
   try {
-    const secretBytes = new TextEncoder().encode(
-      process.env.JWT_SECRET ?? 'dev-secret-change-in-production-min-64-chars'
-    )
+    const secretBytes = new TextEncoder().encode(JWT_SECRET)
     const { payload } = await jwtVerify(token, secretBytes)
 
     const role = payload['role'] as UserRole

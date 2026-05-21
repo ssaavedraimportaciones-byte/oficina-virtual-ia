@@ -17,7 +17,8 @@ interface Params {
 export async function POST(req: NextRequest, { params }: Params) {
   const { id } = params
   const auth = requireAuth(req)
-  const actor = 'user' in auth ? auth.user : null
+  if ('error' in auth) return auth.error
+  const { user } = auth
   const ip = getIp(req)
   const ua = req.headers.get('user-agent') ?? ''
 
@@ -60,21 +61,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     const observations = await generateInitialObservations(result)
     result.observations = observations
 
-    if (actor) {
-      await log(
-        { userId: actor.uid, ip, userAgent: ua },
-        'AI_CLASSIFICATION_EXECUTED',
-        {
-          documentId: id,
-          metadata: {
-            documentType: result.documentType,
-            confidence: result.confidence,
-            missingFields: result.missingFields,
-            forced: !!forceType,
-          },
-        }
-      )
-    }
+    await log(
+      { userId: user.uid, ip, userAgent: ua },
+      'AI_CLASSIFICATION_EXECUTED',
+      {
+        documentId: id,
+        metadata: {
+          documentType: result.documentType,
+          confidence: result.confidence,
+          missingFields: result.missingFields,
+          forced: !!forceType,
+        },
+      }
+    )
 
     return NextResponse.json({ ok: true, documentId: id, classification: result })
   } catch (err) {

@@ -281,6 +281,7 @@ async function _recordDecision(params: {
           taskName: true,
           workArea: true,
           validationResult: true,
+          createdById: true,
           approvals: {
             select: { id: true, role: true, status: true, approverId: true },
           },
@@ -298,6 +299,24 @@ async function _recordDecision(params: {
   }
   if (approval.role !== approverRole) {
     throw new Error(`Este paso requiere rol "${approval.role}", usted tiene "${approverRole}"`)
+  }
+
+  // Self-approval guard — creator cannot approve their own document
+  if (approval.document.createdById === approverId) {
+    await log(
+      { userId: approverId, ip, userAgent },
+      'DOCUMENT_APPROVED',
+      {
+        documentId: approval.documentId,
+        metadata: {
+          approvalId,
+          blocked: true,
+          reason: 'self_approval_attempt',
+          role: approverRole,
+        },
+      }
+    )
+    throw new Error('El creador del documento no puede aprobar su propio documento')
   }
 
   // Dual-role guard

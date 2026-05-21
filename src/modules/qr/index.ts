@@ -1,7 +1,8 @@
 import { createHmac, createHash } from 'crypto'
 import QRCode from 'qrcode'
+import { JWT_SECRET } from '@/lib/env'
 
-const QR_SECRET = process.env.JWT_SECRET ?? 'qr-verify-fallback-secret-min-32ch'
+const QR_SECRET = JWT_SECRET
 
 /**
  * Generates the stable QR code identifier for a document.

@@ -1,11 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
+import { JWT_SECRET } from '@/lib/env'
 import type { TokenPayload } from '@/types/user'
 
-const secret = () =>
-  new TextEncoder().encode(
-    process.env.JWT_SECRET ?? 'dev-secret-change-in-production-min-64-chars'
-  )
+const secret = () => new TextEncoder().encode(JWT_SECRET)
 
 export const hashPassword = (plain: string) => bcrypt.hash(plain, 12)
 export const verifyPassword = (plain: string, hash: string) => bcrypt.compare(plain, hash)

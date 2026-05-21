@@ -27,7 +27,7 @@ export async function POST(
   // Verify document exists and belongs to user's company
   const doc = await prisma.document.findUnique({
     where: { id: params.id },
-    select: { id: true, companyId: true, createdById: true },
+    select: { id: true, companyId: true, createdById: true, status: true },
   })
 
   if (!doc) {
@@ -36,6 +36,22 @@ export async function POST(
 
   if (user.role === 'WORKER' && doc.createdById !== user.uid) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const LOCKED_STATUSES = ['APPROVED', 'CLOSED', 'ARCHIVED']
+  if (LOCKED_STATUSES.includes(doc.status)) {
+    await log(
+      { userId: user.uid, ip, userAgent: ua },
+      'DOCUMENT_SCANNED',
+      {
+        documentId: params.id,
+        metadata: { blocked: true, reason: 'document_locked', status: doc.status },
+      }
+    )
+    return NextResponse.json(
+      { error: `No se puede re-escanear un documento en estado "${doc.status}"` },
+      { status: 422 }
+    )
   }
 
   // Parse multipart form data

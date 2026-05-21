@@ -73,7 +73,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const doc = await prisma.document.findUnique({
     where: { id: params.id },
-    select: { id: true, status: true, folio: true, createdById: true, companyId: true },
+    select: { id: true, status: true, folio: true, createdById: true, companyId: true, taskName: true, workArea: true },
   })
 
   if (!doc) {
@@ -82,6 +82,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (user.role === 'WORKER' && doc.createdById !== user.uid) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const LOCKED_STATUSES = ['APPROVED', 'CLOSED', 'ARCHIVED']
+  if (LOCKED_STATUSES.includes(doc.status) && (parsed.data.taskName || parsed.data.workArea)) {
+    return NextResponse.json(
+      { error: `No se pueden modificar campos de un documento en estado "${doc.status}"` },
+      { status: 422 }
+    )
   }
 
   const updates: Record<string, unknown> = {}
@@ -100,8 +108,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     meta.newStatus = parsed.data.status
   }
 
-  if (parsed.data.taskName) updates.taskName = parsed.data.taskName
-  if (parsed.data.workArea) updates.workArea = parsed.data.workArea
+  if (parsed.data.taskName) {
+    meta.previousTaskName = doc.taskName
+    updates.taskName = parsed.data.taskName
+  }
+  if (parsed.data.workArea) {
+    meta.previousWorkArea = doc.workArea
+    updates.workArea = parsed.data.workArea
+  }
 
   const updated = await prisma.document.update({
     where: { id: params.id },

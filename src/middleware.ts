@@ -7,6 +7,8 @@ import type { UserRole } from '@/types/user'
 const PUBLIC_PATHS = new Set(['/login', '/unauthorized'])
 const PUBLIC_PREFIXES = [
   '/api/auth',
+  '/api/verify',
+  '/verify',
   '/_next',
   '/icons',
   '/manifest.json',

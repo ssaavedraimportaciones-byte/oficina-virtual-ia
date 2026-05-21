@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import { prisma } from '@/lib/db/client'
 import AppShell from '@/components/layout/shell'
 import DocumentDetailHeader from '@/components/documents/DocumentDetailHeader'
@@ -6,6 +7,7 @@ import DocumentTimeline from '@/components/documents/DocumentTimeline'
 import AIClassificationPanel from '@/components/documents/AIClassificationPanel'
 import ValidationResultPanel from '@/components/documents/ValidationResultPanel'
 import RequiredSignaturesStatus from '@/components/signatures/RequiredSignaturesStatus'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import FieldConfidenceBadge from '@/components/scanner/FieldConfidenceBadge'
 import type { EvaluationResult } from '@/modules/rules-engine'
 import Link from 'next/link'
@@ -23,6 +25,10 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function DocumentDetailPage({ params }: Props) {
+  const h = headers()
+  const userId = h.get('x-user-id') ?? ''
+  const userRole = h.get('x-user-role') ?? 'WORKER'
+
   const doc = await prisma.document.findUnique({
     where: { id: params.id },
     include: {
@@ -108,6 +114,13 @@ export default async function DocumentDetailPage({ params }: Props) {
         <RequiredSignaturesStatus
           documentId={doc.id}
           documentStatus={doc.status}
+        />
+
+        <ApprovalSection
+          documentId={doc.id}
+          documentStatus={doc.status}
+          userRole={userRole}
+          userId={userId}
         />
 
         <AIClassificationPanel documentId={doc.id} />

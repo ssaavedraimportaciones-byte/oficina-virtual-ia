@@ -1,52 +1,365 @@
 import { prisma } from '@/lib/db/client'
-import { puedeAprobarNivel } from '@/lib/permissions'
+import { log } from '@/modules/audit'
+import { canAccess } from '@/lib/permissions'
+import { getFlowForDocumentType } from './flows'
+import type {
+  ApprovalFlow,
+  ApprovalResult,
+  FlowProgress,
+  PendingApprovalItem,
+} from './types'
 import type { UserRole } from '@/types/user'
 
-export async function registrarAprobacion(params: {
-  documentId: string
-  aprobadorId: string
-  aprobadorRole: UserRole
-  decision: 'aprobado' | 'rechazado'
-  comentario?: string
-  ip: string
-  gpsLat?: number
-  gpsLng?: number
-}) {
-  return prisma.$transaction(async (tx) => {
-    const doc = await tx.document.findUniqueOrThrow({ where: { id: params.documentId } })
-    if (doc.estado !== 'PENDIENTE_APROBACION') throw new Error('Documento no está en aprobación')
+export type { ApprovalFlow, ApprovalResult, FlowProgress, PendingApprovalItem }
+export { getFlowForDocumentType }
 
-    const existentes = await tx.approval.findMany({ where: { documentId: params.documentId } })
-    const nivelActual = (existentes.length + 1) as 1 | 2 | 3
+// ── createApprovalFlow ───────────────────────────────────────────────────────
+/**
+ * Initialises the approval flow for a document.
+ * Stores the flow definition in validationResult JSON, sets status to
+ * PENDING_APPROVAL, and pre-creates PENDING Approval records for each
+ * blocking step (using the creator as placeholder approverId — replaced
+ * when the real approver acts).
+ */
+export async function createApprovalFlow(
+  documentId: string,
+  initiatorId: string,
+  ip?: string
+): Promise<ApprovalFlow> {
+  const doc = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: {
+      status: true,
+      type: true,
+      validationResult: true,
+      createdById: true,
+    },
+  })
 
-    if (!puedeAprobarNivel(params.aprobadorRole, nivelActual))
-      throw new Error(`Rol sin permiso para nivel ${nivelActual}`)
+  if (!doc) throw new Error('Documento no encontrado')
 
-    const yaActuó = existentes.some(a => a.aprobadorId === params.aprobadorId)
-    if (yaActuó) throw new Error('Ya registraste una decisión en este documento')
+  const allowedPreconditions = [
+    'DRAFT', 'SCANNED', 'AI_REVIEW', 'OBSERVED', 'PENDING_SIGNATURE', 'REJECTED',
+  ]
+  if (!allowedPreconditions.includes(doc.status)) {
+    throw new Error(`No se puede iniciar flujo desde estado "${doc.status}"`)
+  }
 
-    const aprobacion = await tx.approval.create({
-      data: {
-        documentId: params.documentId,
-        nivel: nivelActual,
-        aprobadorId: params.aprobadorId,
-        decision: params.decision,
-        comentario: params.comentario,
-        ip: params.ip,
-        gpsLat: params.gpsLat,
-        gpsLng: params.gpsLng,
-      },
-    })
+  const flow = getFlowForDocumentType(doc.type)
+  const currentValidation = (doc.validationResult ?? {}) as Record<string, unknown>
 
-    const nuevasAprobaciones = doc.aprobacionesCompletadas + 1
-    const aprobacionCompleta = params.decision === 'aprobado' && nuevasAprobaciones >= doc.aprobacionesRequeridas
-    const nuevoEstado = params.decision === 'rechazado' ? 'RECHAZADO' : aprobacionCompleta ? 'APROBADO' : 'PENDIENTE_APROBACION'
+  await prisma.$transaction(async (tx) => {
+    await tx.approval.deleteMany({ where: { documentId, status: 'PENDING' } })
+
+    for (const step of flow.steps.filter((s) => !s.nonBlocking)) {
+      await tx.approval.create({
+        data: {
+          documentId,
+          approverId: doc.createdById,
+          role: step.requiredRole,
+          status: 'PENDING',
+        },
+      })
+    }
 
     await tx.document.update({
-      where: { id: params.documentId },
-      data: { aprobacionesCompletadas: nuevasAprobaciones, estado: nuevoEstado, estadoAnterior: doc.estado },
+      where: { id: documentId },
+      data: {
+        status: 'PENDING_APPROVAL',
+        validationResult: { ...currentValidation, approvalFlow: flow },
+      },
+    })
+  })
+
+  await log(
+    { userId: initiatorId, ip },
+    'APPROVAL_FLOW_STARTED',
+    { documentId, metadata: { flowType: flow.flowType, steps: flow.steps.length } }
+  )
+
+  return flow
+}
+
+// ── getPendingApprovals ──────────────────────────────────────────────────────
+/**
+ * Returns documents that have an unlocked pending step matching the user's role.
+ * "Unlocked" means all prior blocking steps are already completed.
+ */
+export async function getPendingApprovals(
+  userId: string,
+  role: UserRole
+): Promise<PendingApprovalItem[]> {
+  if (!canAccess(role, 'approvals:view')) return []
+
+  const pendingApprovals = await prisma.approval.findMany({
+    where: {
+      status: 'PENDING',
+      role,
+      document: { status: 'PENDING_APPROVAL' },
+    },
+    include: {
+      document: {
+        select: {
+          id: true,
+          folio: true,
+          taskName: true,
+          workArea: true,
+          type: true,
+          validationResult: true,
+          createdAt: true,
+          approvals: {
+            select: { role: true, status: true, approverId: true },
+          },
+        },
+      },
+    },
+    orderBy: { document: { createdAt: 'asc' } },
+  })
+
+  const items: PendingApprovalItem[] = []
+
+  for (const approval of pendingApprovals) {
+    const doc = approval.document
+    const flow = (
+      (doc.validationResult as Record<string, unknown> | null)?.approvalFlow as
+        | ApprovalFlow
+        | undefined
+    )
+    if (!flow) continue
+
+    const step = flow.steps.find((s) => s.requiredRole === role && !s.nonBlocking)
+    if (!step) continue
+
+    // All prior blocking steps must be done
+    const priorDone = flow.steps
+      .filter((s) => s.order < step.order && !s.nonBlocking)
+      .every((s) => {
+        const rec = doc.approvals.find((a) => a.role === s.requiredRole)
+        return rec && rec.status !== 'PENDING'
+      })
+    if (!priorDone) continue
+
+    // Dual-role guard
+    if (role !== 'SYSTEM_ADMIN') {
+      const alreadyActed = doc.approvals.some(
+        (a) => a.approverId === userId && a.status !== 'PENDING'
+      )
+      if (alreadyActed) continue
+    }
+
+    items.push({
+      documentId: doc.id,
+      folio: doc.folio,
+      taskName: doc.taskName,
+      workArea: doc.workArea,
+      documentType: doc.type,
+      flowStep: step,
+      pendingApprovalId: approval.id,
+      submittedAt: doc.createdAt.toISOString(),
+    })
+  }
+
+  return items
+}
+
+// ── approveDocument ──────────────────────────────────────────────────────────
+export async function approveDocument(params: {
+  approvalId: string
+  approverId: string
+  approverRole: UserRole
+  comment?: string
+  ip?: string
+  userAgent?: string
+}): Promise<ApprovalResult> {
+  return _recordDecision({ ...params, decision: 'APPROVED' })
+}
+
+// ── rejectDocument ───────────────────────────────────────────────────────────
+export async function rejectDocument(params: {
+  approvalId: string
+  approverId: string
+  approverRole: UserRole
+  comment: string
+  ip?: string
+  userAgent?: string
+}): Promise<ApprovalResult> {
+  if (!params.comment?.trim()) throw new Error('El rechazo requiere comentario obligatorio')
+  return _recordDecision({ ...params, decision: 'REJECTED' })
+}
+
+// ── observeDocument ──────────────────────────────────────────────────────────
+export async function observeDocument(params: {
+  approvalId: string
+  approverId: string
+  approverRole: UserRole
+  comment: string
+  ip?: string
+  userAgent?: string
+}): Promise<ApprovalResult> {
+  if (!params.comment?.trim()) throw new Error('La observación requiere comentario obligatorio')
+  return _recordDecision({ ...params, decision: 'OBSERVED' })
+}
+
+// ── addApprovalComment ───────────────────────────────────────────────────────
+/**
+ * Appends a timestamped comment to an existing approval record without
+ * changing its status. Only the original approver or SYSTEM_ADMIN may do this.
+ */
+export async function addApprovalComment(params: {
+  approvalId: string
+  actorId: string
+  actorRole: UserRole
+  comment: string
+  ip?: string
+}): Promise<void> {
+  if (!params.comment.trim()) throw new Error('El comentario no puede estar vacío')
+
+  const approval = await prisma.approval.findUnique({
+    where: { id: params.approvalId },
+    select: { approverId: true, documentId: true, comment: true },
+  })
+  if (!approval) throw new Error('Aprobación no encontrada')
+
+  if (approval.approverId !== params.actorId && params.actorRole !== 'SYSTEM_ADMIN') {
+    throw new Error('Solo el aprobador original o SYSTEM_ADMIN puede agregar comentarios')
+  }
+
+  const separator = approval.comment ? '\n---\n' : ''
+  const timestamp = new Date().toISOString()
+
+  await prisma.approval.update({
+    where: { id: params.approvalId },
+    data: { comment: `${approval.comment ?? ''}${separator}[${timestamp}] ${params.comment}` },
+  })
+
+  await log(
+    { userId: params.actorId, ip: params.ip },
+    'APPROVAL_COMMENT',
+    { documentId: approval.documentId, metadata: { approvalId: params.approvalId } }
+  )
+}
+
+// ── _recordDecision ───────────────────────────────────────────────────────────
+async function _recordDecision(params: {
+  approvalId: string
+  approverId: string
+  approverRole: UserRole
+  decision: 'APPROVED' | 'REJECTED' | 'OBSERVED'
+  comment?: string
+  ip?: string
+  userAgent?: string
+}): Promise<ApprovalResult> {
+  const { approvalId, approverId, approverRole, decision, comment, ip, userAgent } = params
+
+  const approval = await prisma.approval.findUnique({
+    where: { id: approvalId },
+    include: {
+      document: {
+        select: {
+          id: true,
+          status: true,
+          type: true,
+          validationResult: true,
+          approvals: {
+            select: { id: true, role: true, status: true, approverId: true },
+          },
+        },
+      },
+    },
+  })
+
+  if (!approval) throw new Error('Aprobación no encontrada')
+  if (approval.status !== 'PENDING') {
+    throw new Error(`Esta aprobación ya fue procesada (estado: ${approval.status})`)
+  }
+  if (approval.document.status !== 'PENDING_APPROVAL') {
+    throw new Error('El documento no está en estado PENDING_APPROVAL')
+  }
+  if (approval.role !== approverRole) {
+    throw new Error(`Este paso requiere rol "${approval.role}", usted tiene "${approverRole}"`)
+  }
+
+  // Dual-role guard
+  if (approverRole !== 'SYSTEM_ADMIN') {
+    const alreadyActed = approval.document.approvals.some(
+      (a) => a.approverId === approverId && a.status !== 'PENDING' && a.id !== approvalId
+    )
+    if (alreadyActed) {
+      throw new Error('Un aprobador no puede actuar en dos pasos distintos del mismo flujo')
+    }
+  }
+
+  const flow = (
+    (approval.document.validationResult as Record<string, unknown> | null)?.approvalFlow as
+      | ApprovalFlow
+      | undefined
+  )
+
+  const newDocumentStatus = await prisma.$transaction(async (tx) => {
+    await tx.approval.update({
+      where: { id: approvalId },
+      data: { approverId, status: decision, comment: comment ?? null, approvedAt: new Date() },
     })
 
-    return { aprobacion, nuevoEstado }
+    if (decision === 'REJECTED') {
+      await tx.approval.updateMany({
+        where: { documentId: approval.documentId, status: 'PENDING', id: { not: approvalId } },
+        data: { status: 'REJECTED', comment: 'Cancelado por rechazo en paso anterior' },
+      })
+      await tx.document.update({
+        where: { id: approval.documentId },
+        data: { status: 'REJECTED' },
+      })
+      return 'REJECTED'
+    }
+
+    if (decision === 'OBSERVED') {
+      await tx.approval.updateMany({
+        where: { documentId: approval.documentId, status: 'PENDING', id: { not: approvalId } },
+        data: { status: 'REJECTED', comment: 'Cancelado por observación' },
+      })
+      await tx.document.update({
+        where: { id: approval.documentId },
+        data: { status: 'OBSERVED' },
+      })
+      return 'OBSERVED'
+    }
+
+    // APPROVED — check if all blocking steps are now done
+    const remaining = await tx.approval.findMany({
+      where: { documentId: approval.documentId, id: { not: approvalId } },
+      select: { status: true },
+    })
+    const allDone = remaining.every((a) => a.status === 'APPROVED')
+
+    if (allDone) {
+      await tx.document.update({ where: { id: approval.documentId }, data: { status: 'APPROVED' } })
+      return 'APPROVED'
+    }
+
+    return 'PENDING_APPROVAL'
   })
+
+  const actionLabel =
+    decision === 'APPROVED' ? 'DOCUMENT_APPROVED'
+    : decision === 'REJECTED' ? 'DOCUMENT_REJECTED'
+    : 'DOCUMENT_OBSERVED'
+
+  await log(
+    { userId: approverId, ip, userAgent },
+    actionLabel,
+    { documentId: approval.documentId, metadata: { approvalId, role: approverRole, decision } }
+  )
+
+  const allApprovals = await prisma.approval.findMany({
+    where: { documentId: approval.documentId },
+    select: { role: true, status: true },
+  })
+  const flowComplete =
+    flow !== undefined &&
+    flow.steps
+      .filter((s) => !s.nonBlocking)
+      .every((s) => allApprovals.some((a) => a.role === s.requiredRole && a.status === 'APPROVED'))
+
+  return { approvalId, documentId: approval.documentId, newDocumentStatus, flowComplete }
 }

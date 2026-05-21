@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/client'
 import AppShell from '@/components/layout/shell'
 import DocumentDetailHeader from '@/components/documents/DocumentDetailHeader'
 import DocumentTimeline from '@/components/documents/DocumentTimeline'
+import FieldConfidenceBadge from '@/components/scanner/FieldConfidenceBadge'
 import Link from 'next/link'
 
 interface Props {
@@ -51,6 +52,14 @@ export default async function DocumentDetailPage({ params }: Props) {
           </Link>
           <span className="text-gray-700">/</span>
           <span className="text-gray-300 text-sm font-mono">{doc.folio}</span>
+          <div className="ml-auto">
+            <Link
+              href={`/documents/${doc.id}/scan`}
+              className="flex items-center gap-1.5 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <span>🔍</span> Escanear
+            </Link>
+          </div>
         </div>
 
         <DocumentDetailHeader
@@ -65,12 +74,22 @@ export default async function DocumentDetailPage({ params }: Props) {
 
         {doc.fields.length > 0 && (
           <section className="mt-6">
-            <h2 className="text-lg font-semibold text-white mb-3">Campos del documento</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-white">Campos del documento</h2>
+              {doc.fields.some((f) => f.confidence !== null && f.confidence < 0.8) && (
+                <span className="text-xs bg-orange-950 text-orange-300 border border-orange-800 px-2 py-1 rounded-full">
+                  ⚠️ Revisión requerida
+                </span>
+              )}
+            </div>
             <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
               {doc.fields.map((field) => (
-                <div key={field.id} className="px-4 py-3 flex justify-between items-start gap-4">
-                  <span className="text-sm text-gray-400">{field.fieldName}</span>
-                  <span className="text-sm text-gray-200 text-right">{field.fieldValue}</span>
+                <div key={field.id} className="px-4 py-3 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500 mb-0.5">{field.fieldName}</p>
+                    <p className="text-sm text-gray-200">{field.fieldValue ?? '—'}</p>
+                  </div>
+                  <FieldConfidenceBadge confidence={field.confidence} size="xs" />
                 </div>
               ))}
             </div>

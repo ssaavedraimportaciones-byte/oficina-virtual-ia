@@ -1,57 +1,86 @@
 import { prisma } from '@/lib/db/client'
-import { validarCampos } from '@/lib/validators'
-import { APROBACIONES_REQUERIDAS } from '@/lib/constants'
-import { puedeCrearDocumento } from '@/lib/permissions'
-import type { DocumentTipo, DocumentEstado } from '@/types/document'
+import { canAccess } from '@/lib/permissions'
 import type { UserRole } from '@/types/user'
+import type { DocumentType, DocumentStatus } from '@/types/document'
 
 export async function crearDocumento(params: {
-  tipo: DocumentTipo
-  faenaId: string
-  area: string
-  fechaTrabajo: Date
-  campos: Record<string, unknown>
-  participantesIds: string[]
-  creadoPorId: string
-  creadoPorRole: UserRole
+  type: DocumentType
+  taskName: string
+  workArea: string
+  companyId: string
+  createdById: string
+  createdByRole: UserRole
+  supervisorId?: string
+  folio: string
 }) {
-  if (!puedeCrearDocumento(params.creadoPorRole)) throw new Error('Sin permiso para crear documentos')
-
-  const validacion = validarCampos(params.tipo, params.campos)
-  if (!validacion.valido) throw new Error(`Campos incompletos: ${validacion.errores.join(', ')}`)
+  if (!canAccess(params.createdByRole, 'documents:create')) {
+    throw new Error('Sin permiso para crear documentos')
+  }
 
   return prisma.document.create({
     data: {
-      tipo: params.tipo,
-      faenaId: params.faenaId,
-      area: params.area,
-      fechaTrabajo: params.fechaTrabajo,
-      campos: params.campos,
-      createdById: params.creadoPorId,
-      aprobacionesRequeridas: APROBACIONES_REQUERIDAS[params.tipo],
-      participantes: { create: params.participantesIds.map(uid => ({ userId: uid })) },
+      folio: params.folio,
+      type: params.type,
+      taskName: params.taskName,
+      workArea: params.workArea,
+      companyId: params.companyId,
+      createdById: params.createdById,
+      status: 'DRAFT',
+      ...(params.supervisorId ? { supervisorId: params.supervisorId } : {}),
     },
-    include: { participantes: true },
   })
 }
 
 export async function listarDocumentos(filtros: {
-  faenaId?: string
-  tipo?: DocumentTipo
-  estado?: DocumentEstado
+  companyId?: string
+  createdById?: string
+  type?: DocumentType
+  status?: DocumentStatus
   limit?: number
 }) {
   return prisma.document.findMany({
     where: {
-      ...(filtros.faenaId && { faenaId: filtros.faenaId }),
-      ...(filtros.tipo && { tipo: filtros.tipo }),
-      ...(filtros.estado && { estado: filtros.estado }),
+      ...(filtros.companyId && { companyId: filtros.companyId }),
+      ...(filtros.createdById && { createdById: filtros.createdById }),
+      ...(filtros.type && { type: filtros.type }),
+      ...(filtros.status && { status: filtros.status }),
     },
     orderBy: { createdAt: 'desc' },
     take: filtros.limit ?? 50,
     include: {
-      createdBy: { select: { nombre: true } },
-      _count: { select: { signatures: true, approvals: true } },
+      createdBy: { select: { name: true } },
     },
+  })
+}
+
+export async function cambiarEstado(params: {
+  documentId: string
+  newStatus: DocumentStatus
+  userId: string
+  userRole: UserRole
+}) {
+  const VALID_TRANSITIONS: Partial<Record<DocumentStatus, DocumentStatus[]>> = {
+    DRAFT:             ['PENDING_SIGNATURE', 'ARCHIVED'],
+    PENDING_SIGNATURE: ['PENDING_APPROVAL', 'OBSERVED'],
+    PENDING_APPROVAL:  ['APPROVED', 'REJECTED', 'OBSERVED'],
+    OBSERVED:          ['DRAFT'],
+    APPROVED:          ['CLOSED', 'ARCHIVED'],
+    REJECTED:          ['DRAFT', 'ARCHIVED'],
+  }
+
+  const doc = await prisma.document.findUnique({
+    where: { id: params.documentId },
+    select: { status: true },
+  })
+  if (!doc) throw new Error('Documento no encontrado')
+
+  const allowed = VALID_TRANSITIONS[doc.status as DocumentStatus] ?? []
+  if (!allowed.includes(params.newStatus)) {
+    throw new Error(`Transición inválida: ${doc.status} → ${params.newStatus}`)
+  }
+
+  return prisma.document.update({
+    where: { id: params.documentId },
+    data: { status: params.newStatus },
   })
 }

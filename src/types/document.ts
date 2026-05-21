@@ -1,22 +1,37 @@
-export type DocumentTipo =
-  | 'CHARLA' | 'DET' | 'ART' | 'AST' | 'PERMISO'
-  | 'LOTO' | 'ALTURA' | 'IZAJE' | 'ESPACIO_CONFINADO'
+export type DocumentType =
+  | 'SAFETY_TALK'
+  | 'DET'
+  | 'ART'
+  | 'AST'
+  | 'WORK_PERMIT'
+  | 'LOTO'
+  | 'HEIGHT_WORK'
+  | 'CONFINED_SPACE'
+  | 'LIFTING_PLAN'
+  | 'EQUIPMENT_CHECKLIST'
+  | 'OTHER'
 
-export type DocumentEstado =
-  | 'BORRADOR' | 'COMPLETADO' | 'FIRMADO' | 'PENDIENTE_APROBACION'
-  | 'APROBADO' | 'RECHAZADO' | 'TIMBRADO' | 'ARCHIVADO'
+export type DocumentStatus =
+  | 'DRAFT'
+  | 'SCANNED'
+  | 'AI_REVIEW'
+  | 'OBSERVED'
+  | 'PENDING_SIGNATURE'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CLOSED'
+  | 'ARCHIVED'
 
-export interface GpsData {
-  lat: number
-  lng: number
-  precision: number
-  status: 'disponible' | 'denegado' | 'no_soportado' | 'timeout'
-}
-
-export interface DocumentTypeConfig {
-  label: string
-  descripcion: string
-  requiereGps: boolean
-  aprobacionesRequeridas: number
-  camposRequeridos: string[]
+export interface DocumentSummary {
+  id: string
+  folio: string
+  type: DocumentType
+  status: DocumentStatus
+  taskName: string
+  workArea: string
+  companyId: string
+  createdById: string
+  createdAt: Date
+  updatedAt: Date
 }

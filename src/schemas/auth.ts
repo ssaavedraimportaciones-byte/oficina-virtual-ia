@@ -2,17 +2,16 @@ import { z } from 'zod'
 
 export const loginSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 })
 
 export const registerSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
-  nombre: z.string().min(2, 'Nombre requerido'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   rut: z.string().min(8, 'RUT inválido'),
-  cargo: z.string().min(2, 'Cargo requerido'),
-  companyId: z.string().optional(),
-  faenaId: z.string().optional(),
+  phone: z.string().optional(),
+  companyId: z.string().cuid('Empresa inválida'),
 })
 
 export type LoginInput = z.infer<typeof loginSchema>

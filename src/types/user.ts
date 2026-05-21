@@ -1,20 +1,25 @@
-export type UserRole = 'TRABAJADOR' | 'SUPERVISOR' | 'PREVENCIONISTA' | 'JEFE_AREA' | 'ADMIN' | 'AUDITOR'
-export type Habilitacion = 'ALTURA' | 'ESPACIO_CONFINADO' | 'IZAJE' | 'LOTO'
-
-export interface UserPublic {
-  id: string
-  nombre: string
-  rut: string
-  cargo: string
-  role: UserRole
-  habilitaciones: Habilitacion[]
-  faenaId: string | null
-  companyId: string | null
-}
+export type UserRole =
+  | 'WORKER'
+  | 'SUPERVISOR'
+  | 'PREVENTIONIST'
+  | 'CONTRACT_ADMIN'
+  | 'MANAGER'
+  | 'AUDITOR'
+  | 'SYSTEM_ADMIN'
 
 export interface TokenPayload {
   uid: string
   email: string
+  name: string
   role: string
-  faenaId: string
+  companyId: string
+}
+
+export interface AuthUser {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+  companyId: string
+  isActive: boolean
 }

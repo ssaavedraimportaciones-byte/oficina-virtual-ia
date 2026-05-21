@@ -1,0 +1,120 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { prisma } from '@/lib/db/client'
+import { log } from '@/modules/audit'
+import { requirePermission, requireAuth, getIp } from '@/app/api/_lib/auth-middleware'
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  DRAFT:             ['PENDING_SIGNATURE', 'ARCHIVED'],
+  PENDING_SIGNATURE: ['PENDING_APPROVAL', 'OBSERVED'],
+  PENDING_APPROVAL:  ['APPROVED', 'REJECTED', 'OBSERVED'],
+  OBSERVED:          ['DRAFT'],
+  APPROVED:          ['CLOSED', 'ARCHIVED'],
+  REJECTED:          ['DRAFT', 'ARCHIVED'],
+}
+
+const patchSchema = z.object({
+  status: z.string().optional(),
+  taskName: z.string().min(3).optional(),
+  workArea: z.string().min(2).optional(),
+})
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const result = requireAuth(req)
+  if ('error' in result) return result.error
+
+  const { user } = result
+
+  const doc = await prisma.document.findUnique({
+    where: { id: params.id },
+    include: {
+      createdBy: { select: { name: true, role: true } },
+      supervisor: { select: { name: true } },
+      fields: true,
+      auditLogs: {
+        orderBy: { createdAt: 'asc' },
+        include: { user: { select: { name: true, role: true } } },
+        take: 100,
+      },
+    },
+  })
+
+  if (!doc) {
+    return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
+  }
+
+  if (
+    user.role === 'WORKER' &&
+    doc.createdById !== user.uid
+  ) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  await log(
+    { userId: user.uid, ip: getIp(req), userAgent: req.headers.get('user-agent') ?? '' },
+    'READ',
+    { documentId: doc.id, metadata: { folio: doc.folio } }
+  )
+
+  return NextResponse.json({ document: doc })
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const result = requireAuth(req)
+  if ('error' in result) return result.error
+
+  const { user } = result
+  const body = await req.json()
+  const parsed = patchSchema.safeParse(body)
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const doc = await prisma.document.findUnique({
+    where: { id: params.id },
+    select: { id: true, status: true, folio: true, createdById: true, companyId: true },
+  })
+
+  if (!doc) {
+    return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
+  }
+
+  if (user.role === 'WORKER' && doc.createdById !== user.uid) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const updates: Record<string, unknown> = {}
+  const meta: Record<string, unknown> = {}
+
+  if (parsed.data.status) {
+    const allowed = VALID_TRANSITIONS[doc.status] ?? []
+    if (!allowed.includes(parsed.data.status)) {
+      return NextResponse.json(
+        { error: `Transición inválida: ${doc.status} → ${parsed.data.status}` },
+        { status: 422 }
+      )
+    }
+    updates.status = parsed.data.status
+    meta.previousStatus = doc.status
+    meta.newStatus = parsed.data.status
+  }
+
+  if (parsed.data.taskName) updates.taskName = parsed.data.taskName
+  if (parsed.data.workArea) updates.workArea = parsed.data.workArea
+
+  const updated = await prisma.document.update({
+    where: { id: params.id },
+    data: updates,
+    select: { id: true, folio: true, status: true, updatedAt: true },
+  })
+
+  const action = parsed.data.status ? 'STATUS_CHANGE' : 'UPDATE'
+  await log(
+    { userId: user.uid, ip: getIp(req), userAgent: req.headers.get('user-agent') ?? '' },
+    action,
+    { documentId: doc.id, metadata: { folio: doc.folio, ...meta } }
+  )
+
+  return NextResponse.json({ document: updated })
+}

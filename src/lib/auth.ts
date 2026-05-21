@@ -2,12 +2,10 @@ import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
 import type { TokenPayload } from '@/types/user'
 
-const ACCESS_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? 'dev-secret-change-in-production-min-64-chars'
-)
-const REFRESH_SECRET = new TextEncoder().encode(
-  process.env.JWT_REFRESH_SECRET ?? 'dev-refresh-change-in-production-min-64-chars'
-)
+const secret = () =>
+  new TextEncoder().encode(
+    process.env.JWT_SECRET ?? 'dev-secret-change-in-production-min-64-chars'
+  )
 
 export const hashPassword = (plain: string) => bcrypt.hash(plain, 12)
 export const verifyPassword = (plain: string, hash: string) => bcrypt.compare(plain, hash)
@@ -17,7 +15,7 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('15m')
-    .sign(ACCESS_SECRET)
+    .sign(await secret())
 }
 
 export async function signRefreshToken(uid: string): Promise<string> {
@@ -25,15 +23,15 @@ export async function signRefreshToken(uid: string): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')
-    .sign(REFRESH_SECRET)
+    .sign(await secret())
 }
 
 export async function verifyAccessToken(token: string): Promise<TokenPayload> {
-  const { payload } = await jwtVerify(token, ACCESS_SECRET)
+  const { payload } = await jwtVerify(token, await secret())
   return payload as unknown as TokenPayload
 }
 
 export async function verifyRefreshToken(token: string): Promise<{ uid: string }> {
-  const { payload } = await jwtVerify(token, REFRESH_SECRET)
+  const { payload } = await jwtVerify(token, await secret())
   return payload as { uid: string }
 }

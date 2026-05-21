@@ -38,8 +38,9 @@ export default async function DocumentDetailPage({ params }: Props) {
         orderBy: { createdAt: 'asc' },
         include: { user: { select: { name: true, role: true } } },
       },
-      fields: { orderBy: { createdAt: 'asc' } },
+      fields: { orderBy: { fieldName: 'asc' } },
     },
+    // finalPdfUrl and qrCode are scalar fields included automatically
   })
 
   if (!doc) notFound()
@@ -62,7 +63,25 @@ export default async function DocumentDetailPage({ params }: Props) {
           </Link>
           <span className="text-gray-700">/</span>
           <span className="text-gray-300 text-sm font-mono">{doc.folio}</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {doc.finalPdfUrl && (
+              <a
+                href={doc.finalPdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm bg-green-900 hover:bg-green-800 text-green-300 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                📄 PDF
+              </a>
+            )}
+            {doc.qrCode && (
+              <Link
+                href={`/verify/${doc.qrCode}`}
+                className="flex items-center gap-1.5 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                🔗 Verificar
+              </Link>
+            )}
             <Link
               href={`/documents/${doc.id}/scan`}
               className="flex items-center gap-1.5 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg transition-colors"

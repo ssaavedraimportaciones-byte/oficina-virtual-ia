@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { canAccess } from '@/lib/permissions'
 import { getFlowForDocumentType } from './flows'
+import { generateFinalPdf } from '@/modules/pdf'
 import type {
   ApprovalFlow,
   ApprovalResult,
@@ -66,7 +67,7 @@ export async function createApprovalFlow(
       where: { id: documentId },
       data: {
         status: 'PENDING_APPROVAL',
-        validationResult: { ...currentValidation, approvalFlow: flow },
+        validationResult: JSON.parse(JSON.stringify({ ...currentValidation, approvalFlow: flow })),
       },
     })
   })
@@ -360,6 +361,13 @@ async function _recordDecision(params: {
     flow.steps
       .filter((s) => !s.nonBlocking)
       .every((s) => allApprovals.some((a) => a.role === s.requiredRole && a.status === 'APPROVED'))
+
+  // Auto-generate final PDF when document reaches APPROVED
+  if (newDocumentStatus === 'APPROVED') {
+    generateFinalPdf(approval.documentId, approverId, ip).catch((err) =>
+      console.error('[approvals] PDF generation failed:', err)
+    )
+  }
 
   return { approvalId, documentId: approval.documentId, newDocumentStatus, flowComplete }
 }

@@ -3,6 +3,7 @@ import { log } from '@/modules/audit'
 import { canAccess } from '@/lib/permissions'
 import { getFlowForDocumentType } from './flows'
 import { generateFinalPdf } from '@/modules/pdf'
+import { notify } from '@/modules/notifications'
 import type {
   ApprovalFlow,
   ApprovalResult,
@@ -32,6 +33,9 @@ export async function createApprovalFlow(
     select: {
       status: true,
       type: true,
+      folio: true,
+      taskName: true,
+      workArea: true,
       validationResult: true,
       createdById: true,
     },
@@ -77,6 +81,19 @@ export async function createApprovalFlow(
     'APPROVAL_FLOW_STARTED',
     { documentId, metadata: { flowType: flow.flowType, steps: flow.steps.length } }
   )
+
+  const initiator = await prisma.user.findUnique({ where: { id: initiatorId }, select: { name: true } })
+  notify(
+    {
+      event: 'DOCUMENT_PENDING_APPROVAL',
+      documentId,
+      folio: doc.folio,
+      taskName: doc.taskName,
+      workArea: doc.workArea,
+      initiatorName: initiator?.name ?? 'Usuario',
+    },
+    { excludeIds: [initiatorId] }
+  ).catch((err) => console.error('[notifications] DOCUMENT_PENDING_APPROVAL failed:', err))
 
   return flow
 }
@@ -260,6 +277,9 @@ async function _recordDecision(params: {
           id: true,
           status: true,
           type: true,
+          folio: true,
+          taskName: true,
+          workArea: true,
           validationResult: true,
           approvals: {
             select: { id: true, role: true, status: true, approverId: true },
@@ -367,6 +387,30 @@ async function _recordDecision(params: {
     generateFinalPdf(approval.documentId, approverId, ip).catch((err) =>
       console.error('[approvals] PDF generation failed:', err)
     )
+  }
+
+  // Send notifications — fire-and-forget, never blocks approval
+  const approver = await prisma.user.findUnique({ where: { id: approverId }, select: { name: true } })
+  const approverName = approver?.name ?? 'Aprobador'
+  const notifEvent =
+    newDocumentStatus === 'APPROVED' ? 'DOCUMENT_APPROVED'
+    : newDocumentStatus === 'REJECTED' ? 'DOCUMENT_REJECTED'
+    : newDocumentStatus === 'OBSERVED' ? 'DOCUMENT_OBSERVED'
+    : null
+
+  if (notifEvent) {
+    notify(
+      {
+        event: notifEvent,
+        documentId: approval.documentId,
+        folio: approval.document.folio,
+        taskName: approval.document.taskName,
+        workArea: approval.document.workArea,
+        initiatorName: approverName,
+        comment,
+      },
+      { excludeIds: [approverId] }
+    ).catch((err) => console.error(`[notifications] ${notifEvent} failed:`, err))
   }
 
   return { approvalId, documentId: approval.documentId, newDocumentStatus, flowComplete }

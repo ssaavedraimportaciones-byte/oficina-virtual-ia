@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { requirePermission, getIp } from '@/app/api/_lib/auth-middleware'
+import { notify } from '@/modules/notifications'
 
 const createSchema = z.object({
   type: z.enum([
@@ -102,6 +103,19 @@ export async function POST(req: NextRequest) {
     'CREATE',
     { documentId: document.id, metadata: { folio, type, taskName, saveDraft: !!saveDraft } }
   )
+
+  const creator = await prisma.user.findUnique({ where: { id: user.uid }, select: { name: true } })
+  notify(
+    {
+      event: 'DOCUMENT_CREATED',
+      documentId: document.id,
+      folio: document.folio,
+      taskName: document.taskName,
+      workArea: document.workArea,
+      initiatorName: creator?.name ?? 'Usuario',
+    },
+    { excludeIds: [user.uid] }
+  ).catch((err) => console.error('[notifications] DOCUMENT_CREATED failed:', err))
 
   return NextResponse.json({ document }, { status: 201 })
 }

@@ -9,6 +9,7 @@ import {
   logSignatureMetadata,
 } from '@/modules/signatures'
 import type { SigningMethod } from '@/modules/signatures'
+import { notify } from '@/modules/notifications'
 import bcrypt from 'bcryptjs'
 import { SignJWT, jwtVerify } from 'jose'
 
@@ -146,6 +147,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     gpsLat,
     gpsLng,
   })
+
+  // Notify supervisors/preventionists that a signature was added
+  const [signer, doc] = await Promise.all([
+    prisma.user.findUnique({ where: { id: user.uid }, select: { name: true } }),
+    prisma.document.findUnique({
+      where: { id: params.id },
+      select: { folio: true, taskName: true, workArea: true },
+    }),
+  ])
+  if (doc) {
+    notify(
+      {
+        event: 'DOCUMENT_PENDING_SIGNATURE',
+        documentId: params.id,
+        folio: doc.folio,
+        taskName: doc.taskName,
+        workArea: doc.workArea,
+        initiatorName: signer?.name ?? 'Firmante',
+      },
+      { excludeIds: [user.uid] }
+    ).catch((err) => console.error('[notifications] DOCUMENT_PENDING_SIGNATURE failed:', err))
+  }
 
   return NextResponse.json({ ok: true, signature: saved }, { status: 201 })
 }

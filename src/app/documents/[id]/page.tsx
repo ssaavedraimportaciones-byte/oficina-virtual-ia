@@ -9,6 +9,7 @@ import ValidationResultPanel from '@/components/documents/ValidationResultPanel'
 import RequiredSignaturesStatus from '@/components/signatures/RequiredSignaturesStatus'
 import ApprovalSection from '@/components/approvals/ApprovalSection'
 import FieldConfidenceBadge from '@/components/scanner/FieldConfidenceBadge'
+import FailedNotificationsAlert from '@/components/notifications/FailedNotificationsAlert'
 import type { EvaluationResult } from '@/modules/rules-engine'
 import Link from 'next/link'
 
@@ -143,6 +144,8 @@ export default async function DocumentDetailPage({ params }: Props) {
         />
 
         <AIClassificationPanel documentId={doc.id} />
+
+        <FailedNotificationsAlert documentId={doc.id} />
 
         <section className="mt-6">
           <h2 className="text-lg font-semibold text-white mb-3">Historial de actividad</h2>

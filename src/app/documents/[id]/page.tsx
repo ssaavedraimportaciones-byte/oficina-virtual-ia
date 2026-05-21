@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function DocumentDetailPage({ params }: Props) {
-  const h = headers()
+  const h = await headers()
   const userId = h.get('x-user-id') ?? ''
   const userRole = h.get('x-user-role') ?? 'WORKER'
 

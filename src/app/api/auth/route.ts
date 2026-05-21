@@ -15,8 +15,8 @@ const COOKIE_OPTS = {
   path: '/',
 }
 
-function setCookies(access: string, refresh: string) {
-  const jar = cookies()
+async function setCookies(access: string, refresh: string) {
+  const jar = await cookies()
   jar.set('access_token', access, { ...COOKIE_OPTS, maxAge: 60 * 15 })
   jar.set('refresh_token', refresh, { ...COOKIE_OPTS, maxAge: 60 * 60 * 24 * 30 })
 }
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
       }
       const { access, refresh, user } = await loginUser(parsed.data.email, parsed.data.password)
-      setCookies(access, refresh)
+      await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'LOGIN', {
         metadata: { email: user.email, role: user.role },
       })
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'logout') {
-      const jar = cookies()
+      const jar = await cookies()
       const refreshToken = jar.get('refresh_token')?.value
       if (refreshToken) {
         const uid = req.headers.get('x-user-id')
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'refresh') {
-      const jar = cookies()
+      const jar = await cookies()
       const refreshToken = jar.get('refresh_token')?.value
       if (!refreshToken) {
         return NextResponse.json({ error: 'No refresh token' }, { status: 401 })
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         companyId: user.companyId,
       }
       const newAccess = await signAccessToken(payload)
-      const jar2 = cookies()
+      const jar2 = await cookies()
       jar2.set('access_token', newAccess, { ...COOKIE_OPTS, maxAge: 60 * 15 })
       return NextResponse.json({ ok: true })
     }
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
       }
       const { access, refresh, user } = await registerUser(parsed.data)
-      setCookies(access, refresh)
+      await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'CREATE', {
         metadata: { email: user.email, action: 'REGISTER' },
       })

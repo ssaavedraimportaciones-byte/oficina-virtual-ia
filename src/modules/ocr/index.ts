@@ -2,6 +2,12 @@ import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { storeFile, ACCEPTED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from './storage'
 import { runAzureOCR } from './azure'
+import { runMockOCR } from './mock'
+
+const AZURE_CONFIGURED = !!(
+  process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT &&
+  process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY
+)
 import type { OCRResult, OCRField, OCRTable, SignatureRegion, FieldConflict } from './types'
 import { CONFIDENCE_THRESHOLD } from './types'
 
@@ -61,7 +67,9 @@ export async function runOCR(params: {
 }): Promise<OCRResult> {
   const { buffer, mimeType, documentId, userId, ip, userAgent } = params
 
-  const result = await runAzureOCR(buffer, mimeType)
+  const result = AZURE_CONFIGURED
+    ? await runAzureOCR(buffer, mimeType)
+    : runMockOCR(buffer, mimeType)
 
   await prisma.document.update({
     where: { id: documentId },

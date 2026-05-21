@@ -35,7 +35,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 }
 
 export default async function ApprovalsPage() {
-  const h = headers()
+  const h = await headers()
   const userId = h.get('x-user-id') ?? ''
   const role = (h.get('x-user-role') ?? 'WORKER') as UserRole
 

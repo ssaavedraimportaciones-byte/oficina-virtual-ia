@@ -5,6 +5,7 @@ import DocumentDetailHeader from '@/components/documents/DocumentDetailHeader'
 import DocumentTimeline from '@/components/documents/DocumentTimeline'
 import AIClassificationPanel from '@/components/documents/AIClassificationPanel'
 import ValidationResultPanel from '@/components/documents/ValidationResultPanel'
+import RequiredSignaturesStatus from '@/components/signatures/RequiredSignaturesStatus'
 import FieldConfidenceBadge from '@/components/scanner/FieldConfidenceBadge'
 import type { EvaluationResult } from '@/modules/rules-engine'
 import Link from 'next/link'
@@ -102,6 +103,11 @@ export default async function DocumentDetailPage({ params }: Props) {
         <ValidationResultPanel
           documentId={doc.id}
           initialResult={doc.validationResult as EvaluationResult | null}
+        />
+
+        <RequiredSignaturesStatus
+          documentId={doc.id}
+          documentStatus={doc.status}
         />
 
         <AIClassificationPanel documentId={doc.id} />

@@ -20,6 +20,7 @@
     "db:seed": "prisma db seed"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.97.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",

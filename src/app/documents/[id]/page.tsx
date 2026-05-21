@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/client'
 import AppShell from '@/components/layout/shell'
 import DocumentDetailHeader from '@/components/documents/DocumentDetailHeader'
 import DocumentTimeline from '@/components/documents/DocumentTimeline'
+import AIClassificationPanel from '@/components/documents/AIClassificationPanel'
 import FieldConfidenceBadge from '@/components/scanner/FieldConfidenceBadge'
 import Link from 'next/link'
 
@@ -95,6 +96,8 @@ export default async function DocumentDetailPage({ params }: Props) {
             </div>
           </section>
         )}
+
+        <AIClassificationPanel documentId={doc.id} />
 
         <section className="mt-6">
           <h2 className="text-lg font-semibold text-white mb-3">Historial de actividad</h2>

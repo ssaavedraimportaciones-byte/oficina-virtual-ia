@@ -166,7 +166,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         workArea: doc.workArea,
         initiatorName: signer?.name ?? 'Firmante',
       },
-      { excludeIds: [user.uid] }
+      {
+        excludeIds: [user.uid],
+        auditCtx: { userId: user.uid, ip, userAgent },
+      }
     ).catch((err) => console.error('[notifications] DOCUMENT_PENDING_SIGNATURE failed:', err))
   }
 

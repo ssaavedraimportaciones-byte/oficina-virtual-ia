@@ -7,6 +7,8 @@ import {
   generateInitialObservations,
   type DocumentType,
 } from '@/modules/ai-validation'
+import { log } from '@/modules/audit'
+import { requireAuth, getIp } from '@/app/api/_lib/auth-middleware'
 
 interface Params {
   params: { id: string }
@@ -14,6 +16,10 @@ interface Params {
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { id } = params
+  const auth = requireAuth(req)
+  const actor = 'user' in auth ? auth.user : null
+  const ip = getIp(req)
+  const ua = req.headers.get('user-agent') ?? ''
 
   try {
     const doc = await prisma.document.findUnique({
@@ -54,11 +60,23 @@ export async function POST(req: NextRequest, { params }: Params) {
     const observations = await generateInitialObservations(result)
     result.observations = observations
 
-    return NextResponse.json({
-      ok: true,
-      documentId: id,
-      classification: result,
-    })
+    if (actor) {
+      await log(
+        { userId: actor.uid, ip, userAgent: ua },
+        'AI_CLASSIFICATION_EXECUTED',
+        {
+          documentId: id,
+          metadata: {
+            documentType: result.documentType,
+            confidence: result.confidence,
+            missingFields: result.missingFields,
+            forced: !!forceType,
+          },
+        }
+      )
+    }
+
+    return NextResponse.json({ ok: true, documentId: id, classification: result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error al clasificar el documento'
     console.error('[classify]', err)

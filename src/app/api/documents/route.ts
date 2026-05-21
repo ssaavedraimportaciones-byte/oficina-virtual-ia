@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
   await log(
     { userId: user.uid, ip: getIp(req), userAgent: req.headers.get('user-agent') ?? '' },
-    'CREATE',
+    'DOCUMENT_CREATED',
     { documentId: document.id, metadata: { folio, type, taskName, saveDraft: !!saveDraft } }
   )
 
@@ -114,7 +114,10 @@ export async function POST(req: NextRequest) {
       workArea: document.workArea,
       initiatorName: creator?.name ?? 'Usuario',
     },
-    { excludeIds: [user.uid] }
+    {
+      excludeIds: [user.uid],
+      auditCtx: { userId: user.uid, ip: getIp(req), userAgent: req.headers.get('user-agent') ?? '' },
+    }
   ).catch((err) => console.error('[notifications] DOCUMENT_CREATED failed:', err))
 
   return NextResponse.json({ document }, { status: 201 })

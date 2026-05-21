@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
 import { buildRuleContext, evaluateRules } from '@/modules/rules-engine'
+import { log } from '@/modules/audit'
+import { requireAuth, getIp } from '@/app/api/_lib/auth-middleware'
 import type { DocumentStatus } from '@/types/document'
 
 interface Params {
@@ -9,6 +11,10 @@ interface Params {
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { id } = params
+  const auth = requireAuth(req)
+  const actor = 'user' in auth ? auth.user : null
+  const ip = getIp(req)
+  const ua = req.headers.get('user-agent') ?? ''
 
   try {
     const doc = await prisma.document.findUnique({
@@ -57,11 +63,24 @@ export async function POST(req: NextRequest, { params }: Params) {
       },
     })
 
-    return NextResponse.json({
-      ok: true,
-      documentId: id,
-      validation: result,
-    })
+    if (actor) {
+      await log(
+        { userId: actor.uid, ip, userAgent: ua },
+        'RULES_VALIDATED',
+        {
+          documentId: id,
+          metadata: {
+            passed: result.passed,
+            statusRecommendation: result.statusRecommendation,
+            blockingIssues: result.blockingIssues,
+            warnings: result.warnings,
+            rulesEvaluated: result.ruleResults?.length ?? 0,
+          },
+        }
+      )
+    }
+
+    return NextResponse.json({ ok: true, documentId: id, validation: result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error al validar el documento'
     console.error('[validate]', err)

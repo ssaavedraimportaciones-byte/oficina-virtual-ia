@@ -7,6 +7,7 @@ import {
   extractFields,
   persistFields,
 } from '@/modules/ocr'
+import { log } from '@/modules/audit'
 
 // POST /api/documents/[id]/scan
 // Accepts multipart/form-data with:
@@ -88,6 +89,29 @@ export async function POST(
       userAgent: ua,
       forceOverwrite,
     })
+
+    await log(
+      { userId: user.uid, ip, userAgent: ua },
+      'DOCUMENT_SCANNED',
+      {
+        documentId: params.id,
+        metadata: { fileName: file.name, mimeType: file.type, fileSize: buffer.length, storageUrl: uploaded.storageUrl },
+      }
+    )
+    await log(
+      { userId: user.uid, ip, userAgent: ua },
+      'OCR_EXECUTED',
+      {
+        documentId: params.id,
+        metadata: {
+          averageConfidence: ocrResult.averageConfidence,
+          pageCount: ocrResult.pageCount,
+          fieldsExtracted: fields.length,
+          requiresHumanReview: ocrResult.requiresHumanReview,
+          conflicts: conflicts.length,
+        },
+      }
+    )
 
     return NextResponse.json({
       ok: true,

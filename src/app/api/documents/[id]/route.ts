@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   await log(
     { userId: user.uid, ip: getIp(req), userAgent: req.headers.get('user-agent') ?? '' },
-    'READ',
+    'DOCUMENT_READ',
     { documentId: doc.id, metadata: { folio: doc.folio } }
   )
 
@@ -109,7 +109,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     select: { id: true, folio: true, status: true, updatedAt: true },
   })
 
-  const action = parsed.data.status ? 'STATUS_CHANGE' : 'UPDATE'
+  let action: import('@/modules/audit').AuditAction = 'DOCUMENT_EDITED'
+  if (parsed.data.status === 'CLOSED')    action = 'DOCUMENT_CLOSED'
+  else if (parsed.data.status === 'ARCHIVED')  action = 'DOCUMENT_ARCHIVED'
+  else if (parsed.data.status === 'APPROVED')  action = 'DOCUMENT_APPROVED'
+  else if (parsed.data.status === 'REJECTED')  action = 'DOCUMENT_REJECTED'
+  else if (parsed.data.status === 'OBSERVED')  action = 'DOCUMENT_OBSERVED'
+  else if (parsed.data.status)                 action = 'DOCUMENT_EDITED'
+
   await log(
     { userId: user.uid, ip: getIp(req), userAgent: req.headers.get('user-agent') ?? '' },
     action,

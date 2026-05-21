@@ -3,6 +3,8 @@ import { sendEmail } from './channels/email'
 import { sendWhatsAppText, isWhatsAppConfigured } from './channels/whatsapp'
 import { renderTemplate } from './templates'
 import { getRecipientsForEvent } from './recipients'
+import { log } from '@/modules/audit'
+import type { AuditCtx } from '@/modules/audit'
 import type {
   NotificationEvent,
   NotificationPayload,
@@ -90,7 +92,7 @@ export async function sendNotification(
  */
 export async function notify(
   payload: NotificationPayload,
-  options: { excludeIds?: string[] } = {}
+  options: { excludeIds?: string[]; auditCtx?: AuditCtx } = {}
 ): Promise<SendResult[]> {
   const recipients = await getRecipientsForEvent(
     payload.event,
@@ -154,6 +156,23 @@ export async function notify(
 
     // IN_APP notification (DB-only, always succeeds)
     await sendNotification(payload, recipient, 'IN_APP')
+  }
+
+  if (options.auditCtx) {
+    const failed = results.filter((r) => !r.success)
+    const sent   = results.filter((r) => r.success)
+    if (sent.length > 0) {
+      await log(options.auditCtx, 'NOTIFICATION_SENT', {
+        documentId: payload.documentId,
+        metadata: { event: payload.event, folio: payload.folio, recipientCount: sent.length },
+      })
+    }
+    for (const f of failed) {
+      await log(options.auditCtx, 'NOTIFICATION_FAILED', {
+        documentId: payload.documentId,
+        metadata: { event: payload.event, folio: payload.folio, channel: f.channel, error: f.error },
+      })
+    }
   }
 
   return results

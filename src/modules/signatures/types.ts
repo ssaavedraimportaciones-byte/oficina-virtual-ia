@@ -1,11 +1,13 @@
-export type SigningMethod = 'CANVAS' | 'PIN' | 'QR' | 'CONFIRMED'
+export type SigningMethod = 'CANVAS' | 'PIN' | 'QR'
 
 export interface SignaturePayload {
   documentId: string
   userId: string
   method: SigningMethod
-  /** Base-64 PNG data URL (canvas) or stored image URL (HANDWRITTEN) */
+  /** PNG data URL — always a real canvas capture */
   imageData: string
+  signatureImageHash: string
+  documentHashAtSigning: string
   ip?: string
   userAgent?: string
   gpsLat?: number
@@ -29,6 +31,8 @@ export interface SavedSignature {
   gpsLat: number | null
   gpsLng: number | null
   hash: string
+  signatureImageHash: string
+  documentHashAtSigning: string
 }
 
 export interface QRSignToken {

@@ -7,19 +7,23 @@ import {
   saveSignature,
   attachSignatureToDocument,
   logSignatureMetadata,
+  validateSignatureImage,
+  hashSignatureImage,
+  buildDocumentSnapshot,
+  hashDocumentSnapshot,
 } from '@/modules/signatures'
 import type { SigningMethod } from '@/modules/signatures'
+import { log } from '@/modules/audit'
 import { notify } from '@/modules/notifications'
 import bcrypt from 'bcryptjs'
-import { SignJWT, jwtVerify } from 'jose'
+import { jwtVerify } from 'jose'
+import { JWT_SECRET } from '@/lib/env'
 
-const QR_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? 'qr-signing-fallback-secret-32ch'
-)
+const QR_SECRET = new TextEncoder().encode(JWT_SECRET)
 
 const postSchema = z.object({
-  method: z.enum(['CANVAS', 'PIN', 'QR', 'CONFIRMED']),
-  imageData: z.string().optional(),
+  method: z.enum(['CANVAS', 'PIN', 'QR']),
+  signatureImageBase64: z.string().min(1, 'La imagen de firma es obligatoria'),
   pin: z.string().optional(),
   qrToken: z.string().optional(),
   gpsLat: z.number().optional(),
@@ -39,17 +43,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
 
   return NextResponse.json({
-    signatures: sigs.map((s) => ({
-      id: s.id,
-      userId: s.userId,
-      userName: s.user.name,
-      userRole: s.user.role,
-      method: (s.deviceInfo as Record<string, string> | null)?.subMethod ?? s.method,
-      signedAt: s.signedAt.toISOString(),
-      gpsLat: s.gpsLat,
-      gpsLng: s.gpsLng,
-      hash: (s.deviceInfo as Record<string, string> | null)?.hash ?? null,
-    })),
+    signatures: sigs.map((s) => {
+      const di = (s.deviceInfo as Record<string, string> | null) ?? {}
+      return {
+        id: s.id,
+        userId: s.userId,
+        userName: s.user.name,
+        userRole: s.user.role,
+        method: di.subMethod ?? s.method,
+        signedAt: s.signedAt.toISOString(),
+        gpsLat: s.gpsLat,
+        gpsLng: s.gpsLng,
+        hash: di.hash ?? null,
+        signatureImageHash: di.signatureImageHash ?? null,
+        documentHashAtSigning: di.documentHashAtSigning ?? null,
+        signatureImageUrl: s.signatureImageUrl,
+      }
+    }),
   })
 }
 
@@ -68,28 +78,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }, { status: 400 })
   }
 
-  const { method, gpsLat, gpsLng } = parsed.data
+  const { method, signatureImageBase64, gpsLat, gpsLng } = parsed.data
   const ip = getIp(req)
   const userAgent = req.headers.get('user-agent') ?? undefined
 
-  // ── Validate signer ────────────────────────────────────────────────────────
+  // ── 1. Validate signer ─────────────────────────────────────────────────────
   const validation = await validateSigner(user.uid, user.role, params.id)
   if (!validation.allowed) {
     return NextResponse.json({ error: validation.reason }, { status: 403 })
   }
 
-  // ── Method-specific auth ───────────────────────────────────────────────────
-  let imageData: string
+  // ── 2. Validate canvas image (same for ALL methods) ────────────────────────
+  let imageBuffer: Buffer
+  try {
+    imageBuffer = validateSignatureImage(signatureImageBase64)
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'Imagen inválida'
+    await log(
+      { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
+      'DOCUMENT_SIGNED',
+      {
+        documentId: params.id,
+        metadata: { blocked: true, reason: 'missing_canvas_signature', method, detail: reason },
+      }
+    )
+    return NextResponse.json({ error: reason }, { status: 400 })
+  }
 
-  if (method === 'CANVAS') {
-    if (!parsed.data.imageData?.startsWith('data:image/')) {
-      return NextResponse.json({ error: 'Imagen de firma requerida para método canvas' }, { status: 400 })
-    }
-    imageData = parsed.data.imageData
+  const signatureImageHash = hashSignatureImage(imageBuffer)
 
-  } else if (method === 'PIN') {
+  // ── 3. Method-specific credential validation ───────────────────────────────
+  if (method === 'PIN') {
     if (!parsed.data.pin) {
-      return NextResponse.json({ error: 'PIN requerido' }, { status: 400 })
+      return NextResponse.json({ error: 'PIN requerido para método PIN' }, { status: 400 })
     }
     const dbUser = await prisma.user.findUnique({
       where: { id: user.uid },
@@ -99,35 +120,71 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const pinOk = await bcrypt.compare(parsed.data.pin, dbUser.passwordHash)
     if (!pinOk) {
+      await log(
+        { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
+        'DOCUMENT_SIGNED',
+        {
+          documentId: params.id,
+          metadata: { blocked: true, reason: 'invalid_pin', method },
+        }
+      )
       return NextResponse.json({ error: 'PIN incorrecto' }, { status: 401 })
     }
-    imageData = buildPinPlaceholder(user.name)
+  }
 
-  } else if (method === 'QR') {
+  if (method === 'QR') {
     if (!parsed.data.qrToken) {
-      return NextResponse.json({ error: 'Token QR requerido' }, { status: 400 })
+      return NextResponse.json({ error: 'Token QR requerido para método QR' }, { status: 400 })
     }
     try {
       const { payload } = await jwtVerify(parsed.data.qrToken, QR_SECRET)
       if (payload.documentId !== params.id || payload.userId !== user.uid) {
-        return NextResponse.json({ error: 'Token QR inválido para este documento/usuario' }, { status: 401 })
+        throw new Error('Token no coincide con documento/usuario')
       }
     } catch {
+      await log(
+        { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
+        'DOCUMENT_SIGNED',
+        {
+          documentId: params.id,
+          metadata: { blocked: true, reason: 'invalid_qr', method },
+        }
+      )
       return NextResponse.json({ error: 'Token QR inválido o expirado' }, { status: 401 })
     }
-    imageData = buildQrPlaceholder(user.name)
-
-  } else {
-    // CONFIRMED — logged-in user clicks "Confirmar firma"
-    imageData = buildConfirmedPlaceholder(user.name)
   }
 
-  // ── Save & attach ──────────────────────────────────────────────────────────
+  // ── 4. Build document snapshot hash ───────────────────────────────────────
+  const docSnap = await prisma.document.findUnique({
+    where: { id: params.id },
+    select: {
+      id: true,
+      folio: true,
+      type: true,
+      status: true,
+      taskName: true,
+      workArea: true,
+      companyId: true,
+      createdById: true,
+      fields: {
+        select: { fieldName: true, fieldValue: true },
+        orderBy: { fieldName: 'asc' },
+      },
+    },
+  })
+  if (!docSnap) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
+
+  const snapshot = buildDocumentSnapshot(docSnap)
+  const documentHashAtSigning = hashDocumentSnapshot(snapshot)
+
+  // ── 5. Save & audit ────────────────────────────────────────────────────────
   const saved = await saveSignature({
     documentId: params.id,
     userId: user.uid,
     method: method as SigningMethod,
-    imageData,
+    imageData: signatureImageBase64,
+    signatureImageHash,
+    documentHashAtSigning,
     ip,
     userAgent,
     gpsLat,
@@ -142,13 +199,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     signatureId: saved.id,
     method: method as SigningMethod,
     hash: saved.hash,
+    signatureImageHash,
+    documentHashAtSigning,
     ip,
     userAgent,
     gpsLat,
     gpsLng,
   })
 
-  // Notify supervisors/preventionists that a signature was added
+  // Notify — fire-and-forget
   const [signer, doc] = await Promise.all([
     prisma.user.findUnique({ where: { id: user.uid }, select: { name: true } }),
     prisma.document.findUnique({
@@ -166,57 +225,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         workArea: doc.workArea,
         initiatorName: signer?.name ?? 'Firmante',
       },
-      {
-        excludeIds: [user.uid],
-        auditCtx: { userId: user.uid, ip, userAgent },
-      }
+      { excludeIds: [user.uid], auditCtx: { userId: user.uid, ip, userAgent } }
     ).catch((err) => console.error('[notifications] DOCUMENT_PENDING_SIGNATURE failed:', err))
   }
 
   return NextResponse.json({ ok: true, signature: saved }, { status: 201 })
-}
-
-// ── GET /api/documents/[id]/signatures/qr-token ────────────────────────────
-// Exposed as a sub-path via a separate route file (see qr-token/route.ts).
-
-// ── SVG placeholder builders ──────────────────────────────────────────────────
-
-function svgToDataUrl(svg: string): string {
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
-}
-
-function buildPinPlaceholder(name: string): string {
-  return svgToDataUrl(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80">
-      <rect width="300" height="80" fill="#1a1a2e"/>
-      <text x="150" y="28" font-family="monospace" font-size="11" fill="#6b7280" text-anchor="middle">Firma verificada por PIN</text>
-      <text x="150" y="56" font-family="serif" font-size="22" fill="#e5e7eb" text-anchor="middle" font-style="italic">${escSvg(name)}</text>
-    </svg>`
-  )
-}
-
-function buildQrPlaceholder(name: string): string {
-  return svgToDataUrl(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80">
-      <rect width="300" height="80" fill="#0f172a"/>
-      <text x="150" y="28" font-family="monospace" font-size="11" fill="#6b7280" text-anchor="middle">Firma verificada por QR</text>
-      <text x="150" y="56" font-family="serif" font-size="22" fill="#e5e7eb" text-anchor="middle" font-style="italic">${escSvg(name)}</text>
-    </svg>`
-  )
-}
-
-function buildConfirmedPlaceholder(name: string): string {
-  return svgToDataUrl(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80">
-      <rect width="300" height="80" fill="#052e16"/>
-      <text x="150" y="28" font-family="monospace" font-size="11" fill="#6b7280" text-anchor="middle">Firma electrónica confirmada</text>
-      <text x="150" y="56" font-family="serif" font-size="22" fill="#e5e7eb" text-anchor="middle" font-style="italic">${escSvg(name)}</text>
-    </svg>`
-  )
-}
-
-function escSvg(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 export { QR_SECRET }

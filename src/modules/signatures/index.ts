@@ -1,30 +1,23 @@
 import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { canAccess } from '@/lib/permissions'
-import { createSignatureHash } from './hash'
+import { createSignatureHash, validateSignatureImage, hashSignatureImage, buildDocumentSnapshot, hashDocumentSnapshot } from './hash'
 import type { SignaturePayload, SignatureValidation, SavedSignature, SigningMethod } from './types'
 import type { UserRole } from '@/types/user'
 
 export type { SignaturePayload, SignatureValidation, SavedSignature, SigningMethod }
-export { createSignatureHash }
+export { createSignatureHash, validateSignatureImage, hashSignatureImage, buildDocumentSnapshot, hashDocumentSnapshot }
 
 // ── captureSignature ──────────────────────────────────────────────────────────
 /**
- * Validates a canvas signature image (Base64 PNG data URL).
- * Returns the data URL as-is; persistence is done by saveSignature().
+ * Validates a canvas signature PNG data URL and returns the decoded buffer.
+ * Throws with a user-facing message if invalid.
  */
-export function captureSignature(dataUrl: string): string {
-  if (!dataUrl.startsWith('data:image/')) {
-    throw new Error('La imagen de firma debe ser un data URL de imagen válido')
-  }
-  return dataUrl
+export function captureSignature(dataUrl: string): Buffer {
+  return validateSignatureImage(dataUrl)
 }
 
 // ── validateSigner ────────────────────────────────────────────────────────────
-/**
- * Checks whether a user is allowed to sign a given document.
- * Blocks if: no permission, document is immutable, or user already signed.
- */
 export async function validateSigner(
   userId: string,
   role: UserRole,
@@ -64,10 +57,6 @@ export async function validateSigner(
 }
 
 // ── saveSignature ─────────────────────────────────────────────────────────────
-/**
- * Stores a validated signature record. imageData is a Base64 PNG data URL
- * for canvas/confirmed methods; PIN and QR receive a server-generated placeholder.
- */
 export async function saveSignature(payload: SignaturePayload): Promise<SavedSignature> {
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
@@ -96,7 +85,6 @@ export async function saveSignature(payload: SignaturePayload): Promise<SavedSig
     CANVAS: 'DIGITAL',
     PIN: 'DIGITAL',
     QR: 'DIGITAL',
-    CONFIRMED: 'DIGITAL',
   }
 
   const sig = await prisma.signature.create({
@@ -113,6 +101,8 @@ export async function saveSignature(payload: SignaturePayload): Promise<SavedSig
         ip: payload.ip,
         subMethod: payload.method,
         hash,
+        signatureImageHash: payload.signatureImageHash,
+        documentHashAtSigning: payload.documentHashAtSigning,
       },
     },
     include: { user: { select: { name: true, role: true } } },
@@ -130,14 +120,12 @@ export async function saveSignature(payload: SignaturePayload): Promise<SavedSig
     gpsLat: sig.gpsLat,
     gpsLng: sig.gpsLng,
     hash,
+    signatureImageHash: payload.signatureImageHash,
+    documentHashAtSigning: payload.documentHashAtSigning,
   }
 }
 
 // ── attachSignatureToDocument ─────────────────────────────────────────────────
-/**
- * After a signature is saved, advances the document to PENDING_APPROVAL
- * if at least one signature is present and the document is in a signable state.
- */
 export async function attachSignatureToDocument(
   documentId: string,
   _signatureId: string
@@ -164,15 +152,14 @@ export async function attachSignatureToDocument(
 }
 
 // ── logSignatureMetadata ──────────────────────────────────────────────────────
-/**
- * Writes an immutable AuditLog entry for a signature event.
- */
 export async function logSignatureMetadata(params: {
   userId: string
   documentId: string
   signatureId: string
   method: SigningMethod
   hash: string
+  signatureImageHash: string
+  documentHashAtSigning: string
   ip?: string
   userAgent?: string
   gpsLat?: number
@@ -193,6 +180,9 @@ export async function logSignatureMetadata(params: {
         signatureId: params.signatureId,
         method: params.method,
         hash: params.hash,
+        signatureImageHash: params.signatureImageHash,
+        documentHashAtSigning: params.documentHashAtSigning,
+        after: { signatureCreated: true },
       },
     }
   )

@@ -11,7 +11,6 @@ const METHOD_LABELS: Record<string, string> = {
   CANVAS: 'Manuscrita',
   PIN: 'PIN',
   QR: 'QR',
-  CONFIRMED: 'Electrónica',
   DIGITAL: 'Digital',
   HANDWRITTEN: 'Manuscrita',
   BIOMETRIC: 'Biométrica',

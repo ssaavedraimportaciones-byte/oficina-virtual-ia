@@ -1,2 +1,7 @@
-// StatsCard, DocumentActivity, ApprovalQueue — Fase UI
-export {}
+export { default as DashboardCard } from './DashboardCard'
+export { default as DashboardFilters } from './DashboardFilters'
+export { default as DashboardView } from './DashboardView'
+export { default as ComplianceChart } from './ComplianceChart'
+export { default as PendingApprovalsTable } from './PendingApprovalsTable'
+export { default as RiskSummaryTable } from './RiskSummaryTable'
+export { default as CompanyComplianceRanking } from './CompanyComplianceRanking'

@@ -6,6 +6,7 @@ import {
   rejectDocument,
   observeDocument,
   addApprovalComment,
+  ApprovalsError,
 } from '@/modules/approvals'
 
 interface Params {
@@ -97,7 +98,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     })
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error al procesar la acción'
-    return NextResponse.json({ error: message }, { status: 422 })
+    if (err instanceof ApprovalsError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+    }
+    return NextResponse.json({ error: 'Error al procesar la acción.' }, { status: 500 })
   }
 }

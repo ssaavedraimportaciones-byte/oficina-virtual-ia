@@ -6,6 +6,14 @@ import { loginUser, registerUser } from '@/modules/auth'
 import { log } from '@/modules/audit'
 import { loginSchema, registerSchema } from '@/schemas/auth'
 import { getIp } from '@/app/api/_lib/auth-middleware'
+import {
+  checkRateLimit,
+  recordFailedAttempt,
+  resetRateLimit,
+  getRateLimitKey,
+  LOGIN_RATE_LIMIT,
+  REGISTER_RATE_LIMIT,
+} from '@/lib/rate-limit'
 import type { TokenPayload } from '@/types/user'
 
 const COOKIE_OPTS = {
@@ -14,6 +22,9 @@ const COOKIE_OPTS = {
   sameSite: 'strict' as const,
   path: '/',
 }
+
+// Generic message for all auth failures — never reveal which field was wrong
+const AUTH_ERROR = 'Credenciales inválidas o demasiados intentos. Intente más tarde.'
 
 async function setCookies(access: string, refresh: string) {
   const jar = await cookies()
@@ -26,22 +37,58 @@ export async function POST(req: NextRequest) {
   const ip = getIp(req)
   const ua = req.headers.get('user-agent') ?? ''
 
-  try {
-    if (action === 'login') {
-      const body = await req.json()
-      const parsed = loginSchema.safeParse(body)
-      if (!parsed.success) {
-        return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
-      }
+  // ── LOGIN ──────────────────────────────────────────────────────────────────
+  if (action === 'login') {
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
+
+    const parsed = loginSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Datos de login inválidos' }, { status: 400 })
+    }
+
+    const key = getRateLimitKey(ip, 'auth:login')
+    const rl = checkRateLimit(key, LOGIN_RATE_LIMIT)
+
+    if (rl.blocked) {
+      // Server-side security log — no userId available pre-login
+      // TODO: replace with persistent SecurityLog when available
+      console.warn('[security] rate-limit blocked', {
+        scope: 'auth:login',
+        ip,
+        userAgent: ua,
+        attempts: rl.attempts,
+        resetAt: new Date(rl.resetAt).toISOString(),
+      })
+      return NextResponse.json({ error: AUTH_ERROR }, { status: 429 })
+    }
+
+    try {
       const { access, refresh, user } = await loginUser(parsed.data.email, parsed.data.password)
+      resetRateLimit(key)
       await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'LOGIN', {
         metadata: { email: user.email, role: user.role },
       })
       return NextResponse.json({ user })
+    } catch {
+      // Intentional: don't expose why credentials failed
+      const after = recordFailedAttempt(key, LOGIN_RATE_LIMIT)
+      if (after.blocked) {
+        console.warn('[security] rate-limit triggered', {
+          scope: 'auth:login',
+          ip,
+          userAgent: ua,
+          attempts: after.attempts,
+        })
+      }
+      return NextResponse.json({ error: AUTH_ERROR }, { status: 401 })
     }
+  }
 
-    if (action === 'logout') {
+  // ── LOGOUT ─────────────────────────────────────────────────────────────────
+  if (action === 'logout') {
+    try {
       const jar = await cookies()
       const refreshToken = jar.get('refresh_token')?.value
       if (refreshToken) {
@@ -54,27 +101,32 @@ export async function POST(req: NextRequest) {
       jar.delete('access_token')
       jar.delete('refresh_token')
       return NextResponse.json({ ok: true })
+    } catch {
+      return NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 })
     }
+  }
 
-    if (action === 'refresh') {
+  // ── REFRESH ────────────────────────────────────────────────────────────────
+  if (action === 'refresh') {
+    try {
       const jar = await cookies()
       const refreshToken = jar.get('refresh_token')?.value
       if (!refreshToken) {
-        return NextResponse.json({ error: 'No refresh token' }, { status: 401 })
+        return NextResponse.json({ error: 'Sesión expirada' }, { status: 401 })
       }
       const { uid } = await verifyRefreshToken(refreshToken)
       const stored = await prisma.refreshToken.findFirst({
         where: { token: refreshToken, userId: uid, expiresAt: { gt: new Date() } },
       })
       if (!stored) {
-        return NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
+        return NextResponse.json({ error: 'Sesión expirada' }, { status: 401 })
       }
       const user = await prisma.user.findUnique({
         where: { id: uid },
         select: { id: true, email: true, name: true, role: true, companyId: true, isActive: true },
       })
       if (!user || !user.isActive) {
-        return NextResponse.json({ error: 'User not found' }, { status: 401 })
+        return NextResponse.json({ error: 'Sesión expirada' }, { status: 401 })
       }
       const payload: TokenPayload = {
         uid: user.id,
@@ -87,25 +139,46 @@ export async function POST(req: NextRequest) {
       const jar2 = await cookies()
       jar2.set('access_token', newAccess, { ...COOKIE_OPTS, maxAge: 60 * 15 })
       return NextResponse.json({ ok: true })
+    } catch {
+      return NextResponse.json({ error: 'Sesión expirada' }, { status: 401 })
+    }
+  }
+
+  // ── REGISTER ───────────────────────────────────────────────────────────────
+  if (action === 'register') {
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
+
+    const parsed = registerSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
-    if (action === 'register') {
-      const body = await req.json()
-      const parsed = registerSchema.safeParse(body)
-      if (!parsed.success) {
-        return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
-      }
+    const key = getRateLimitKey(ip, 'auth:register')
+    const rl = checkRateLimit(key, REGISTER_RATE_LIMIT)
+    if (rl.blocked) {
+      console.warn('[security] rate-limit blocked', {
+        scope: 'auth:register',
+        ip,
+        userAgent: ua,
+        attempts: rl.attempts,
+      })
+      return NextResponse.json({ error: 'Demasiados intentos de registro. Intente más tarde.' }, { status: 429 })
+    }
+
+    try {
       const { access, refresh, user } = await registerUser(parsed.data)
+      resetRateLimit(key)
       await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'CREATE', {
         metadata: { email: user.email, action: 'REGISTER' },
       })
       return NextResponse.json({ user }, { status: 201 })
+    } catch {
+      recordFailedAttempt(key, REGISTER_RATE_LIMIT)
+      return NextResponse.json({ error: 'No se pudo completar el registro. Intente más tarde.' }, { status: 400 })
     }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error interno'
-    return NextResponse.json({ error: message }, { status: 500 })
   }
+
+  return NextResponse.json({ error: 'Acción inválida' }, { status: 400 })
 }

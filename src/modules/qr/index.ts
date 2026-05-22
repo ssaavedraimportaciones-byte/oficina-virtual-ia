@@ -1,8 +1,6 @@
 import { createHmac, createHash } from 'crypto'
 import QRCode from 'qrcode'
-import { JWT_SECRET } from '@/lib/env'
-
-const QR_SECRET = JWT_SECRET
+import { QR_SECRET } from '@/lib/env'
 
 /**
  * Generates the stable QR code identifier for a document.

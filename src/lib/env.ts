@@ -36,6 +36,9 @@ function requireEnvMinLength(name: string, minLength: number): string {
 
 export const JWT_SECRET = requireEnvMinLength('JWT_SECRET', 32)
 export const JWT_REFRESH_SECRET = requireEnvMinLength('JWT_REFRESH_SECRET', 32)
+// QR_SECRET debe ser independiente de JWT_SECRET para limitar el blast radius
+// si uno de los secrets se ve comprometido.
+export const QR_SECRET = requireEnvMinLength('QR_SECRET', 32)
 
 // ── Base de datos ─────────────────────────────────────────────────────────────
 export const DATABASE_URL = requireEnv('DATABASE_URL')

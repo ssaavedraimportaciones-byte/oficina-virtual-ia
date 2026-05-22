@@ -21,9 +21,9 @@ import {
 } from '@/modules/geofence'
 import bcrypt from 'bcryptjs'
 import { jwtVerify } from 'jose'
-import { JWT_SECRET } from '@/lib/env'
+import { QR_SECRET as QR_SECRET_RAW } from '@/lib/env'
 
-const QR_SECRET = new TextEncoder().encode(JWT_SECRET)
+const QR_SECRET = new TextEncoder().encode(QR_SECRET_RAW)
 
 const postSchema = z.object({
   method: z.enum(['CANVAS', 'PIN', 'QR']),
@@ -265,5 +265,3 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json({ ok: true, signature: saved }, { status: 201 })
 }
-
-export { QR_SECRET }

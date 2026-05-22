@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/app/api/_lib/auth-middleware'
 import { SignJWT } from 'jose'
-import { QR_SECRET } from '../route'
+import { QR_SECRET as QR_SECRET_RAW } from '@/lib/env'
+import { TextEncoder } from 'util'
+
+const QR_SECRET = new TextEncoder().encode(QR_SECRET_RAW)
 
 /**
  * POST /api/documents/[id]/signatures/qr-token

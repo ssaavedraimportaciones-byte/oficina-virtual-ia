@@ -5,12 +5,8 @@ import { log } from '@/modules/audit'
 import { requireAuth, getIp } from '@/app/api/_lib/auth-middleware'
 import type { DocumentStatus } from '@/types/document'
 
-interface Params {
-  params: { id: string }
-}
-
-export async function POST(req: NextRequest, { params }: Params) {
-  const { id } = params
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const auth = requireAuth(req)
   if ('error' in auth) return auth.error
   const { user } = auth
@@ -56,7 +52,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     await prisma.document.update({
       where: { id },
       data: {
-        validationResult: result as unknown as Record<string, unknown>,
+        validationResult: result as unknown as never,
         // Only move forward if status allows it (don't downgrade APPROVED/CLOSED)
         status: ['DRAFT', 'SCANNED', 'AI_REVIEW', 'OBSERVED', 'PENDING_SIGNATURE'].includes(doc.status)
           ? newStatus

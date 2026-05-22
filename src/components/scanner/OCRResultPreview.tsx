@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { OCRResult, FieldConflict } from '@/modules/ocr'
+import type { OCRResult, FieldConflict } from '@/modules/ocr/types'
 import FieldConfidenceBadge from './FieldConfidenceBadge'
 
 interface Props {

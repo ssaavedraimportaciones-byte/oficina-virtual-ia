@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { verifyDocument } from '@/modules/pdf'
 
 interface Props {
-  params: { code: string }
+  params: Promise<{ code: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -31,7 +31,8 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 }
 
 export default async function VerifyPage({ params }: Props) {
-  const doc = await verifyDocument(params.code)
+  const { code } = await params
+  const doc = await verifyDocument(code)
 
   if (!doc) {
     return (

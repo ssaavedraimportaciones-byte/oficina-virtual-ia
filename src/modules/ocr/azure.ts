@@ -97,7 +97,7 @@ async function analyzeDocument(
       'Content-Type': mimeType,
       'Ocp-Apim-Subscription-Key': API_KEY,
     },
-    body: buffer,
+    body: buffer as unknown as BodyInit,
   })
 
   if (!startRes.ok) {

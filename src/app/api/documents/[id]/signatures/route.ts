@@ -36,12 +36,13 @@ const postSchema = z.object({
 
 // ── GET /api/documents/[id]/signatures ────────────────────────────────────────
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const auth = requireAuth(req)
   if ('error' in auth) return auth.error
 
   const sigs = await prisma.signature.findMany({
-    where: { documentId: params.id },
+    where: { documentId: id },
     orderBy: { signedAt: 'asc' },
     include: { user: { select: { name: true, role: true } } },
   })
@@ -69,7 +70,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // ── POST /api/documents/[id]/signatures ───────────────────────────────────────
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const auth = requirePermission(req, 'documents:sign')
   if ('error' in auth) return auth.error
   const { user } = auth
@@ -87,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const userAgent = req.headers.get('user-agent') ?? undefined
 
   // ── 1. Validate signer ─────────────────────────────────────────────────────
-  const validation = await validateSigner(user.uid, user.role, params.id)
+  const validation = await validateSigner(user.uid, user.role, id)
   if (!validation.allowed) {
     return NextResponse.json({ error: validation.reason }, { status: 403 })
   }
@@ -102,7 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
       'DOCUMENT_SIGNED',
       {
-        documentId: params.id,
+        documentId: id,
         metadata: { blocked: true, reason: 'missing_canvas_signature', method, detail: reason },
       }
     )
@@ -128,7 +130,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
         'DOCUMENT_SIGNED',
         {
-          documentId: params.id,
+          documentId: id,
           metadata: { blocked: true, reason: 'invalid_pin', method },
         }
       )
@@ -142,7 +144,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
     try {
       const { payload } = await jwtVerify(parsed.data.qrToken, QR_SECRET)
-      if (payload.documentId !== params.id || payload.userId !== user.uid) {
+      if (payload.documentId !== id || payload.userId !== user.uid) {
         throw new Error('Token no coincide con documento/usuario')
       }
     } catch {
@@ -150,7 +152,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
         'DOCUMENT_SIGNED',
         {
-          documentId: params.id,
+          documentId: id,
           metadata: { blocked: true, reason: 'invalid_qr', method },
         }
       )
@@ -160,7 +162,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // ── 4. Build document snapshot hash ───────────────────────────────────────
   const docSnap = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     select: {
       id: true,
       folio: true,
@@ -196,7 +198,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
       'DOCUMENT_SIGNED',
       {
-        documentId: params.id,
+        documentId: id,
         metadata: {
           blocked: true,
           reason: geofenceResult.reason,
@@ -210,7 +212,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // ── 5. Save & audit ────────────────────────────────────────────────────────
   const saved = await saveSignature({
-    documentId: params.id,
+    documentId: id,
     userId: user.uid,
     method: method as SigningMethod,
     imageData: signatureImageBase64,
@@ -222,11 +224,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     gpsLng,
   })
 
-  await attachSignatureToDocument(params.id, saved.id)
+  await attachSignatureToDocument(id, saved.id)
 
   await logSignatureMetadata({
     userId: user.uid,
-    documentId: params.id,
+    documentId: id,
     signatureId: saved.id,
     method: method as SigningMethod,
     hash: saved.hash,
@@ -243,7 +245,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const [signer, doc] = await Promise.all([
     prisma.user.findUnique({ where: { id: user.uid }, select: { name: true } }),
     prisma.document.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       select: { folio: true, taskName: true, workArea: true },
     }),
   ])
@@ -251,7 +253,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     notify(
       {
         event: 'DOCUMENT_PENDING_SIGNATURE',
-        documentId: params.id,
+        documentId: id,
         folio: doc.folio,
         taskName: doc.taskName,
         workArea: doc.workArea,

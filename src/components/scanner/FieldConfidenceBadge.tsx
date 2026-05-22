@@ -1,4 +1,4 @@
-import { CONFIDENCE_THRESHOLD } from '@/modules/ocr'
+import { CONFIDENCE_THRESHOLD } from '@/modules/ocr/types'
 
 interface Props {
   confidence: number | null

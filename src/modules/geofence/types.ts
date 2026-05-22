@@ -56,6 +56,7 @@ export type GeofenceCheckResult =
 
 // Shape of the metadata block written to AuditLog
 export interface GeofenceAuditMetadata {
+  [key: string]: unknown
   geofenceConfigured: boolean
   gpsLat: number | null | undefined
   gpsLng: number | null | undefined

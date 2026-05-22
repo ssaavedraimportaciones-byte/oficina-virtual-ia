@@ -10,12 +10,8 @@ import {
 import { log } from '@/modules/audit'
 import { requireAuth, getIp } from '@/app/api/_lib/auth-middleware'
 
-interface Params {
-  params: { id: string }
-}
-
-export async function POST(req: NextRequest, { params }: Params) {
-  const { id } = params
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const auth = requireAuth(req)
   if ('error' in auth) return auth.error
   const { user } = auth

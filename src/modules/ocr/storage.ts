@@ -55,7 +55,7 @@ async function storeAzureBlob(
   const container = client.getContainerClient(
     process.env.AZURE_STORAGE_CONTAINER ?? 'safecheck-docs'
   )
-  await container.createIfNotExists({ access: 'none' })
+  await container.createIfNotExists()
 
   const blob = container.getBlockBlobClient(filename)
   await blob.upload(buffer, buffer.length, {

@@ -9,10 +9,6 @@ import {
   ApprovalsError,
 } from '@/modules/approvals'
 
-interface Params {
-  params: { id: string; approvalId: string }
-}
-
 const actionSchema = z.object({
   action: z.enum(['approve', 'reject', 'observe', 'comment']),
   comment: z.string().optional(),
@@ -22,7 +18,12 @@ const actionSchema = z.object({
  * POST /api/documents/[id]/approvals/[approvalId]
  * Actions: approve | reject | observe | comment
  */
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; approvalId: string }> }
+) {
+  const { approvalId } = await params
+
   const auth = requirePermission(req, 'approvals:manage')
   if ('error' in auth) return auth.error
   const { user } = auth
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     if (action === 'approve') {
       const result = await approveDocument({
-        approvalId: params.approvalId,
+        approvalId,
         approverId: user.uid,
         approverRole: user.role,
         comment,
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: 'El rechazo requiere comentario' }, { status: 400 })
       }
       const result = await rejectDocument({
-        approvalId: params.approvalId,
+        approvalId,
         approverId: user.uid,
         approverRole: user.role,
         comment,
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: 'La observación requiere comentario' }, { status: 400 })
       }
       const result = await observeDocument({
-        approvalId: params.approvalId,
+        approvalId,
         approverId: user.uid,
         approverRole: user.role,
         comment,
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'El comentario no puede estar vacío' }, { status: 400 })
     }
     await addApprovalComment({
-      approvalId: params.approvalId,
+      approvalId,
       actorId: user.uid,
       actorRole: user.role,
       comment,

@@ -19,14 +19,15 @@ const patchSchema = z.object({
   workArea: z.string().min(2).optional(),
 })
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const result = requireAuth(req)
   if ('error' in result) return result.error
 
   const { user } = result
 
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       createdBy: { select: { name: true, role: true } },
       supervisor: { select: { name: true } },
@@ -59,7 +60,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ document: doc })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const result = requireAuth(req)
   if ('error' in result) return result.error
 
@@ -72,7 +74,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { id: true, status: true, folio: true, createdById: true, companyId: true, taskName: true, workArea: true },
   })
 
@@ -118,7 +120,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const updated = await prisma.document.update({
-    where: { id: params.id },
+    where: { id },
     data: updates,
     select: { id: true, folio: true, status: true, updatedAt: true },
   })

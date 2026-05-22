@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -7,7 +8,7 @@ import { loginSchema, type LoginInput } from '@/schemas/auth'
 import { useAuth } from '@/contexts/auth-context'
 import { ROLE_DEFAULT_ROUTE } from '@/lib/permissions/routes'
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth()
   const router = useRouter()
   const params = useSearchParams()
@@ -88,5 +89,13 @@ export default function LoginPage() {
         </button>
       </form>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

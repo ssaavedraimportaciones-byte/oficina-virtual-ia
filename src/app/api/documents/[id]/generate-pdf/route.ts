@@ -7,10 +7,6 @@ import { getJobQueue } from '@/modules/jobs'
 
 const PDF_ERROR_GENERIC = 'PDF no pudo generarse. Intente nuevamente o contacte soporte.'
 
-interface Params {
-  params: { id: string }
-}
-
 /**
  * POST /api/documents/[id]/generate-pdf
  *
@@ -22,7 +18,8 @@ interface Params {
  * existing URL. Pass { force: true } in the request body (SYSTEM_ADMIN only)
  * to trigger regeneration.
  */
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const auth = requirePermission(req, 'documents:approve')
   if ('error' in auth) return auth.error
   const { user } = auth
@@ -45,7 +42,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { id: true, status: true, finalPdfUrl: true },
   })
 
@@ -71,19 +68,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     })
   }
 
-  const job = getJobQueue().enqueue(params.id, user.uid)
+  const job = getJobQueue().enqueue(id, user.uid)
 
   try {
     await log(
       { userId: user.uid, ip, userAgent: ua },
       'PDF_JOB_CREATED',
-      { documentId: params.id, metadata: { jobId: job.id, force } }
+      { documentId: id, metadata: { jobId: job.id, force } }
     )
   } catch { /* audit failure must not block the 202 response */ }
 
   // Snapshot primitives before the request object closes
   const userId = user.uid
-  const documentId = params.id
+  const documentId = id
 
   // Start async worker — runs in-process after response is sent.
   // DEBT: setImmediate does not survive serverless function freeze.

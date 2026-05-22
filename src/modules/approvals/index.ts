@@ -387,7 +387,7 @@ async function _recordDecision(params: {
                   blocked: false,
                 },
                 ipAddress: ip ?? null,
-                deviceInfo: userAgent ? { userAgent } : null,
+                deviceInfo: userAgent ? { userAgent } : undefined,
               },
             })
             const flow2 = (
@@ -490,7 +490,7 @@ async function _recordDecision(params: {
               blocked: false,
             },
             ipAddress: ip ?? null,
-            deviceInfo: userAgent ? { userAgent } : null,
+            deviceInfo: userAgent ? { userAgent } : undefined,
           },
         })
 

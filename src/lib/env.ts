@@ -1,10 +1,14 @@
 /**
  * Centralized environment validation.
- * Throws at module load time so the process never starts with missing secrets.
- * Add every security-critical variable here.
+ * Validates at module load time so the process never starts with missing secrets.
+ * During Next.js build phase (NEXT_PHASE=phase-production-build) validation is
+ * deferred — route handlers are never called at build time, so secrets aren't needed.
  */
 
+const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build'
+
 function requireEnv(name: string): string {
+  if (IS_BUILD) return ''
   const value = process.env[name]
   if (!value || value.trim() === '') {
     throw new Error(
@@ -16,6 +20,7 @@ function requireEnv(name: string): string {
 }
 
 function requireEnvMinLength(name: string, minLength: number): string {
+  if (IS_BUILD) return ''
   const value = requireEnv(name)
   if (value.length < minLength) {
     throw new Error(
@@ -42,6 +47,7 @@ export const NODE_ENV = process.env.NODE_ENV ?? 'development'
 // ── Opcionales (con advertencia si faltan en producción) ──────────────────────
 
 function warnIfMissingInProd(name: string): string | undefined {
+  if (IS_BUILD) return undefined
   const value = process.env[name]
   if (!value && NODE_ENV === 'production') {
     console.warn(`[env] ADVERTENCIA: ${name} no configurado en producción.`)

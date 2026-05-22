@@ -118,7 +118,7 @@ export default function WorkPermitForm({ documentId: _docId, defaultValues, onSu
           <label className="text-sm font-medium text-gray-300">Controles obligatorios</label>
           <button
             type="button"
-            onClick={() => (controles as ReturnType<typeof useFieldArray>).append('')}
+            onClick={() => (controles as unknown as ReturnType<typeof useFieldArray>).append('')}
             className="text-xs text-amber-400 hover:underline"
           >
             + Agregar

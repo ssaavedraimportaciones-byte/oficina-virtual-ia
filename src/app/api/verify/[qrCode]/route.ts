@@ -7,9 +7,9 @@ import { generateQrCode } from '@/modules/qr'
 // Verifies a document's QR code and returns its certification status.
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { qrCode: string } }
+  { params }: { params: Promise<{ qrCode: string }> }
 ) {
-  const { qrCode } = params
+  const { qrCode } = await params
 
   if (!qrCode || qrCode.length !== 64 || !/^[0-9a-f]+$/.test(qrCode)) {
     return NextResponse.json({ valid: false, error: 'Código QR inválido' }, { status: 400 })

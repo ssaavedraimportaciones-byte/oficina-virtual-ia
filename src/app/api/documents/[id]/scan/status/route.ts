@@ -6,8 +6,9 @@ import { getJobQueue } from '@/modules/jobs'
 // Returns the current state of an async OCR job.
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const result = requireAuth(req)
   if ('error' in result) return result.error
 
@@ -29,7 +30,7 @@ export async function GET(
   }
 
   // Ensure the job belongs to the document in the URL
-  if (job.documentId !== params.id) {
+  if (job.documentId !== id) {
     return NextResponse.json({ error: 'Job no encontrado' }, { status: 404 })
   }
 

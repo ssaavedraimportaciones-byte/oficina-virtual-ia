@@ -14,24 +14,26 @@ import type { EvaluationResult } from '@/modules/rules-engine'
 import Link from 'next/link'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function generateMetadata({ params }: Props) {
+  const { id } = await params
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { folio: true, taskName: true },
   })
   return { title: doc ? `${doc.folio} — ${doc.taskName}` : 'Documento' }
 }
 
 export default async function DocumentDetailPage({ params }: Props) {
+  const { id } = await params
   const h = await headers()
   const userId = h.get('x-user-id') ?? ''
   const userRole = h.get('x-user-role') ?? 'WORKER'
 
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       createdBy: { select: { name: true, role: true } },
       supervisor: { select: { name: true, role: true } },

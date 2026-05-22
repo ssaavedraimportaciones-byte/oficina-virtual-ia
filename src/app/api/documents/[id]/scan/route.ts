@@ -17,8 +17,9 @@ import { getJobQueue, type JobEntry } from '@/modules/jobs'
 //   - forceOverwrite: 'true' to overwrite conflicting manual fields
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const result = requirePermission(req, 'documents:create')
   if ('error' in result) return result.error
 
@@ -28,7 +29,7 @@ export async function POST(
 
   // Verify document exists and belongs to user's company
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { id: true, companyId: true, createdById: true, status: true },
   })
 
@@ -46,7 +47,7 @@ export async function POST(
       { userId: user.uid, ip, userAgent: ua },
       'DOCUMENT_SCANNED',
       {
-        documentId: params.id,
+        documentId: id,
         metadata: { blocked: true, reason: 'document_locked', status: doc.status },
       }
     )
@@ -82,7 +83,7 @@ export async function POST(
       { userId: user.uid, ip, userAgent: ua },
       'DOCUMENT_SCANNED',
       {
-        documentId: params.id,
+        documentId: id,
         metadata: {
           blocked: true,
           reason: fileValidation.reason,
@@ -98,13 +99,13 @@ export async function POST(
   }
 
   // Enqueue the job and return immediately so the HTTP connection is not held open
-  const job = getJobQueue().enqueue(params.id, user.uid)
+  const job = getJobQueue().enqueue(id, user.uid)
 
   await log(
     { userId: user.uid, ip, userAgent: ua },
     'OCR_JOB_CREATED',
     {
-      documentId: params.id,
+      documentId: id,
       metadata: {
         jobId: job.id,
         fileName: file.name,
@@ -127,7 +128,7 @@ export async function POST(
       buffer,
       fileName,
       fileMime,
-      documentId: params.id,
+      documentId: id,
       userId: user.uid,
       ip,
       ua,
@@ -225,15 +226,16 @@ async function runOcrWorker(params: {
 // Returns current scan state: fileUrl + aiResult from DB
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const result = requireAuth(req)
   if ('error' in result) return result.error
 
   const { user } = result
 
   const doc = await prisma.document.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       folio: true,
@@ -259,7 +261,7 @@ export async function GET(
 
   if (user.role === 'WORKER') {
     const full = await prisma.document.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { createdById: true },
     })
     if (full?.createdById !== user.uid) {

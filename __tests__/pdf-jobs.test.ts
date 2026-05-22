@@ -168,7 +168,7 @@ describe('Status endpoint — lógica de autorización', () => {
     const job = queue.enqueue('doc-Z2', 'worker-user')
 
     const requestingUserId = 'supervisor-user'
-    const requestingRole = 'SUPERVISOR'
+    const requestingRole: string = 'SUPERVISOR'
 
     const isBlocked =
       requestingRole === 'WORKER' && job.userId !== requestingUserId

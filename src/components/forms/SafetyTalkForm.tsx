@@ -110,7 +110,7 @@ export default function SafetyTalkForm({ documentId: _docId, defaultValues, onSu
           <label className="text-sm font-medium text-gray-300">Riesgos tratados</label>
           <button
             type="button"
-            onClick={() => (riesgos as ReturnType<typeof useFieldArray>).append('')}
+            onClick={() => (riesgos as unknown as ReturnType<typeof useFieldArray>).append('')}
             className="text-xs text-amber-400 hover:underline"
           >
             + Agregar
@@ -143,7 +143,7 @@ export default function SafetyTalkForm({ documentId: _docId, defaultValues, onSu
           <label className="text-sm font-medium text-gray-300">Controles tratados</label>
           <button
             type="button"
-            onClick={() => (controles as ReturnType<typeof useFieldArray>).append('')}
+            onClick={() => (controles as unknown as ReturnType<typeof useFieldArray>).append('')}
             className="text-xs text-amber-400 hover:underline"
           >
             + Agregar

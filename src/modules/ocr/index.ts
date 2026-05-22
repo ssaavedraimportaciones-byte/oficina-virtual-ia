@@ -3,6 +3,7 @@ import { log } from '@/modules/audit'
 import { storeFile, ACCEPTED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from './storage'
 import { runAzureOCR } from './azure'
 import { runMockOCR } from './mock'
+import { assertAllowedUpload } from '@/lib/file-validation'
 
 const AZURE_CONFIGURED = !!(
   process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT &&
@@ -27,12 +28,12 @@ export async function uploadDocument(params: {
 }) {
   const { buffer, originalName, mimeType, documentId, userId, ip, userAgent } = params
 
-  if (!ACCEPTED_MIME_TYPES.has(mimeType)) {
-    throw new Error(`Tipo de archivo no permitido: ${mimeType}`)
-  }
   if (buffer.length > MAX_FILE_SIZE_BYTES) {
     throw new Error(`Archivo demasiado grande (máx 50 MB)`)
   }
+
+  // Defense-in-depth — caller (scan route) validates first and logs AuditLog
+  assertAllowedUpload(buffer, mimeType)
 
   const uploaded = await storeFile(buffer, originalName, mimeType, documentId)
 

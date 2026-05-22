@@ -8,6 +8,7 @@ import {
   persistFields,
 } from '@/modules/ocr'
 import { log } from '@/modules/audit'
+import { validateAllowedUpload } from '@/lib/file-validation'
 
 // POST /api/documents/[id]/scan
 // Accepts multipart/form-data with:
@@ -72,6 +73,28 @@ export async function POST(
 
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
+
+  // Validate file type by magic bytes before any storage or OCR
+  const fileValidation = validateAllowedUpload(buffer, file.type)
+  if (!fileValidation.valid) {
+    await log(
+      { userId: user.uid, ip, userAgent: ua },
+      'DOCUMENT_SCANNED',
+      {
+        documentId: params.id,
+        metadata: {
+          blocked: true,
+          reason: fileValidation.reason,
+          declaredMimeType: file.type,
+          fileSize: buffer.length,
+        },
+      }
+    )
+    return NextResponse.json(
+      { error: 'Archivo no permitido. Solo se aceptan PDF, PNG o JPG válidos.' },
+      { status: 400 }
+    )
+  }
 
   try {
     // 1. Store original file

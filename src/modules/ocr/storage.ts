@@ -84,12 +84,10 @@ function mimeToExt(mime: string): string {
 }
 
 export const ACCEPTED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/tiff',
-  'image/heic',
-  'image/webp',
   'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
 ])
 
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB

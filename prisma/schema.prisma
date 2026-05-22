@@ -226,6 +226,8 @@ model Document {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+  @@index([companyId, status])
+  @@index([companyId, createdAt])
   @@map("documents")
 }
 

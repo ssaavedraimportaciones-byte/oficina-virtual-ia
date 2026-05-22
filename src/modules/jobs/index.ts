@@ -12,6 +12,8 @@ export interface JobEntry {
   completedAt?: number
   // Generic message only — never store internal error details
   error?: string
+  // Stores job output once completed (e.g. { finalPdfUrl } for PDF jobs)
+  result?: Record<string, unknown>
 }
 
 export interface JobQueue {

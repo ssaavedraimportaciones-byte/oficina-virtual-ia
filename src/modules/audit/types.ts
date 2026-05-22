@@ -30,6 +30,10 @@ export type AuditAction =
   | 'DOCUMENT_OBSERVED'
   // ── Output ───────────────────────────────────────────────────────────────
   | 'PDF_GENERATED'
+  | 'PDF_JOB_CREATED'
+  | 'PDF_JOB_STARTED'
+  | 'PDF_JOB_COMPLETED'
+  | 'PDF_JOB_FAILED'
   // ── Notifications ────────────────────────────────────────────────────────
   | 'NOTIFICATION_SENT'
   | 'NOTIFICATION_FAILED'

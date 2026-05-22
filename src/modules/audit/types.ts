@@ -13,6 +13,10 @@ export type AuditAction =
   // ── Scanning & OCR ───────────────────────────────────────────────────────
   | 'DOCUMENT_SCANNED'
   | 'OCR_EXECUTED'
+  | 'OCR_JOB_CREATED'
+  | 'OCR_JOB_STARTED'
+  | 'OCR_JOB_COMPLETED'
+  | 'OCR_JOB_FAILED'
   // ── AI & Rules ───────────────────────────────────────────────────────────
   | 'AI_CLASSIFICATION_EXECUTED'
   | 'RULES_VALIDATED'

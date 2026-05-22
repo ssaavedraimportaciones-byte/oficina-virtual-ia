@@ -9,6 +9,7 @@ import {
 } from '@/modules/ocr'
 import { log } from '@/modules/audit'
 import { validateAllowedUpload } from '@/lib/file-validation'
+import { getJobQueue, type JobEntry } from '@/modules/jobs'
 
 // POST /api/documents/[id]/scan
 // Accepts multipart/form-data with:
@@ -96,82 +97,127 @@ export async function POST(
     )
   }
 
+  // Enqueue the job and return immediately so the HTTP connection is not held open
+  const job = getJobQueue().enqueue(params.id, user.uid)
+
+  await log(
+    { userId: user.uid, ip, userAgent: ua },
+    'OCR_JOB_CREATED',
+    {
+      documentId: params.id,
+      metadata: {
+        jobId: job.id,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: buffer.length,
+      },
+    }
+  )
+
+  // Snapshot string values from File before the request closes
+  const fileName = file.name
+  const fileMime = file.type
+
+  // Start async OCR worker — runs in the same process after response is sent.
+  // DEBT: setImmediate does not survive serverless function freeze.
+  //       Use next/server `after()` or BullMQ/Inngest for multi-instance deployments.
+  setImmediate(() => {
+    runOcrWorker({
+      jobId: job.id,
+      buffer,
+      fileName,
+      fileMime,
+      documentId: params.id,
+      userId: user.uid,
+      ip,
+      ua,
+      forceOverwrite,
+    })
+  })
+
+  return NextResponse.json({ ok: true, jobId: job.id, status: 'pending' }, { status: 202 })
+}
+
+async function runOcrWorker(params: {
+  jobId: string
+  buffer: Buffer
+  fileName: string
+  fileMime: string
+  documentId: string
+  userId: string
+  ip: string
+  ua: string
+  forceOverwrite: boolean
+}): Promise<void> {
+  const { jobId, buffer, fileName, fileMime, documentId, userId, ip, ua, forceOverwrite } = params
+  const queue = getJobQueue()
+
+  queue.update(jobId, { status: 'running', startedAt: Date.now() })
   try {
-    // 1. Store original file
+    await log({ userId, ip, userAgent: ua }, 'OCR_JOB_STARTED', {
+      documentId,
+      metadata: { jobId },
+    })
+  } catch { /* audit failure must not abort OCR */ }
+
+  try {
     const uploaded = await uploadDocument({
       buffer,
-      originalName: file.name,
-      mimeType: file.type,
-      documentId: params.id,
-      userId: user.uid,
+      originalName: fileName,
+      mimeType: fileMime,
+      documentId,
+      userId,
       ip,
       userAgent: ua,
     })
 
-    // 2. Run OCR
     const ocrResult = await runOCR({
       buffer,
-      mimeType: file.type,
-      documentId: params.id,
-      userId: user.uid,
+      mimeType: fileMime,
+      documentId,
+      userId,
       ip,
       userAgent: ua,
     })
 
-    // 3. Persist fields, detect conflicts with manual entries
     const fields = extractFields(ocrResult)
     const { conflicts, saved } = await persistFields({
-      documentId: params.id,
+      documentId,
       fields,
-      userId: user.uid,
+      userId,
       ip,
       userAgent: ua,
       forceOverwrite,
     })
 
-    await log(
-      { userId: user.uid, ip, userAgent: ua },
-      'DOCUMENT_SCANNED',
-      {
-        documentId: params.id,
-        metadata: { fileName: file.name, mimeType: file.type, fileSize: buffer.length, storageUrl: uploaded.storageUrl },
-      }
-    )
-    await log(
-      { userId: user.uid, ip, userAgent: ua },
-      'OCR_EXECUTED',
-      {
-        documentId: params.id,
+    queue.update(jobId, { status: 'completed', completedAt: Date.now() })
+    try {
+      await log({ userId, ip, userAgent: ua }, 'OCR_JOB_COMPLETED', {
+        documentId,
         metadata: {
+          jobId,
+          storageUrl: uploaded.storageUrl,
           averageConfidence: ocrResult.averageConfidence,
           pageCount: ocrResult.pageCount,
           fieldsExtracted: fields.length,
           requiresHumanReview: ocrResult.requiresHumanReview,
+          fieldsSaved: saved,
           conflicts: conflicts.length,
         },
-      }
-    )
-
-    return NextResponse.json({
-      ok: true,
-      fileUrl: uploaded.storageUrl,
-      ocr: {
-        rawText: ocrResult.rawText,
-        fields: ocrResult.fields,
-        tables: ocrResult.tables,
-        signatures: ocrResult.signatures,
-        averageConfidence: ocrResult.averageConfidence,
-        requiresHumanReview: ocrResult.requiresHumanReview,
-        hasHandwrittenContent: ocrResult.hasHandwrittenContent,
-        pageCount: ocrResult.pageCount,
-        language: ocrResult.language,
-      },
-      fieldsSaved: saved,
-      conflicts,
+      })
+    } catch { /* audit failure must not surface externally */ }
+  } catch {
+    queue.update(jobId, {
+      status: 'failed',
+      completedAt: Date.now(),
+      error: 'Error de procesamiento. Intente nuevamente.',
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error de OCR'
-    return NextResponse.json({ error: message }, { status: 500 })
+    try {
+      await log({ userId, ip, userAgent: ua }, 'OCR_JOB_FAILED', {
+        documentId,
+        metadata: { jobId },
+      })
+    } catch { /* audit failure must not surface externally */ }
   }
 }
 

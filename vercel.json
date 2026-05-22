@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && npm run build",
+  "installCommand": "npm ci",
+  "regions": ["gru1"],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

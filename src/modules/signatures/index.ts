@@ -164,6 +164,7 @@ export async function logSignatureMetadata(params: {
   userAgent?: string
   gpsLat?: number
   gpsLng?: number
+  extraMetadata?: Record<string, unknown>
 }): Promise<void> {
   await log(
     {
@@ -183,6 +184,7 @@ export async function logSignatureMetadata(params: {
         signatureImageHash: params.signatureImageHash,
         documentHashAtSigning: params.documentHashAtSigning,
         after: { signatureCreated: true },
+        ...params.extraMetadata,
       },
     }
   )

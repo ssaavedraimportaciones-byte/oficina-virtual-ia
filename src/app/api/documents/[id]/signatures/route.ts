@@ -15,6 +15,10 @@ import {
 import type { SigningMethod } from '@/modules/signatures'
 import { log } from '@/modules/audit'
 import { notify } from '@/modules/notifications'
+import {
+  validateDocumentGeofence,
+  createGeofenceAuditMetadata,
+} from '@/modules/geofence'
 import bcrypt from 'bcryptjs'
 import { jwtVerify } from 'jose'
 import { JWT_SECRET } from '@/lib/env'
@@ -166,6 +170,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       workArea: true,
       companyId: true,
       createdById: true,
+      geofenceLat: true,
+      geofenceLng: true,
+      geofenceRadiusMeters: true,
       fields: {
         select: { fieldName: true, fieldValue: true },
         orderBy: { fieldName: 'asc' },
@@ -176,6 +183,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const snapshot = buildDocumentSnapshot(docSnap)
   const documentHashAtSigning = hashDocumentSnapshot(snapshot)
+
+  // ── 4.5. Geofence validation ───────────────────────────────────────────────
+  const gpsPoint =
+    gpsLat != null && gpsLng != null ? { lat: gpsLat, lng: gpsLng } : null
+
+  const geofenceResult = validateDocumentGeofence(docSnap, gpsPoint)
+  const geofenceAuditMeta = createGeofenceAuditMetadata(geofenceResult, gpsPoint)
+
+  if (!geofenceResult.ok) {
+    await log(
+      { userId: user.uid, ip, userAgent, gpsLat, gpsLng },
+      'DOCUMENT_SIGNED',
+      {
+        documentId: params.id,
+        metadata: {
+          blocked: true,
+          reason: geofenceResult.reason,
+          method,
+          ...geofenceAuditMeta,
+        },
+      }
+    )
+    return NextResponse.json({ error: geofenceResult.errorMessage }, { status: 422 })
+  }
 
   // ── 5. Save & audit ────────────────────────────────────────────────────────
   const saved = await saveSignature({
@@ -205,6 +236,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     userAgent,
     gpsLat,
     gpsLng,
+    extraMetadata: geofenceAuditMeta,
   })
 
   // Notify — fire-and-forget

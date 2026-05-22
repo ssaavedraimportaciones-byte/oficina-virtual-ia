@@ -198,13 +198,18 @@ model Document {
   supervisorId     String?
   preventionistId  String?
   createdById      String
-  scannedFileUrl   String?
-  finalPdfUrl      String?
-  qrCode           String?        @unique
-  aiResult         Json?          // resultado bruto OCR/IA
-  validationResult Json?          // resultado motor de reglas
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  scannedFileUrl       String?
+  finalPdfUrl          String?
+  qrCode               String?        @unique
+  aiResult             Json?          // resultado bruto OCR/IA
+  validationResult     Json?          // resultado motor de reglas
+  // ── Geofence (circular) — opcional. Si no está configurado, GPS es evidencia
+  // pero no bloquea. Ver src/modules/geofence para la lógica de validación.
+  geofenceLat          Float?
+  geofenceLng          Float?
+  geofenceRadiusMeters Int?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   company       Company         @relation(fields: [companyId], references: [id])
   supervisor    User?           @relation("DocumentSupervisor", fields: [supervisorId], references: [id])

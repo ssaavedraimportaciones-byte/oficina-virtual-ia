@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { requirePermission, requireAuth, getIp } from '@/app/api/_lib/auth-middleware'
+import { createDocumentVersion, snapshotDocument } from '@/modules/documents/version'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   DRAFT:             ['PENDING_SIGNATURE', 'ARCHIVED'],
@@ -138,6 +139,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     action,
     { documentId: doc.id, metadata: { folio: doc.folio, ...meta } }
   )
+
+  // Snapshot inmutable en cada transición de estado
+  if (parsed.data.status) {
+    const snapshot = await snapshotDocument(id)
+    await createDocumentVersion(id, user.uid, snapshot).catch((err) => {
+      console.error('[document-version] Failed to create version:', err)
+    })
+  }
 
   return NextResponse.json({ document: updated })
 }

@@ -151,6 +151,7 @@ model User {
   notifications  Notification[]
   refreshTokens  RefreshToken[]
   jobs           Job[]
+  documentVersions DocumentVersion[] @relation("DocumentVersionCreatedBy")
 
   @@index([companyId])
   @@index([role])
@@ -235,6 +236,7 @@ model Document {
   auditLogs     AuditLog[]
   notifications Notification[]
   jobs          Job[]
+  versions      DocumentVersion[]
 
   @@index([companyId])
   @@index([status])
@@ -385,6 +387,28 @@ model Notification {
   @@index([recipientId])
   @@index([status])
   @@map("notifications")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOCUMENT VERSION — snapshot inmutable en cada transición
+// version: autoincremental por documento (1, 2, 3 …)
+// snapshot: estado completo del documento en ese momento
+// ═══════════════════════════════════════════════════════════════
+
+model DocumentVersion {
+  id          String   @id @default(cuid())
+  documentId  String
+  version     Int
+  snapshot    Json
+  createdAt   DateTime @default(now())
+  createdById String
+
+  document    Document @relation(fields: [documentId], references: [id])
+  createdBy   User     @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([documentId, version])
+  @@index([documentId])
+  @@map("document_versions")
 }
 
 // ═══════════════════════════════════════════════════════════════

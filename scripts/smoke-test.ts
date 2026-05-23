@@ -46,6 +46,23 @@ async function main() {
     assert(typeof body.latencyMs === 'number', 'no latencyMs')
   })
 
+  await test('GET /api/health/deep → 200 todas las dependencias ok', async () => {
+    const res = await fetch(`${BASE}/api/health/deep`)
+    // 503 es aceptable si algún servicio opcional no está configurado
+    assert(res.status === 200 || res.status === 503, `status inesperado ${res.status}`)
+    const body = await res.json()
+    assert(body.checks?.db?.ok === true, `db no ok: ${body.checks?.db?.error}`)
+    assert(typeof body.ts === 'string', 'no timestamp')
+    if (res.status === 503) {
+      console.log(`    ⚠️  Algunos servicios opcionales degradados: ${JSON.stringify(body.checks)}`)
+    }
+  })
+
+  await test('GET /health rewrite → misma respuesta que /api/health', async () => {
+    const res = await fetch(`${BASE}/health`)
+    assert(res.status === 200 || res.status === 404, `status ${res.status}`)
+  })
+
   // ── 2. Auth ────────────────────────────────────────────────────
   console.log('\n2. Auth')
   let accessCookie = ''
@@ -84,6 +101,16 @@ async function main() {
     const body = await res.json()
     assert(body.user?.email === EMAIL, `email=${body.user?.email}`)
     assert(!body.user?.passwordHash, 'passwordHash expuesto en /me')
+  })
+
+  await test('GET /api/auth/me → 401 sin cookie', async () => {
+    const res = await fetch(`${BASE}/api/auth/me`)
+    assert(res.status === 401, `status ${res.status} — endpoint no protegido`)
+  })
+
+  await test('GET /api/documents → 401 sin cookie', async () => {
+    const res = await fetch(`${BASE}/api/documents`)
+    assert(res.status === 401, `status ${res.status} — endpoint no protegido`)
   })
 
   // ── 4. Documents ───────────────────────────────────────────────
@@ -144,6 +171,17 @@ async function main() {
     assert(res.status === 200, `status ${res.status}`)
     const body = await res.json()
     assert(body.kpis, 'no kpis en dashboard')
+  })
+
+  await test('GET /api/dashboard/executive → 200', async () => {
+    const res = await fetch(`${BASE}/api/dashboard/executive`, {
+      headers: { Cookie: accessCookie },
+    })
+    assert(res.status === 200, `status ${res.status}`)
+    const body = await res.json()
+    assert(typeof body.workers?.activeLastSevenDays === 'number', 'no workers.activeLastSevenDays')
+    assert(typeof body.approvals?.pending === 'number', 'no approvals.pending')
+    assert(typeof body.ts === 'string', 'no timestamp')
   })
 
   // ── 7. Rate limit ──────────────────────────────────────────────

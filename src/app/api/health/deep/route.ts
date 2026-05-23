@@ -22,13 +22,15 @@ async function checkDatabase(): Promise<CheckResult> {
 }
 
 async function checkRedis(): Promise<CheckResult> {
-  const url = process.env.REDIS_URL ?? process.env.KV_URL
+  // Accept both Upstash and generic KV env var naming
+  const url   = process.env.UPSTASH_REDIS_REST_URL  ?? process.env.REDIS_URL ?? process.env.KV_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.REDIS_TOKEN ?? process.env.KV_REST_API_TOKEN
   if (!url) return { ok: true, error: 'not configured (using in-memory cache)' }
 
   const t = Date.now()
   try {
     const { Redis } = await import('@upstash/redis')
-    const redis = new Redis({ url, token: process.env.REDIS_TOKEN ?? process.env.KV_REST_API_TOKEN ?? '' })
+    const redis = new Redis({ url, token: token ?? '' })
     await redis.ping()
     return { ok: true, latencyMs: Date.now() - t }
   } catch (err) {

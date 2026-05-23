@@ -3,6 +3,7 @@ import { runOCR, extractFields, persistFields } from '@/modules/ocr'
 import { readFile } from '@/modules/ocr/storage'
 import { generateFinalPdf } from '@/modules/pdf'
 import { log } from '@/modules/audit'
+import { captureException } from '@/lib/sentry'
 import type { OcrJobPayload, PdfJobPayload } from './types'
 
 const OCR_ERROR = 'Error de procesamiento. Intente nuevamente o contacte soporte.'
@@ -34,7 +35,8 @@ export async function runOcrWorker(
       conflicts: conflicts.length,
     })
     try { await log({ userId, ip, userAgent }, 'OCR_JOB_COMPLETED', { documentId, metadata: { jobId } }) } catch { /* audit must not abort job */ }
-  } catch {
+  } catch (err) {
+    captureException(err, { userId, documentId, action: 'OCR_JOB_FAILED' })
     await markFailed(jobId, OCR_ERROR)
     try { await log({ userId, ip, userAgent }, 'OCR_JOB_FAILED', { documentId, metadata: { jobId } }) } catch { /* audit must not abort job */ }
   }
@@ -59,7 +61,8 @@ export async function runPdfWorker(
       version: result.version,
     })
     try { await log({ userId, ip, userAgent }, 'PDF_JOB_COMPLETED', { documentId, metadata: { jobId, pdfUrl: result.pdfUrl } }) } catch { /* audit must not abort job */ }
-  } catch {
+  } catch (err) {
+    captureException(err, { userId, documentId, action: 'PDF_JOB_FAILED' })
     await markFailed(jobId, PDF_ERROR)
     try { await log({ userId, ip, userAgent }, 'PDF_JOB_FAILED', { documentId, metadata: { jobId } }) } catch { /* audit must not abort job */ }
   }

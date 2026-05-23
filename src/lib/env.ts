@@ -47,6 +47,7 @@ export const DATABASE_URL = requireEnv('DATABASE_URL')
 export const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 export const NODE_ENV = process.env.NODE_ENV ?? 'development'
 export const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER ?? 'local'
+export const JOB_PROVIDER = process.env.JOB_PROVIDER ?? 'memory'
 
 // ── Opcionales (con advertencia si faltan en producción) ──────────────────────
 

@@ -22,14 +22,22 @@ export async function storeFile(
   }
 }
 
-export async function readFile(storagePath: string): Promise<Buffer> {
+export async function readFile(storageUrl: string): Promise<Buffer> {
   if (process.env.STORAGE_PROVIDER === 'vercel_blob') {
-    const res = await fetch(storagePath)
+    // storageUrl is a full https:// Vercel Blob URL
+    const res = await fetch(storageUrl)
     if (!res.ok) throw new Error(`storage: no se pudo leer el archivo (${res.status})`)
     return Buffer.from(await res.arrayBuffer())
   }
+  // Local: storageUrl is like /uploads/documents/.../file.pdf → convert to fs path
+  const path = await import('path')
   const { promises: fs } = await import('fs')
-  return fs.readFile(storagePath)
+  const uploadDir = process.env.UPLOAD_DIR ?? path.default.join(process.cwd(), 'uploads')
+  const urlPrefix = process.env.UPLOAD_URL_PREFIX ?? '/uploads'
+  const relative = storageUrl.startsWith(urlPrefix)
+    ? storageUrl.slice(urlPrefix.length).replace(/^\//, '')
+    : storageUrl
+  return fs.readFile(path.default.join(uploadDir, relative))
 }
 
 function mimeToExt(mime: string): string {

@@ -92,6 +92,18 @@ enum NotificationStatus {
   READ
 }
 
+enum JobType {
+  OCR
+  PDF
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // COMPANY
 // ═══════════════════════════════════════════════════════════════
@@ -138,6 +150,7 @@ model User {
   auditLogs      AuditLog[]
   notifications  Notification[]
   refreshTokens  RefreshToken[]
+  jobs           Job[]
 
   @@index([companyId])
   @@index([role])
@@ -221,6 +234,7 @@ model Document {
   approvals     Approval[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  jobs          Job[]
 
   @@index([companyId])
   @@index([status])
@@ -371,4 +385,33 @@ model Notification {
   @@index([recipientId])
   @@index([status])
   @@map("notifications")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JOB — cola persistente de trabajos async (OCR, PDF)
+// Reemplaza InMemoryJobQueue — estado sobrevive reinicios
+// ═══════════════════════════════════════════════════════════════
+
+model Job {
+  id          String    @id @default(cuid())
+  type        JobType
+  status      JobStatus @default(PENDING)
+  documentId  String
+  userId      String
+  payload     Json      @default("{}")
+  result      Json?
+  error       String?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  document    Document  @relation(fields: [documentId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("jobs")
 }

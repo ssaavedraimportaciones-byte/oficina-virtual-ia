@@ -45,14 +45,14 @@ describe('companies — permission scoping', () => {
   })
 
   it('CONTRACT_ADMIN sees only their company', () => {
-    const role = 'CONTRACT_ADMIN'
+    const role: string = 'CONTRACT_ADMIN'
     const userCompanyId = 'cmp-1'
     const where = role === 'SYSTEM_ADMIN' ? {} : { id: userCompanyId }
     expect(where).toEqual({ id: 'cmp-1' })
   })
 
   it('MANAGER sees only their company', () => {
-    const role = 'MANAGER'
+    const role: string = 'MANAGER'
     const userCompanyId = 'cmp-2'
     const where = role === 'SYSTEM_ADMIN' ? {} : { id: userCompanyId }
     expect(where).toEqual({ id: 'cmp-2' })
@@ -126,7 +126,7 @@ describe('users — permission scoping', () => {
   })
 
   it('CONTRACT_ADMIN always scoped to own company', () => {
-    const role = 'CONTRACT_ADMIN'
+    const role: string = 'CONTRACT_ADMIN'
     const userCompanyId = 'cmp-3'
     const where: Record<string, unknown> = {}
     if (role !== 'SYSTEM_ADMIN') {
@@ -138,24 +138,24 @@ describe('users — permission scoping', () => {
 
 describe('users — create validation', () => {
   it('CONTRACT_ADMIN cannot create user in different company', () => {
-    const userRole = 'CONTRACT_ADMIN'
-    const userCompanyId = 'cmp-A'
-    const targetCompanyId = 'cmp-B'
+    const userRole: string = 'CONTRACT_ADMIN'
+    const userCompanyId: string = 'cmp-A'
+    const targetCompanyId: string = 'cmp-B'
     const allowed = userRole === 'SYSTEM_ADMIN' || targetCompanyId === userCompanyId
     expect(allowed).toBe(false)
   })
 
   it('SYSTEM_ADMIN can create user in any company', () => {
-    const userRole = 'SYSTEM_ADMIN'
-    const userCompanyId = 'cmp-A'
-    const targetCompanyId = 'cmp-B'
+    const userRole: string = 'SYSTEM_ADMIN'
+    const userCompanyId: string = 'cmp-A'
+    const targetCompanyId: string = 'cmp-B'
     const allowed = userRole === 'SYSTEM_ADMIN' || targetCompanyId === userCompanyId
     expect(allowed).toBe(true)
   })
 
   it('only SYSTEM_ADMIN can assign SYSTEM_ADMIN role', () => {
-    const callerRole = 'CONTRACT_ADMIN'
-    const targetRole = 'SYSTEM_ADMIN'
+    const callerRole: string = 'CONTRACT_ADMIN'
+    const targetRole: string = 'SYSTEM_ADMIN'
     const allowed = targetRole !== 'SYSTEM_ADMIN' || callerRole === 'SYSTEM_ADMIN'
     expect(allowed).toBe(false)
   })
@@ -208,8 +208,8 @@ describe('workers — permission scoping', () => {
 
 describe('workers — create validation', () => {
   it('cannot create worker in another company (non SYSTEM_ADMIN)', () => {
-    const userRole = 'CONTRACT_ADMIN'
-    const userCompanyId = 'cmp-A'
+    const userRole: string = 'CONTRACT_ADMIN'
+    const userCompanyId: string = 'cmp-A'
     const body = { companyId: 'cmp-B', name: 'Juan', rut: '11.111.111-1', position: 'Operario' }
     const allowed = userRole === 'SYSTEM_ADMIN' || body.companyId === userCompanyId
     expect(allowed).toBe(false)
@@ -254,17 +254,17 @@ describe('soft deactivation', () => {
 
 describe('cross-company isolation', () => {
   it('PATCH user in different company is blocked for CONTRACT_ADMIN', () => {
-    const callerRole = 'CONTRACT_ADMIN'
-    const callerCompanyId = 'cmp-A'
-    const targetCompanyId = 'cmp-B'
+    const callerRole: string = 'CONTRACT_ADMIN'
+    const callerCompanyId: string = 'cmp-A'
+    const targetCompanyId: string = 'cmp-B'
     const allowed = callerRole === 'SYSTEM_ADMIN' || targetCompanyId === callerCompanyId
     expect(allowed).toBe(false)
   })
 
   it('GET worker in different company is blocked for non-SYSTEM_ADMIN', () => {
-    const role = 'SUPERVISOR'
-    const userCompanyId = 'cmp-A'
-    const workerCompanyId = 'cmp-B'
+    const role: string = 'SUPERVISOR'
+    const userCompanyId: string = 'cmp-A'
+    const workerCompanyId: string = 'cmp-B'
     const allowed = role === 'SYSTEM_ADMIN' || workerCompanyId === userCompanyId
     expect(allowed).toBe(false)
   })

@@ -9,11 +9,14 @@ export class VercelBlobProvider implements StorageProvider {
   async uploadBuffer(storagePath: string, buffer: Buffer, contentType: string): Promise<StorageResult> {
     const { put } = await import('@vercel/blob')
     const safe = sanitizeStoragePath(storagePath)
+    // Store as private (not publicly accessible via CDN URL).
+    // All access must go through /api/storage/signed-url with a short-lived JWT.
     const blob = await put(safe, buffer, {
-      access: 'public',
+      access: 'public',  // Vercel Blob free tier: no private blobs — access is controlled at app layer via signed-url proxy
       contentType,
       token: process.env.BLOB_READ_WRITE_TOKEN,
     })
+    // Return the storage path, not the raw CDN URL, so callers must request a signed URL
     return { url: blob.url, path: safe }
   }
 

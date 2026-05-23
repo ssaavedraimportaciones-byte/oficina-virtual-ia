@@ -208,7 +208,9 @@ describe('R4 — AuditLog.userId nunca es null', () => {
     const schema = fs.readFileSync(schemaPath, 'utf-8')
 
     // En el bloque AuditLog, userId debe ser String (no String?)
-    const auditLogBlock = schema.match(/model AuditLog \{[^}]+\}/s)?.[0] ?? ''
+    const start = schema.indexOf('model AuditLog {')
+    const end = schema.indexOf('\n}', start) + 2
+    const auditLogBlock = start >= 0 ? schema.slice(start, end) : ''
     expect(auditLogBlock).toMatch(/userId\s+String[^?]/)
     expect(auditLogBlock).not.toMatch(/userId\s+String\?/)
   })

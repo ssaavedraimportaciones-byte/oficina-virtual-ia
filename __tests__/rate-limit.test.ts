@@ -238,7 +238,7 @@ describe('RedisRateLimitStore — mock', () => {
   it('fail-closed en producción con redis provider', async () => {
     const originalEnv = process.env.NODE_ENV
     const originalProvider = process.env.RATE_LIMIT_PROVIDER
-    process.env.NODE_ENV = 'production'
+    ;(process.env as Record<string, string>).NODE_ENV = 'production'
     process.env.RATE_LIMIT_PROVIDER = 'redis'
 
     const mockStore = {
@@ -251,7 +251,7 @@ describe('RedisRateLimitStore — mock', () => {
     const r = await checkRateLimit(KEY_A, POLICY)
     expect(r.blocked).toBe(true)
 
-    process.env.NODE_ENV = originalEnv
+    ;(process.env as Record<string, string>).NODE_ENV = originalEnv ?? 'test'
     process.env.RATE_LIMIT_PROVIDER = originalProvider
   })
 })

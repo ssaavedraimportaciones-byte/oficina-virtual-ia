@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { requirePermission, getIp } from '@/app/api/_lib/auth-middleware'
 import { notify } from '@/modules/notifications'
+import { tenantFilter } from '@/lib/tenant'
 
 const createSchema = z.object({
   type: z.enum([
@@ -24,12 +25,13 @@ export async function GET(req: NextRequest) {
   const { user } = result
   const { searchParams } = req.nextUrl
 
-  const where: Record<string, unknown> = {}
+  const companyOverride = searchParams.get('companyId') ?? undefined
+  const tf = tenantFilter(user.role, user.companyId, companyOverride)
+
+  const where: Record<string, unknown> = { ...tf }
 
   if (user.role === 'WORKER') {
     where.createdById = user.uid
-  } else if (!['SYSTEM_ADMIN', 'AUDITOR', 'MANAGER'].includes(user.role)) {
-    where.companyId = user.companyId
   }
 
   const type = searchParams.get('type')

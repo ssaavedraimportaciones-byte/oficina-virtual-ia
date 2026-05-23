@@ -38,11 +38,11 @@ export async function GET(req: NextRequest) {
   const filters = parsed.data
 
   const cacheKey = buildCacheKey(filters, user.uid, user.role)
-  const cached = dashboardCache.get(cacheKey)
+  const cached = await dashboardCache.get(cacheKey)
   if (cached) return NextResponse.json(cached)
 
   const stats = await loadDashboardStats(filters, user)
-  dashboardCache.set(cacheKey, stats, DASHBOARD_TTL_MS)
+  await dashboardCache.set(cacheKey, stats, DASHBOARD_TTL_MS)
 
   return NextResponse.json(stats)
 }

@@ -19,33 +19,33 @@ describe('InMemoryCache — operaciones básicas', () => {
     cache = new InMemoryCache<string>()
   })
 
-  it('get devuelve undefined para clave inexistente', () => {
-    expect(cache.get('missing')).toBeUndefined()
+  it('get devuelve undefined para clave inexistente', async () => {
+    expect(await cache.get('missing')).toBeUndefined()
   })
 
-  it('set + get devuelven el valor dentro del TTL', () => {
-    cache.set('k1', 'hello', 5_000)
-    expect(cache.get('k1')).toBe('hello')
+  it('set + get devuelven el valor dentro del TTL', async () => {
+    await cache.set('k1', 'hello', 5_000)
+    expect(await cache.get('k1')).toBe('hello')
   })
 
-  it('delete elimina la entrada', () => {
-    cache.set('k1', 'hello', 5_000)
-    cache.delete('k1')
-    expect(cache.get('k1')).toBeUndefined()
+  it('delete elimina la entrada', async () => {
+    await cache.set('k1', 'hello', 5_000)
+    await cache.delete('k1')
+    expect(await cache.get('k1')).toBeUndefined()
   })
 
-  it('clear vacía el store', () => {
-    cache.set('a', 'v1', 5_000)
-    cache.set('b', 'v2', 5_000)
-    cache.clear()
-    expect(cache.get('a')).toBeUndefined()
-    expect(cache.get('b')).toBeUndefined()
+  it('clear vacía el store', async () => {
+    await cache.set('a', 'v1', 5_000)
+    await cache.set('b', 'v2', 5_000)
+    await cache.clear()
+    expect(await cache.get('a')).toBeUndefined()
+    expect(await cache.get('b')).toBeUndefined()
     expect(cache.size()).toBe(0)
   })
 
-  it('size refleja el número de entradas vivas', () => {
+  it('size refleja el número de entradas vivas', async () => {
     expect(cache.size()).toBe(0)
-    cache.set('x', 'val', 5_000)
+    await cache.set('x', 'val', 5_000)
     expect(cache.size()).toBe(1)
   })
 })
@@ -64,37 +64,37 @@ describe('InMemoryCache — expiración de TTL', () => {
     vi.useRealTimers()
   })
 
-  it('get devuelve el valor antes de expirar', () => {
-    cache.set('key', 42, 1_000)
+  it('get devuelve el valor antes de expirar', async () => {
+    await cache.set('key', 42, 1_000)
     vi.advanceTimersByTime(999)
-    expect(cache.get('key')).toBe(42)
+    expect(await cache.get('key')).toBe(42)
   })
 
-  it('get devuelve undefined exactamente al expirar', () => {
-    cache.set('key', 42, 1_000)
+  it('get devuelve undefined exactamente al expirar', async () => {
+    await cache.set('key', 42, 1_000)
     vi.advanceTimersByTime(1_001)
-    expect(cache.get('key')).toBeUndefined()
+    expect(await cache.get('key')).toBeUndefined()
   })
 
-  it('entrada expirada no se cuenta en size después de get', () => {
-    cache.set('key', 7, 500)
+  it('entrada expirada no se cuenta en size después de get', async () => {
+    await cache.set('key', 7, 500)
     vi.advanceTimersByTime(600)
-    cache.get('key') // triggers eviction
+    await cache.get('key') // triggers eviction
     expect(cache.size()).toBe(0)
   })
 
-  it('set con TTL=0 expira inmediatamente', () => {
-    cache.set('zero', 1, 0)
+  it('set con TTL=0 expira inmediatamente', async () => {
+    await cache.set('zero', 1, 0)
     vi.advanceTimersByTime(1)
-    expect(cache.get('zero')).toBeUndefined()
+    expect(await cache.get('zero')).toBeUndefined()
   })
 
-  it('set sobreescribe el TTL anterior', () => {
-    cache.set('key', 10, 500)
+  it('set sobreescribe el TTL anterior', async () => {
+    await cache.set('key', 10, 500)
     vi.advanceTimersByTime(400)
-    cache.set('key', 20, 1_000) // renew
+    await cache.set('key', 20, 1_000) // renew
     vi.advanceTimersByTime(600)
-    expect(cache.get('key')).toBe(20)
+    expect(await cache.get('key')).toBe(20)
   })
 })
 

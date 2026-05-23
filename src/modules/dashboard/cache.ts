@@ -3,10 +3,10 @@ import type { DashboardFilters } from './types'
 export const DASHBOARD_TTL_MS = 60_000
 
 export interface CacheStore<T> {
-  get(key: string): T | undefined
-  set(key: string, value: T, ttlMs: number): void
-  delete(key: string): void
-  clear(): void
+  get(key: string): Promise<T | undefined>
+  set(key: string, value: T, ttlMs: number): Promise<void>
+  delete(key: string): Promise<void>
+  clear(): Promise<void>
 }
 
 interface CacheEntry<T> {
@@ -17,7 +17,7 @@ interface CacheEntry<T> {
 export class InMemoryCache<T> implements CacheStore<T> {
   private store = new Map<string, CacheEntry<T>>()
 
-  get(key: string): T | undefined {
+  async get(key: string): Promise<T | undefined> {
     const entry = this.store.get(key)
     if (!entry) return undefined
     if (Date.now() > entry.expiresAt) {
@@ -27,15 +27,15 @@ export class InMemoryCache<T> implements CacheStore<T> {
     return entry.value
   }
 
-  set(key: string, value: T, ttlMs: number): void {
+  async set(key: string, value: T, ttlMs: number): Promise<void> {
     this.store.set(key, { value, expiresAt: Date.now() + ttlMs })
   }
 
-  delete(key: string): void {
+  async delete(key: string): Promise<void> {
     this.store.delete(key)
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.store.clear()
   }
 

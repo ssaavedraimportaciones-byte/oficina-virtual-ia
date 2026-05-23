@@ -48,6 +48,8 @@ export const NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://lo
 export const NODE_ENV = process.env.NODE_ENV ?? 'development'
 export const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER ?? 'local'
 export const JOB_PROVIDER = process.env.JOB_PROVIDER ?? 'memory'
+export const RATE_LIMIT_PROVIDER = process.env.RATE_LIMIT_PROVIDER ?? 'memory'
+export const CACHE_PROVIDER = process.env.CACHE_PROVIDER ?? 'memory'
 
 // ── Opcionales (con advertencia si faltan en producción) ──────────────────────
 

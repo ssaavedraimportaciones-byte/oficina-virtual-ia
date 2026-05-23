@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db/client'
 import { canAccess } from '@/lib/permissions'
 import { InMemoryCache } from './cache'
+import type { CacheStore } from './cache'
 import {
   queryComplianceByArea,
   queryComplianceByCompany,
@@ -17,7 +18,16 @@ export { buildCacheKey, InMemoryCache, DASHBOARD_TTL_MS } from './cache'
 export type { DashboardFilters, DashboardStats } from './types'
 export { dashboardFiltersSchema } from './types'
 
-export const dashboardCache = new InMemoryCache<DashboardStats>()
+function createDashboardCache(): CacheStore<DashboardStats> {
+  if (process.env.CACHE_PROVIDER === 'redis') {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { RedisCache } = require('./redis-cache') as typeof import('./redis-cache')
+    return new RedisCache<DashboardStats>()
+  }
+  return new InMemoryCache<DashboardStats>()
+}
+
+export const dashboardCache = createDashboardCache()
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

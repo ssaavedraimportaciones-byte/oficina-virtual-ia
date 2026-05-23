@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     const key = getRateLimitKey(ip, 'auth:login')
-    const rl = checkRateLimit(key, LOGIN_RATE_LIMIT)
+    const rl = await checkRateLimit(key, LOGIN_RATE_LIMIT)
 
     if (rl.blocked) {
       // Server-side security log — no userId available pre-login
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const { access, refresh, user } = await loginUser(parsed.data.email, parsed.data.password)
-      resetRateLimit(key)
+      await resetRateLimit(key)
       await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'LOGIN', {
         metadata: { email: user.email, role: user.role },
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ user })
     } catch {
       // Intentional: don't expose why credentials failed
-      const after = recordFailedAttempt(key, LOGIN_RATE_LIMIT)
+      const after = await recordFailedAttempt(key, LOGIN_RATE_LIMIT)
       if (after.blocked) {
         console.warn('[security] rate-limit triggered', {
           scope: 'auth:login',
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     }
 
     const key = getRateLimitKey(ip, 'auth:register')
-    const rl = checkRateLimit(key, REGISTER_RATE_LIMIT)
+    const rl = await checkRateLimit(key, REGISTER_RATE_LIMIT)
     if (rl.blocked) {
       console.warn('[security] rate-limit blocked', {
         scope: 'auth:register',
@@ -168,14 +168,14 @@ export async function POST(req: NextRequest) {
 
     try {
       const { access, refresh, user } = await registerUser(parsed.data)
-      resetRateLimit(key)
+      await resetRateLimit(key)
       await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'CREATE', {
         metadata: { email: user.email, action: 'REGISTER' },
       })
       return NextResponse.json({ user }, { status: 201 })
     } catch {
-      recordFailedAttempt(key, REGISTER_RATE_LIMIT)
+      await recordFailedAttempt(key, REGISTER_RATE_LIMIT)
       return NextResponse.json({ error: 'No se pudo completar el registro. Intente más tarde.' }, { status: 400 })
     }
   }

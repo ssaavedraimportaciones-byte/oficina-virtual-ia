@@ -23,6 +23,8 @@ export type DocumentStatus =
   | 'CLOSED'
   | 'ARCHIVED'
 
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'OBSERVED'
+
 export interface DocumentSummary {
   id: string
   folio: string

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import type { DocumentStatus, DocumentType } from '@/types/document'
 import DocumentStatusBadge from './DocumentStatusBadge'
 import { useAuth } from '@/contexts/auth-context'
+import { useToast } from '@/contexts/toast-context'
+import { InlineLoader } from '@/components/ui/LoadingState'
 
 const TYPE_LABELS: Record<DocumentType, string> = {
   SAFETY_TALK:       'Charla de Seguridad',
@@ -61,12 +63,14 @@ export default function DocumentDetailHeader({
 }: Props) {
   const { can } = useAuth()
   const router = useRouter()
-  const [changing, setChanging] = useState(false)
+  const { toast } = useToast()
+  const [changing, setChanging] = useState<DocumentStatus | null>(null)
 
   const availableTransitions = TRANSITIONS[status] ?? []
 
   async function changeStatus(newStatus: DocumentStatus) {
-    setChanging(true)
+    if (changing) return
+    setChanging(newStatus)
     try {
       const res = await fetch(`/api/documents/${id}`, {
         method: 'PATCH',
@@ -74,11 +78,12 @@ export default function DocumentDetailHeader({
         body: JSON.stringify({ status: newStatus }),
       })
       if (!res.ok) throw new Error('Error al cambiar estado')
+      toast('Estado actualizado', 'success')
       router.refresh()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error')
+      toast(err instanceof Error ? err.message : 'Error al cambiar estado', 'error')
     } finally {
-      setChanging(false)
+      setChanging(null)
     }
   }
 
@@ -109,24 +114,32 @@ export default function DocumentDetailHeader({
       {availableTransitions.length > 0 &&
         (can('documents:approve') || can('documents:observe') || can('documents:create')) && (
           <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-800">
-            {availableTransitions.map((next) => (
-              <button
-                key={next}
-                onClick={() => changeStatus(next)}
-                disabled={changing}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                  next === 'APPROVED'
-                    ? 'bg-green-700 hover:bg-green-600 text-white'
-                    : next === 'REJECTED'
-                    ? 'bg-red-800 hover:bg-red-700 text-white'
-                    : next === 'ARCHIVED'
-                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                    : 'bg-amber-600 hover:bg-amber-500 text-white'
-                }`}
-              >
-                {changing ? '...' : (TRANSITION_LABELS[next] ?? next)}
-              </button>
-            ))}
+            {availableTransitions.map((next) => {
+              const isThisChanging = changing === next
+              const anyChanging = changing !== null
+              return (
+                <button
+                  key={next}
+                  onClick={() => changeStatus(next)}
+                  disabled={anyChanging}
+                  className={`flex items-center gap-2 px-4 py-2.5 md:py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] md:min-h-0 ${
+                    next === 'APPROVED'
+                      ? 'bg-green-700 hover:bg-green-600 text-white'
+                      : next === 'REJECTED'
+                      ? 'bg-red-800 hover:bg-red-700 text-white'
+                      : next === 'ARCHIVED'
+                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                      : 'bg-amber-600 hover:bg-amber-500 text-white'
+                  }`}
+                >
+                  {isThisChanging ? (
+                    <InlineLoader message={TRANSITION_LABELS[next] ?? next} />
+                  ) : (
+                    TRANSITION_LABELS[next] ?? next
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
     </div>

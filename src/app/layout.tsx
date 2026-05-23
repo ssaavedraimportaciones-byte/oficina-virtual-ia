@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/contexts/auth-context'
+import { ToastProvider } from '@/contexts/toast-context'
+import ToastContainer from '@/components/ui/Toast'
+import ConnectionStatus from '@/components/ui/ConnectionStatus'
 
 export const metadata: Metadata = {
   title: { default: 'SafeCheck AI', template: '%s | SafeCheck AI' },
@@ -21,7 +24,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className="dark">
       <body className="bg-gray-950 text-gray-50 antialiased min-h-screen">
-        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <ConnectionStatus />
+            {children}
+            <ToastContainer />
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   )

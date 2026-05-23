@@ -4,6 +4,14 @@ export type AuditAction =
   // ── Auth ─────────────────────────────────────────────────────────────────
   | 'LOGIN'
   | 'LOGOUT'
+  | 'LOGIN_MFA_REQUIRED'
+  // ── MFA ──────────────────────────────────────────────────────────────────
+  | 'MFA_SETUP_INITIATED'
+  | 'MFA_ENABLED'
+  | 'MFA_DISABLED'
+  | 'MFA_VERIFY_OK'
+  | 'MFA_VERIFY_FAILED'
+  | 'MFA_DISABLE_FAILED'
   // ── Documents ────────────────────────────────────────────────────────────
   | 'DOCUMENT_CREATED'
   | 'DOCUMENT_READ'

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState, useCallback } from 'react'
 import type { DocumentSummary, DocumentStatus, DocumentType } from '@/types/document'
 import DocumentCard from './DocumentCard'
+import EmptyState from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/Skeleton'
 
 interface Filters {
   type?: DocumentType
@@ -16,44 +17,32 @@ export default function DocumentList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadDocs = useCallback((f: Filters) => {
     setLoading(true)
+    setError(null)
     const params = new URLSearchParams()
-    if (filters.type) params.set('type', filters.type)
-    if (filters.status) params.set('status', filters.status)
+    if (f.type) params.set('type', f.type)
+    if (f.status) params.set('status', f.status)
 
     fetch(`/api/documents?${params}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then((data) => setDocs(data.documents))
-      .catch(() => setError('Error al cargar documentos'))
+      .catch(() => setError('Error al cargar documentos. Verifica tu conexión e intenta de nuevo.'))
       .finally(() => setLoading(false))
-  }, [filters])
+  }, [])
 
-  if (loading) {
-    return (
-      <div className="grid gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4 animate-pulse">
-            <div className="h-4 bg-gray-800 rounded w-1/4 mb-2" />
-            <div className="h-5 bg-gray-800 rounded w-3/4 mb-1" />
-            <div className="h-4 bg-gray-800 rounded w-1/2" />
-          </div>
-        ))}
-      </div>
-    )
-  }
+  useEffect(() => { loadDocs(filters) }, [filters, loadDocs])
+
+  if (loading) return <SkeletonList count={4} />
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-400">{error}</p>
-        <button
-          onClick={() => setFilters({ ...filters })}
-          className="mt-3 text-sm text-amber-400 hover:underline"
-        >
-          Reintentar
-        </button>
-      </div>
+      <EmptyState
+        icon="⚠️"
+        title="Error al cargar documentos"
+        description={error}
+        action={{ label: 'Reintentar', onClick: () => loadDocs(filters) }}
+      />
     )
   }
 
@@ -93,15 +82,20 @@ export default function DocumentList() {
       </div>
 
       {docs.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-3">No hay documentos</p>
-          <Link
-            href="/documents/new"
-            className="text-sm text-amber-400 hover:underline"
-          >
-            Crear el primero
-          </Link>
-        </div>
+        <EmptyState
+          icon="📄"
+          title="Sin documentos"
+          description={
+            filters.type || filters.status
+              ? 'No hay documentos que coincidan con los filtros seleccionados.'
+              : 'Aún no hay documentos. Crea el primero para comenzar.'
+          }
+          action={
+            filters.type || filters.status
+              ? { label: 'Limpiar filtros', onClick: () => setFilters({}) }
+              : { label: 'Crear documento', href: '/documents/new' }
+          }
+        />
       ) : (
         <div className="grid gap-3">
           {docs.map((doc) => (

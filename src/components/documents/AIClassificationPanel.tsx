@@ -2,15 +2,10 @@
 
 import { useState } from 'react'
 import type { AIClassificationResult } from '@/modules/ai-validation'
+import ConfidenceBadge from '@/components/ui/ConfidenceBadge'
 
 interface Props {
   documentId: string
-}
-
-const CONFIDENCE_COLOR = (c: number) => {
-  if (c >= 0.8) return 'text-green-400'
-  if (c >= 0.5) return 'text-yellow-400'
-  return 'text-red-400'
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -99,6 +94,15 @@ export default function AIClassificationPanel({ documentId }: Props) {
 
       {result && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+          {/* Low-confidence global warning */}
+          {result.confidence < 0.8 && (
+            <div className="px-5 py-3 bg-yellow-950 border-b border-yellow-800 rounded-t-xl">
+              <p className="text-sm text-yellow-300 font-medium">
+                ⚠️ Confianza baja — se recomienda revisión manual antes de aprobar
+              </p>
+            </div>
+          )}
+
           {/* Type + confidence */}
           <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
             <div>
@@ -108,10 +112,8 @@ export default function AIClassificationPanel({ documentId }: Props) {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500 mb-0.5">Confianza</p>
-              <p className={`font-bold text-lg ${CONFIDENCE_COLOR(result.confidence)}`}>
-                {Math.round(result.confidence * 100)}%
-              </p>
+              <p className="text-xs text-gray-500 mb-1">Confianza</p>
+              <ConfidenceBadge confidence={result.confidence} />
             </div>
           </div>
 

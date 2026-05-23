@@ -3,6 +3,7 @@ import { sendEmail } from './channels/email'
 import { sendWhatsAppText, isWhatsAppConfigured } from './channels/whatsapp'
 import { renderTemplate } from './templates'
 import { getRecipientsForEvent } from './recipients'
+import { scheduleRetry } from './retry'
 import { log } from '@/modules/audit'
 import type { AuditCtx } from '@/modules/audit'
 import type {
@@ -72,8 +73,14 @@ export async function sendNotification(
       status: success ? 'SENT' : 'FAILED',
       message: messageJson,
       sentAt: success ? new Date() : null,
+      lastError: errorMessage ?? null,
     },
   })
+
+  // Schedule retry for failed EMAIL notifications (not IN_APP/SMS)
+  if (!success && channel === 'EMAIL' && errorMessage) {
+    await scheduleRetry(record.id, errorMessage).catch(() => {/* retry scheduling must not throw */})
+  }
 
   return {
     channel,

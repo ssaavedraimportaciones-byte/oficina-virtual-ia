@@ -18,6 +18,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
+    "db:backup": "bash scripts/backup-db.sh",
     "smoke": "tsx scripts/smoke-test.ts"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "jose": "^5.9.3",
     "next": "15.1.0",
     "nodemailer": "^8.0.7",
+    "otplib": "^13.4.0",
     "qrcode": "^1.5.4",
     "react": "^19",
     "react-dom": "^19",

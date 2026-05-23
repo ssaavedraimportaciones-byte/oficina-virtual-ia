@@ -1,10 +1,9 @@
-name: Deploy → Staging
+name: Deploy → Production
 
 on:
   push:
     branches:
-      - 'claude/**'
-      - develop
+      - main
   workflow_dispatch:
     inputs:
       run_smoke_tests:
@@ -14,8 +13,8 @@ on:
         type: boolean
 
 concurrency:
-  group: staging-deploy-${{ github.ref }}
-  cancel-in-progress: true
+  group: production-deploy
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -32,10 +31,10 @@ jobs:
       - run: npx vitest run --reporter=verbose
 
   deploy:
-    name: Deploy to Vercel Staging
+    name: Deploy to Vercel Production
     runs-on: ubuntu-latest
     needs: test
-    environment: staging
+    environment: production
     outputs:
       deployment_url: ${{ steps.deploy.outputs.url }}
 
@@ -62,13 +61,13 @@ jobs:
         run: npm install -g vercel@latest
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build project
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -76,9 +75,9 @@ jobs:
       - name: Deploy to Vercel
         id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "Deployed to: $URL"
+          echo "Deployed to production: $URL"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -87,7 +86,7 @@ jobs:
     name: Run DB migrations
     runs-on: ubuntu-latest
     needs: deploy
-    environment: staging
+    environment: production
 
     steps:
       - name: Checkout
@@ -115,13 +114,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Seed staging data
-        run: npx tsx prisma/seed.ts
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
-
   smoke-tests:
     name: Smoke Tests
     runs-on: ubuntu-latest
@@ -137,14 +129,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Wait for deployment to warm up
-        run: sleep 10
-
       - name: Install dependencies
         run: npm ci
+
+      - name: Wait for deployment to warm up
+        run: sleep 15
+
       - name: Run smoke tests
         run: BASE_URL="${{ needs.deploy.outputs.deployment_url }}" npx tsx scripts/smoke-test.ts
+        env:
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
 
-      - name: Print staging URL
+      - name: Print production URL
         if: always()
-        run: echo "🚀 Staging URL → ${{ needs.deploy.outputs.deployment_url }}"
+        run: echo "Production URL → ${{ needs.deploy.outputs.deployment_url }}"

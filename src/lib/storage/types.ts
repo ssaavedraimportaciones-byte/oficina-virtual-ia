@@ -6,6 +6,7 @@ export interface StorageResult {
 export interface StorageProvider {
   uploadBuffer(storagePath: string, buffer: Buffer, contentType: string): Promise<StorageResult>
   uploadBase64Image(storagePath: string, dataUrl: string): Promise<StorageResult>
+  getSignedUrl?(storagePath: string, expiresInSeconds?: number): Promise<string>
 }
 
 export function parseDataUrl(dataUrl: string): { contentType: string; buffer: Buffer } {

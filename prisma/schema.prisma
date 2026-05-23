@@ -136,10 +136,13 @@ model User {
   phone        String?
   role         UserRole @default(WORKER)
   companyId    String
-  isActive     Boolean  @default(true)
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive        Boolean  @default(true)
+  passwordHash    String
+  mfaEnabled      Boolean  @default(false)
+  mfaSecret       String?
+  mfaBackupCodes  String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   company        Company        @relation(fields: [companyId], references: [id])
   supervisedDocs Document[]     @relation("DocumentSupervisor")
@@ -372,14 +375,18 @@ model AuditLog {
 // ═══════════════════════════════════════════════════════════════
 
 model Notification {
-  id          String              @id @default(cuid())
-  documentId  String?
-  recipientId String
-  channel     NotificationChannel
-  status      NotificationStatus  @default(PENDING)
-  message     String?             @db.Text
-  sentAt      DateTime?
-  createdAt   DateTime            @default(now())
+  id           String              @id @default(cuid())
+  documentId   String?
+  recipientId  String
+  channel      NotificationChannel
+  status       NotificationStatus  @default(PENDING)
+  message      String?             @db.Text
+  sentAt       DateTime?
+  retryCount   Int                 @default(0)
+  nextRetryAt  DateTime?
+  lastError    String?             @db.Text
+  isDeadLetter Boolean             @default(false)
+  createdAt    DateTime            @default(now())
 
   document    Document?           @relation(fields: [documentId], references: [id])
   recipient   User                @relation(fields: [recipientId], references: [id])

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { canAccess, getRoutePermission } from '@/lib/permissions'
 import { JWT_SECRET } from '@/lib/env'
+import { randomUUID } from 'crypto'
 import type { UserRole } from '@/types/user'
 
 const PUBLIC_PATHS = new Set(['/login', '/unauthorized'])
@@ -25,7 +26,13 @@ function isPublic(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (isPublic(pathname)) return NextResponse.next()
+  const requestId = randomUUID()
+
+  if (isPublic(pathname)) {
+    const res = NextResponse.next()
+    res.headers.set('x-request-id', requestId)
+    return res
+  }
 
   const token = req.cookies.get('access_token')?.value
 
@@ -54,6 +61,7 @@ export async function middleware(req: NextRequest) {
     }
 
     const res = NextResponse.next()
+    res.headers.set('x-request-id', requestId)
     res.headers.set('x-user-id', String(payload['uid'] ?? ''))
     res.headers.set('x-user-email', String(payload['email'] ?? ''))
     res.headers.set('x-user-name', String(payload['name'] ?? ''))

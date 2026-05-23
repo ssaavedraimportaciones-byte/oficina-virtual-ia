@@ -66,6 +66,24 @@ export async function POST(req: NextRequest) {
     try {
       const { access, refresh, user } = await loginUser(parsed.data.email, parsed.data.password)
       await resetRateLimit(key)
+
+      // MFA required for privileged roles
+      const MFA_REQUIRED_ROLES = ['SYSTEM_ADMIN', 'CONTRACT_ADMIN'] as const
+      const requiresMfa = (MFA_REQUIRED_ROLES as readonly string[]).includes(user.role)
+      if (requiresMfa) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { mfaEnabled: true, mfaSecret: true },
+        })
+        if (dbUser?.mfaEnabled && dbUser.mfaSecret) {
+          // Issue short-lived MFA challenge — no session cookies yet
+          await log({ userId: user.id, ip, userAgent: ua }, 'LOGIN_MFA_REQUIRED', {
+            metadata: { role: user.role },
+          })
+          return NextResponse.json({ mfaRequired: true, userId: user.id }, { status: 200 })
+        }
+      }
+
       await setCookies(access, refresh)
       await log({ userId: user.id, ip, userAgent: ua }, 'LOGIN', {
         metadata: { email: user.email, role: user.role },

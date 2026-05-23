@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs')
+
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
@@ -29,7 +31,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              // Sentry ingestion endpoints for error/tracing beacons
+              "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io",
               "media-src 'self' blob:",
               "worker-src 'self' blob:",
               "frame-ancestors 'none'",
@@ -40,7 +43,6 @@ const nextConfig = {
     ]
   },
 
-  // Serve locally stored uploads in development
   async rewrites() {
     if (process.env.NODE_ENV !== 'development') return []
     const path = require('path')
@@ -52,7 +54,7 @@ const nextConfig = {
       },
     ]
   },
-  // Increase body size limit for file uploads (default 4MB)
+
   experimental: {
     serverActions: {
       bodySizeLimit: '52mb',
@@ -60,4 +62,17 @@ const nextConfig = {
   },
 }
 
-module.exports = withPWA(nextConfig)
+const sentryWebpackPluginOptions = {
+  // Upload source maps only when SENTRY_AUTH_TOKEN is set
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Disable Sentry build steps if DSN is not configured
+  disableServerWebpackPlugin: !process.env.SENTRY_DSN,
+  disableClientWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
+  hideSourceMaps: true,
+  widenClientFileUpload: true,
+}
+
+module.exports = withSentryConfig(withPWA(nextConfig), sentryWebpackPluginOptions)

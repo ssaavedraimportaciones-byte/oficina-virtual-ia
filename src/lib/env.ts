@@ -67,3 +67,7 @@ export const AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT = process.env.AZURE_DOCUMENT_I
 export const AZURE_DOCUMENT_INTELLIGENCE_KEY = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY
 export const SMTP_HOST = process.env.SMTP_HOST
 export const RESEND_API_KEY = process.env.RESEND_API_KEY
+
+// ── Sentry (opcional — sin DSN no se envían eventos) ──────────────────────────
+export const SENTRY_DSN = process.env.SENTRY_DSN
+export const NEXT_PUBLIC_SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN

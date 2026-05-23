@@ -67,6 +67,8 @@ export const AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT = process.env.AZURE_DOCUMENT_I
 export const AZURE_DOCUMENT_INTELLIGENCE_KEY = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY
 export const SMTP_HOST = process.env.SMTP_HOST
 export const RESEND_API_KEY = process.env.RESEND_API_KEY
+export const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER ?? 'smtp'
+export const EMAIL_FROM = process.env.EMAIL_FROM ?? process.env.SMTP_FROM ?? 'SafeCheck AI <no-reply@safecheck.ai>'
 
 // ── Sentry (opcional — sin DSN no se envían eventos) ──────────────────────────
 export const SENTRY_DSN = process.env.SENTRY_DSN

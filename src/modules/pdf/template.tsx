@@ -484,6 +484,124 @@ export function buildPdfDocument(data: PdfDocumentData): React.ReactElement<Docu
           } />
         </View>
       </Page>
+
+      {/* ── Certificado Legal — Ley 19.799 ─────────────────────────────── */}
+      <Page size="A4" style={{ ...s.page, justifyContent: 'flex-start' }}>
+        {/* Certificate header */}
+        <View style={{ borderBottom: `2 solid ${C.amber}`, paddingBottom: 14, marginBottom: 18 }}>
+          <Text style={{ fontSize: 7, color: C.amber, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+            SafeCheck AI — Certificado de Firma Electrónica Simple
+          </Text>
+          <Text style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 }}>
+            Certificado de Autenticidad e Integridad
+          </Text>
+          <Text style={{ fontSize: 8, color: C.muted }}>
+            Ley Nº 19.799 sobre Documentos Electrónicos, Firma Electrónica y Servicios de Certificación
+          </Text>
+        </View>
+
+        {/* Legal body */}
+        <View style={{ backgroundColor: C.card, borderRadius: 6, padding: 14, marginBottom: 14, border: `0.5 solid ${C.border}` }}>
+          <Text style={{ fontSize: 9, color: C.text, lineHeight: 1.6, marginBottom: 10 }}>
+            El presente documento ha sido generado, suscrito y almacenado a través de la plataforma
+            SafeCheck AI, que implementa mecanismos de firma electrónica simple conforme a lo
+            establecido en la Ley N° 19.799 (D.O. 25.03.2002) y su Reglamento (D.S. N° 181/2002
+            del Ministerio de Economía).
+          </Text>
+          <Text style={{ fontSize: 9, color: C.text, lineHeight: 1.6 }}>
+            Cada firma registrada en este documento incluye: (a) imagen capturada en dispositivo del
+            firmante, (b) identidad verificada mediante autenticación activa en la plataforma, (c)
+            dirección IP y User-Agent del dispositivo firmante, (d) coordenadas GPS cuando disponibles,
+            (e) marca de tiempo del servidor, y (f) hash SHA-256 del registro. Estos elementos
+            constituyen una firma electrónica simple según el Art. 2° letra f) de la citada ley.
+          </Text>
+        </View>
+
+        {/* Document identity */}
+        <Text style={{ fontSize: 8, color: C.amber, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+          Identificación del Documento
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {[
+            ['Folio', data.folio],
+            ['Tipo', DOC_TYPE_LABELS[data.type] ?? data.type],
+            ['Empresa', `${data.companyName} · RUT ${data.companyRut}`],
+            ['Faena / Área', data.workArea],
+            ['Creado por', data.createdByName],
+            ['Supervisor', data.supervisorName],
+            ['Prevencionista', data.preventionistName],
+            ['Fecha creación', fmt(data.createdAt)],
+            ['Fecha aprobación', fmt(data.approvedAt)],
+            ['Estado', data.documentStatus],
+            ['Versión PDF', `v${data.version}`],
+          ].map(([label, value]) => (
+            <View key={label} style={{ width: '48%', backgroundColor: '#1a2744', borderRadius: 4, padding: 7, borderLeft: `2 solid ${C.border}` }}>
+              <Text style={{ fontSize: 7, color: C.muted, marginBottom: 1 }}>{label}</Text>
+              <Text style={{ fontSize: 8, color: C.text }}>{value ?? '—'}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Integrity hash */}
+        <Text style={{ fontSize: 8, color: C.amber, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+          Integridad del Documento
+        </Text>
+        <View style={{ backgroundColor: '#0a1628', borderRadius: 4, padding: 10, marginBottom: 14, border: `0.5 solid ${C.border}` }}>
+          <Text style={{ fontSize: 7, color: C.muted, marginBottom: 3 }}>Hash SHA-256 del documento (folio + contenido + fecha aprobación)</Text>
+          <Text style={{ fontSize: 7, color: '#34d399', fontFamily: 'Helvetica', letterSpacing: 0.3 }}>{data.documentHash}</Text>
+        </View>
+
+        {/* Signers summary */}
+        {data.signatures.length > 0 && (
+          <>
+            <Text style={{ fontSize: 8, color: C.amber, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+              Firmantes ({data.signatures.length})
+            </Text>
+            {data.signatures.map((sig, i) => (
+              <View key={i} style={{ flexDirection: 'row', gap: 8, paddingVertical: 5, borderBottom: `0.5 solid ${C.border}`, alignItems: 'flex-start' }}>
+                <View style={{ width: 16, height: 16, backgroundColor: C.greenDark, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 8, color: C.green, fontWeight: 700 }}>{i + 1}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 8, color: C.text, fontWeight: 700 }}>{sig.signerName}</Text>
+                  <Text style={{ fontSize: 7, color: C.muted }}>{ROLE_LABELS[sig.signerRole] ?? sig.signerRole} · {sig.method} · {fmt(sig.signedAt)} {fmtTime(sig.signedAt)}</Text>
+                  <Text style={{ fontSize: 6, color: '#4a5568', marginTop: 1 }}>Hash: {sig.hash}</Text>
+                </View>
+              </View>
+            ))}
+            <View style={{ marginBottom: 14 }} />
+          </>
+        )}
+
+        {/* Verification QR */}
+        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
+          {data.qrDataUrl && (
+            <Image src={data.qrDataUrl} style={{ width: 64, height: 64 }} />
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 8, color: C.amber, fontWeight: 700, marginBottom: 4 }}>Verificación independiente</Text>
+            <Text style={{ fontSize: 7.5, color: C.text, lineHeight: 1.5 }}>
+              Este documento puede verificarse de forma independiente accediendo al código QR adyacente
+              o ingresando el código {data.stamp.qrCode} en el sistema SafeCheck AI. La verificación
+              compara el hash del documento con el registro de la base de datos para detectar cualquier
+              alteración posterior a la aprobación.
+            </Text>
+          </View>
+        </View>
+
+        {/* Legal footer */}
+        <View style={{ borderTop: `0.5 solid ${C.border}`, paddingTop: 10, marginTop: 'auto' }}>
+          <Text style={{ fontSize: 6.5, color: C.muted, lineHeight: 1.5, textAlign: 'center' }}>
+            Documento generado automáticamente por SafeCheck AI · Firma Electrónica Simple · Ley N° 19.799 Chile
+            {'\n'}
+            Este certificado no reemplaza la firma electrónica avanzada (FEA) requerida para actos y contratos
+            que exijan escritura pública. Para actos de prevención de riesgos laborales regidos por la Ley N° 16.744
+            y sus reglamentos, la firma electrónica simple tiene plena validez legal.
+            {'\n'}
+            Generado: {fmt(new Date().toISOString())} {fmtTime(new Date().toISOString())} · SafeCheck AI v{data.version}
+          </Text>
+        </View>
+      </Page>
     </Document>
   )
 }

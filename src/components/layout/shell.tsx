@@ -5,12 +5,16 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import Nav from './nav'
 import LoadingState from '@/components/ui/LoadingState'
+import ConnectionStatus from '@/components/ui/ConnectionStatus'
+import { useOfflineSync } from '@/hooks/useOfflineSync'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  // Mount once — handles auto-sync on reconnect and exposes pending/conflict counts
+  const { pendingCount, status: syncStatus } = useOfflineSync()
 
   // Close mobile nav on route change
   useEffect(() => { setMobileNavOpen(false) }, [pathname])
@@ -38,6 +42,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden">
+      {/* Offline/reconnect banner — fixed at top, above all content */}
+      <ConnectionStatus />
       {/* Desktop sidebar */}
       <aside className="w-56 flex-shrink-0 hidden md:block">
         <Nav />
@@ -50,6 +56,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-xs font-bold text-gray-950">SC</span>
           </div>
           <span className="font-semibold text-white text-sm">SafeCheck AI</span>
+          {pendingCount > 0 && (
+            <span
+              title={`${pendingCount} documento(s) pendientes de sincronización`}
+              className="text-[10px] bg-amber-700 text-amber-200 border border-amber-600 px-1.5 py-0.5 rounded-full font-medium"
+            >
+              {pendingCount} offline
+            </span>
+          )}
+          {syncStatus === 'syncing' && (
+            <span className="text-[10px] bg-blue-900 text-blue-300 border border-blue-700 px-1.5 py-0.5 rounded-full animate-pulse">
+              Sinc…
+            </span>
+          )}
         </div>
         <button
           onClick={() => setMobileNavOpen(true)}

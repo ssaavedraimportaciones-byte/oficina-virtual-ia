@@ -1,13 +1,5 @@
-import { promises as fs } from 'fs'
-import path from 'path'
 import type { UploadedFile } from './types'
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR ?? path.join(process.cwd(), 'uploads')
-const UPLOAD_URL_PREFIX = process.env.UPLOAD_URL_PREFIX ?? '/uploads'
-
-async function ensureDir(dir: string) {
-  await fs.mkdir(dir, { recursive: true })
-}
+import { uploadBuffer } from '@/lib/storage'
 
 export async function storeFile(
   buffer: Buffer,
@@ -15,60 +7,29 @@ export async function storeFile(
   mimeType: string,
   documentId: string
 ): Promise<UploadedFile> {
-  const ext = path.extname(originalName) || mimeToExt(mimeType)
+  const ext = mimeToExt(mimeType)
   const timestamp = Date.now()
-  const filename = `${documentId}-${timestamp}-original${ext}`
+  const storagePath = `documents/${documentId}/scans/${timestamp}-original${ext}`
 
-  if (process.env.AZURE_STORAGE_CONNECTION_STRING) {
-    return storeAzureBlob(buffer, filename, originalName, mimeType)
-  }
-
-  await ensureDir(UPLOAD_DIR)
-  const fullPath = path.join(UPLOAD_DIR, filename)
-  await fs.writeFile(fullPath, buffer)
+  const result = await uploadBuffer(storagePath, buffer, mimeType)
 
   return {
     originalName,
-    storagePath: fullPath,
-    storageUrl: `${UPLOAD_URL_PREFIX}/${filename}`,
+    storagePath: result.path,
+    storageUrl: result.url,
     mimeType,
     sizeBytes: buffer.length,
   }
 }
 
 export async function readFile(storagePath: string): Promise<Buffer> {
-  return fs.readFile(storagePath)
-}
-
-async function storeAzureBlob(
-  buffer: Buffer,
-  filename: string,
-  originalName: string,
-  mimeType: string
-): Promise<UploadedFile> {
-  // Dynamic import so the package is optional — only needed when Azure env vars are set
-  const { BlobServiceClient } = await import('@azure/storage-blob')
-
-  const client = BlobServiceClient.fromConnectionString(
-    process.env.AZURE_STORAGE_CONNECTION_STRING!
-  )
-  const container = client.getContainerClient(
-    process.env.AZURE_STORAGE_CONTAINER ?? 'safecheck-docs'
-  )
-  await container.createIfNotExists()
-
-  const blob = container.getBlockBlobClient(filename)
-  await blob.upload(buffer, buffer.length, {
-    blobHTTPHeaders: { blobContentType: mimeType },
-  })
-
-  return {
-    originalName,
-    storagePath: blob.name,
-    storageUrl: blob.url,
-    mimeType,
-    sizeBytes: buffer.length,
+  if (process.env.STORAGE_PROVIDER === 'vercel_blob') {
+    const res = await fetch(storagePath)
+    if (!res.ok) throw new Error(`storage: no se pudo leer el archivo (${res.status})`)
+    return Buffer.from(await res.arrayBuffer())
   }
+  const { promises: fs } = await import('fs')
+  return fs.readFile(storagePath)
 }
 
 function mimeToExt(mime: string): string {
@@ -90,4 +51,4 @@ export const ACCEPTED_MIME_TYPES = new Set([
   'image/jpg',
 ])
 
-export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
+export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024

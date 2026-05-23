@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db/client'
 import { log } from '@/modules/audit'
 import { canAccess } from '@/lib/permissions'
+import { uploadBase64Image } from '@/lib/storage'
 import { createSignatureHash, validateSignatureImage, hashSignatureImage, buildDocumentSnapshot, hashDocumentSnapshot } from './hash'
 import type { SignaturePayload, SignatureValidation, SavedSignature, SigningMethod } from './types'
 import type { UserRole } from '@/types/user'
@@ -87,11 +88,15 @@ export async function saveSignature(payload: SignaturePayload): Promise<SavedSig
     QR: 'DIGITAL',
   }
 
+  // Upload signature image to configured storage provider
+  const sigPath = `documents/${payload.documentId}/signatures/${payload.userId}-${Date.now()}.png`
+  const { url: signatureImageUrl } = await uploadBase64Image(sigPath, payload.imageData)
+
   const sig = await prisma.signature.create({
     data: {
       documentId: payload.documentId,
       userId: payload.userId,
-      signatureImageUrl: payload.imageData,
+      signatureImageUrl,
       method: methodMap[payload.method],
       gpsLat: payload.gpsLat,
       gpsLng: payload.gpsLng,

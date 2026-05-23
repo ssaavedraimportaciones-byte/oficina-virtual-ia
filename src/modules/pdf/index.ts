@@ -1,5 +1,3 @@
-import path from 'path'
-import fs from 'fs/promises'
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { prisma } from '@/lib/db/client'
@@ -10,6 +8,7 @@ import {
   generateQrDataUrl,
   buildVerifyUrl,
 } from '@/modules/qr'
+import { uploadBuffer } from '@/lib/storage'
 import { buildPdfDocument } from './template'
 import type { PdfDocumentData, GeneratePdfResult } from './types'
 
@@ -22,34 +21,9 @@ async function savePdfBuffer(
   documentId: string,
   version: number
 ): Promise<string> {
-  const useAzure =
-    typeof process.env.AZURE_STORAGE_CONNECTION_STRING === 'string' &&
-    process.env.AZURE_STORAGE_CONNECTION_STRING.length > 0
-
-  const fileName = `${documentId}_v${version}.pdf`
-
-  if (useAzure) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { BlobServiceClient } = await import('@azure/storage-blob' as any)
-    const client = BlobServiceClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING!
-    )
-    const container = client.getContainerClient(
-      process.env.AZURE_STORAGE_CONTAINER ?? 'safecheck-docs'
-    )
-    await container.createIfNotExists()
-    const blob = container.getBlockBlobClient(`pdfs/${fileName}`)
-    await blob.uploadData(buffer, { blobHTTPHeaders: { blobContentType: 'application/pdf' } })
-    return blob.url
-  }
-
-  // Local filesystem
-  const uploadDir = process.env.UPLOAD_DIR ?? path.join(process.cwd(), 'uploads')
-  const pdfDir = path.join(uploadDir, 'pdfs')
-  await fs.mkdir(pdfDir, { recursive: true })
-  await fs.writeFile(path.join(pdfDir, fileName), buffer)
-  const urlPrefix = process.env.UPLOAD_URL_PREFIX ?? '/uploads'
-  return `${urlPrefix}/pdfs/${fileName}`
+  const storagePath = `documents/${documentId}/pdf/final_v${version}.pdf`
+  const result = await uploadBuffer(storagePath, buffer, 'application/pdf')
+  return result.url
 }
 
 // ── detectVersion ─────────────────────────────────────────────────────────────

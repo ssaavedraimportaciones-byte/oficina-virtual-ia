@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { canAccess, getRoutePermission } from '@/lib/permissions'
 import { JWT_SECRET } from '@/lib/env'
-import { randomUUID } from 'crypto'
 import type { UserRole } from '@/types/user'
 
 const PUBLIC_PATHS = new Set(['/login', '/unauthorized'])
@@ -26,7 +25,7 @@ function isPublic(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  const requestId = randomUUID()
+  const requestId = crypto.randomUUID()
 
   if (isPublic(pathname)) {
     const res = NextResponse.next()

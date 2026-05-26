@@ -29,6 +29,20 @@ function assert(condition: boolean, msg: string) {
   if (!condition) throw new Error(msg)
 }
 
+// Parse Set-Cookie response headers into a Cookie request header string.
+// Node.js fetch returns Set-Cookie values with full attributes (Path, HttpOnly, etc.)
+// The Cookie header must only contain name=value pairs, not attributes.
+function parseCookies(res: Response): string {
+  const rawList: string[] =
+    typeof (res.headers as { getSetCookie?: () => string[] }).getSetCookie === 'function'
+      ? ((res.headers as { getSetCookie: () => string[] }).getSetCookie())
+      : (res.headers.get('set-cookie') ?? '').split(/,(?=\s*[a-zA-Z0-9_-]+=)/)
+  return rawList
+    .map(c => c.split(';')[0].trim())
+    .filter(Boolean)
+    .join('; ')
+}
+
 async function main() {
   console.log(`\n══════════════════════════════════════════`)
   console.log(`SafeCheck AI — Smoke Tests`)
@@ -75,10 +89,13 @@ async function main() {
     })
     assert(res.status === 200, `status ${res.status}`)
     const body = await res.json()
+    // If MFA is required for this user, login returns { mfaRequired: true } — not a session error
+    assert(!body.mfaRequired, `MFA requerido para ${EMAIL} — usar SMOKE_EMAIL sin MFA`)
     assert(body.user?.role === 'SYSTEM_ADMIN', `role=${body.user?.role}`)
-    const setCookie = res.headers.get('set-cookie') ?? ''
-    assert(setCookie.includes('access_token'), 'no access_token cookie')
-    accessCookie = setCookie
+    // parseCookies extracts only name=value pairs — excluding Path/HttpOnly/SameSite attributes
+    // that would break the Cookie request header if sent verbatim
+    accessCookie = parseCookies(res)
+    assert(accessCookie.includes('access_token'), 'no access_token cookie')
   })
 
   await test('POST /api/auth?action=login credenciales inválidas → 401', async () => {

@@ -14,14 +14,16 @@ function getJwtSecretBytes(): Uint8Array {
   return new TextEncoder().encode(s)
 }
 
-const PUBLIC_PATHS = new Set(['/login', '/unauthorized'])
+const PUBLIC_PATHS = new Set(['/login', '/unauthorized', '/health'])
 const PUBLIC_PREFIXES = [
   '/api/auth',
   '/api/health',
   '/api/verify',
   '/verify',
+  '/health',
   '/_next',
   '/icons',
+  '/images',
   '/manifest.json',
   '/sw.js',
   '/workbox-',
@@ -33,7 +35,7 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const requestId = crypto.randomUUID()

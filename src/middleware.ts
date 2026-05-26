@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { canAccess, getRoutePermission } from '@/lib/permissions'
-import { JWT_SECRET } from '@/lib/env'
 import type { UserRole } from '@/types/user'
+
+// JWT_SECRET is lazy-loaded inside the handler, not at module level.
+// Module-level validation would crash Edge Runtime on every request
+// if the var is missing — preventing even public routes from responding.
+// The security invariant is preserved: protected routes still throw if
+// JWT_SECRET is absent or too short.
+function getJwtSecretBytes(): Uint8Array {
+  const s = process.env.JWT_SECRET ?? ''
+  if (s.length < 32) throw new Error('[middleware] JWT_SECRET not set or too short')
+  return new TextEncoder().encode(s)
+}
 
 const PUBLIC_PATHS = new Set(['/login', '/unauthorized'])
 const PUBLIC_PREFIXES = [
   '/api/auth',
+  '/api/health',
   '/api/verify',
   '/verify',
   '/_next',
@@ -46,7 +57,7 @@ export async function middleware(req: NextRequest) {
   }
 
   try {
-    const secretBytes = new TextEncoder().encode(JWT_SECRET)
+    const secretBytes = getJwtSecretBytes()
     const { payload } = await jwtVerify(token, secretBytes)
 
     const role = payload['role'] as UserRole

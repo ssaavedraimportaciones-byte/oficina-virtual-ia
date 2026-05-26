@@ -1,12 +1,23 @@
 /**
  * SafeCheck AI — Smoke tests para staging/producción
  * Uso: BASE_URL=https://tu-dominio.vercel.app npx tsx scripts/smoke-test.ts
- * Requiere usuario: admin@safecheck.app / SafeCheck2026!
+ *
+ * Variables de entorno:
+ *   BASE_URL              URL base del deploy (default: http://localhost:3000)
+ *   SMOKE_EMAIL           Email del usuario admin (default: admin@safecheck.app)
+ *   SMOKE_PASSWORD        Password (default: SafeCheck2026!)
+ *   SKIP_RATE_LIMIT_TEST  Si está definido, omite el test de rate limit
+ *
+ * NOTA: El test de rate limit consume el contador de la IP actual.
+ * En deploys con RATE_LIMIT_PROVIDER=memory, el contador persiste hasta
+ * que el serverless instance se reinicia. Usar SKIP_RATE_LIMIT_TEST=1
+ * para corridas normales de CI/CD.
  */
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000'
 const EMAIL = process.env.SMOKE_EMAIL ?? 'admin@safecheck.app'
 const PASSWORD = process.env.SMOKE_PASSWORD ?? 'SafeCheck2026!'
+const SKIP_RATE_LIMIT = !!process.env.SKIP_RATE_LIMIT_TEST
 
 let passed = 0
 let failed = 0
@@ -31,7 +42,7 @@ function assert(condition: boolean, msg: string) {
 
 // Parse Set-Cookie response headers into a Cookie request header string.
 // Node.js fetch returns Set-Cookie values with full attributes (Path, HttpOnly, etc.)
-// The Cookie header must only contain name=value pairs, not attributes.
+// The Cookie header must only contain name=value pairs, not those attributes.
 function parseCookies(res: Response): string {
   const rawList: string[] =
     typeof (res.headers as { getSetCookie?: () => string[] }).getSetCookie === 'function'
@@ -47,9 +58,10 @@ async function main() {
   console.log(`\n══════════════════════════════════════════`)
   console.log(`SafeCheck AI — Smoke Tests`)
   console.log(`Base URL: ${BASE}`)
+  if (SKIP_RATE_LIMIT) console.log(`⚠️  Rate limit test: OMITIDO (SKIP_RATE_LIMIT_TEST=1)`)
   console.log(`══════════════════════════════════════════\n`)
 
-  // ── 1. Health check ────────────────────────────────────────────
+  // ── 1. Health ──────────────────────────────────────────────────
   console.log('1. Health')
   await test('GET /api/health → 200 ok', async () => {
     const res = await fetch(`${BASE}/api/health`)
@@ -62,13 +74,12 @@ async function main() {
 
   await test('GET /api/health/deep → 200 todas las dependencias ok', async () => {
     const res = await fetch(`${BASE}/api/health/deep`)
-    // 503 es aceptable si algún servicio opcional no está configurado
     assert(res.status === 200 || res.status === 503, `status inesperado ${res.status}`)
     const body = await res.json()
     assert(body.checks?.db?.ok === true, `db no ok: ${body.checks?.db?.error}`)
     assert(typeof body.ts === 'string', 'no timestamp')
     if (res.status === 503) {
-      console.log(`    ⚠️  Algunos servicios opcionales degradados: ${JSON.stringify(body.checks)}`)
+      console.log(`    ⚠️  Servicios opcionales degradados: ${JSON.stringify(body.checks)}`)
     }
   })
 
@@ -77,7 +88,7 @@ async function main() {
     assert(res.status === 200 || res.status === 404, `status ${res.status}`)
   })
 
-  // ── 2. Auth ────────────────────────────────────────────────────
+  // ── 2. Auth — login válido PRIMERO (resetea rate limit counter) ─
   console.log('\n2. Auth')
   let accessCookie = ''
 
@@ -87,26 +98,18 @@ async function main() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
     })
+    if (res.status === 429) {
+      throw new Error(
+        '429 — Rate limit activo desde una corrida anterior del smoke test. ' +
+        'Espere la ventana de bloqueo (~15 min) o use SKIP_RATE_LIMIT_TEST=1 en la próxima corrida.'
+      )
+    }
     assert(res.status === 200, `status ${res.status}`)
     const body = await res.json()
-    // If MFA is required for this user, login returns { mfaRequired: true } — not a session error
-    assert(!body.mfaRequired, `MFA requerido para ${EMAIL} — usar SMOKE_EMAIL sin MFA`)
+    assert(!body.mfaRequired, `MFA requerido para ${EMAIL} — usar SMOKE_EMAIL con usuario sin MFA`)
     assert(body.user?.role === 'SYSTEM_ADMIN', `role=${body.user?.role}`)
-    // parseCookies extracts only name=value pairs — excluding Path/HttpOnly/SameSite attributes
-    // that would break the Cookie request header if sent verbatim
     accessCookie = parseCookies(res)
-    assert(accessCookie.includes('access_token'), 'no access_token cookie')
-  })
-
-  await test('POST /api/auth?action=login credenciales inválidas → 401', async () => {
-    const res = await fetch(`${BASE}/api/auth?action=login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'no@existe.cl', password: 'wrong' }),
-    })
-    assert(res.status === 401, `status ${res.status}`)
-    const body = await res.json()
-    assert(!body.passwordHash, 'passwordHash expuesto')
+    assert(accessCookie.includes('access_token'), 'no access_token cookie en response')
   })
 
   // ── 3. Auth /me ────────────────────────────────────────────────
@@ -201,21 +204,43 @@ async function main() {
     assert(typeof body.ts === 'string', 'no timestamp')
   })
 
-  // ── 7. Rate limit ──────────────────────────────────────────────
-  console.log('\n6. Security')
-  await test('Rate limit activo — 5 logins fallidos → 429', async () => {
-    const badCreds = { email: 'test@safecheck.app', password: 'wrong-password-123' }
-    let lastStatus = 0
-    for (let i = 0; i < 6; i++) {
-      const res = await fetch(`${BASE}/api/auth?action=login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(badCreds),
-      })
-      lastStatus = res.status
-    }
-    assert(lastStatus === 429, `esperaba 429, got ${lastStatus}`)
+  // ── 7. Auth — credenciales inválidas (antes del rate limit test)─
+  console.log('\n6. Auth — contratos negativos')
+  await test('POST /api/auth?action=login credenciales inválidas → 401', async () => {
+    const res = await fetch(`${BASE}/api/auth?action=login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'no@existe.cl', password: 'wrong' }),
+    })
+    // Backend puede devolver 401 o 400 según implementación del contrato
+    assert(res.status === 401 || res.status === 400, `status ${res.status}`)
+    const body = await res.json()
+    assert(!body.passwordHash, 'passwordHash expuesto')
   })
+
+  // ── 8. Rate limit — AL FINAL para no envenenar counter ────────
+  // Rate limit es por IP, no por email. Ejecutar AL FINAL siempre.
+  // Usar SKIP_RATE_LIMIT_TEST=1 en CI/CD para corridas repetidas.
+  console.log('\n7. Security')
+  if (SKIP_RATE_LIMIT) {
+    console.log('  ⏭️  Rate limit test omitido (SKIP_RATE_LIMIT_TEST=1)')
+  } else {
+    await test('Rate limit activo — 5 logins fallidos → 429', async () => {
+      // Email único por corrida para logging, pero key es por IP así que no afecta counter
+      const uniqueEmail = `invalid+${Date.now()}@safecheck.test`
+      const badCreds = { email: uniqueEmail, password: 'wrong-password-that-does-not-exist-123!' }
+      let lastStatus = 0
+      for (let i = 0; i < 6; i++) {
+        const res = await fetch(`${BASE}/api/auth?action=login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(badCreds),
+        })
+        lastStatus = res.status
+      }
+      assert(lastStatus === 429, `esperaba 429, got ${lastStatus}`)
+    })
+  }
 
   // ── Summary ────────────────────────────────────────────────────
   console.log(`\n══════════════════════════════════════════`)

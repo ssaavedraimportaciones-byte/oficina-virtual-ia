@@ -13,9 +13,10 @@ function getJwtSecretBytes(): Uint8Array {
   return new TextEncoder().encode(s)
 }
 
-const PUBLIC_PATHS = new Set(['/login', '/unauthorized', '/health'])
+// Exact-match public paths (no auth needed)
+// '/api/auth' is EXACT so /api/auth/me, /api/auth/csrf, /api/auth/mfa/* remain protected
+const PUBLIC_PATHS = new Set(['/login', '/unauthorized', '/health', '/api/auth'])
 const PUBLIC_PREFIXES = [
-  '/api/auth',
   '/api/health',
   '/api/verify',
   '/verify',

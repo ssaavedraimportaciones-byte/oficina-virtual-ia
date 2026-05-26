@@ -41,9 +41,9 @@ export async function proxy(req: NextRequest) {
 
   // Public routes — pass through without auth
   if (isPublic(pathname)) {
-    const res = NextResponse.next()
-    res.headers.set('x-request-id', requestId)
-    return res
+    const pubHeaders = new Headers(req.headers)
+    pubHeaders.set('x-request-id', requestId)
+    return NextResponse.next({ request: { headers: pubHeaders } })
   }
 
   // Read access token from cookie
@@ -76,15 +76,18 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
 
-    // Inject verified identity headers for route handlers to consume via requireAuth()
-    const res = NextResponse.next()
-    res.headers.set('x-request-id', requestId)
-    res.headers.set('x-user-id', String(payload['uid'] ?? ''))
-    res.headers.set('x-user-email', String(payload['email'] ?? ''))
-    res.headers.set('x-user-name', String(payload['name'] ?? ''))
-    res.headers.set('x-user-role', String(payload['role'] ?? ''))
-    res.headers.set('x-user-company', String(payload['companyId'] ?? ''))
-    return res
+    // Inject verified identity into the *request* headers so route handlers
+    // can read them via requireAuth(). NextResponse.next({ request: { headers } })
+    // is the only correct way — res.headers.set() only affects response headers
+    // (what the client sees), never what the downstream route handler reads.
+    const reqHeaders = new Headers(req.headers)
+    reqHeaders.set('x-request-id', requestId)
+    reqHeaders.set('x-user-id', String(payload['uid'] ?? ''))
+    reqHeaders.set('x-user-email', String(payload['email'] ?? ''))
+    reqHeaders.set('x-user-name', String(payload['name'] ?? ''))
+    reqHeaders.set('x-user-role', String(payload['role'] ?? ''))
+    reqHeaders.set('x-user-company', String(payload['companyId'] ?? ''))
+    return NextResponse.next({ request: { headers: reqHeaders } })
   } catch {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })

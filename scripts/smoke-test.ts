@@ -206,14 +206,14 @@ async function main() {
 
   // ── 7. Auth — credenciales inválidas (antes del rate limit test)─
   console.log('\n6. Auth — contratos negativos')
-  await test('POST /api/auth?action=login credenciales inválidas → 401', async () => {
+  await test('POST /api/auth?action=login credenciales inválidas → 400 ó 401', async () => {
     const res = await fetch(`${BASE}/api/auth?action=login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'no@existe.cl', password: 'wrong' }),
     })
-    // Backend puede devolver 401 o 400 según implementación del contrato
-    assert(res.status === 401 || res.status === 400, `status ${res.status}`)
+    // API devuelve 400 (bad credentials) — ambos son contratos válidos
+    assert(res.status === 400 || res.status === 401, `status ${res.status}`)
     const body = await res.json()
     assert(!body.passwordHash, 'passwordHash expuesto')
   })

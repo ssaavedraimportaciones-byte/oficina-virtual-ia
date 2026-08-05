@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'SafeCheck AI',
-  description: 'Documentos de seguridad para faenas mineras',
+  title: 'AgentsApp — Agentes de IA que convierten chats en ventas',
+  description:
+    'CRM con agentes de IA que responde WhatsApp e Instagram, califica leads y agenda reuniones. Moldeable a cualquier rubro.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

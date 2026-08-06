@@ -1,10 +1,28 @@
+import type { ChannelCredentials } from './types'
+
 const GRAPH_VERSION = 'v20.0'
 
-export async function sendWhatsAppMessage(to: string, text: string): Promise<void> {
-  const token = process.env.WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
+/**
+ * Resuelve las credenciales a usar: primero las propias del negocio, y si no
+ * las cargó, las de las variables de entorno. Eso permite tanto una agencia
+ * con una sola app de Meta para todos sus clientes como negocios con su propia
+ * cuenta conectada.
+ */
+function resolveCredentials(credentials?: ChannelCredentials) {
+  return {
+    token: credentials?.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN,
+    phoneNumberId: credentials?.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID,
+  }
+}
+
+export async function sendWhatsAppMessage(
+  to: string,
+  text: string,
+  credentials?: ChannelCredentials,
+): Promise<void> {
+  const { token, phoneNumberId } = resolveCredentials(credentials)
   if (!token || !phoneNumberId) {
-    throw new Error('Faltan WHATSAPP_ACCESS_TOKEN o WHATSAPP_PHONE_NUMBER_ID')
+    throw new Error('Faltan credenciales de WhatsApp para este negocio')
   }
 
   const res = await fetch(

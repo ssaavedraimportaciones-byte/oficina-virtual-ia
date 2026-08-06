@@ -1,91 +1,57 @@
 import Link from 'next/link'
-import { getConfig, listConversations } from '@/lib/store'
-import NewConversationButton from './NewConversationButton'
+import { listBusinesses } from '@/lib/store'
+import { getIndustryTemplate } from '@/lib/industries'
 
 export const dynamic = 'force-dynamic'
 
-const CHANNEL_LABEL: Record<string, string> = {
-  whatsapp: 'WhatsApp',
-  instagram: 'Instagram',
-  simulador: 'Simulador',
-}
-
-const STATUS_STYLE: Record<string, string> = {
-  abierta: 'text-amber-400 border-amber-500/40',
-  calificada: 'text-success border-success/40',
-  cerrada: 'text-gray-500 border-gray-700',
-}
-
 export default async function PanelPage() {
-  const config = await getConfig()
-
-  if (!config) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-8 text-center">
-        <h1 className="text-2xl font-bold text-white">Todavía no configuraste tu agente</h1>
-        <p className="mt-2 max-w-md text-sm text-gray-400">
-          Contanos a qué se dedica tu empresa y qué necesitás que haga el agente para empezar a
-          recibir y probar conversaciones.
-        </p>
-        <Link
-          href="/panel/configurar"
-          className="mt-6 rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
-        >
-          Configurar agente
-        </Link>
-      </div>
-    )
-  }
-
-  const conversations = await listConversations()
+  const businesses = await listBusinesses()
 
   return (
-    <div className="px-8 py-10">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="mx-auto max-w-3xl px-8 py-12">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Conversaciones</h1>
-          <p className="text-sm text-gray-400">
-            Agente: <span className="text-amber-400">{config.agentName}</span> · {config.businessName}
+          <h1 className="text-2xl font-bold text-white">Tus negocios</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Cada negocio tiene su propio agente, su base de conocimiento y sus conversaciones.
           </p>
         </div>
-        <NewConversationButton />
+        <Link
+          href="/panel/nuevo"
+          className="shrink-0 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
+        >
+          + Nuevo negocio
+        </Link>
       </div>
 
-      {conversations.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          Todavía no hay conversaciones. Iniciá una de prueba con el botón de arriba, o esperá a
-          que lleguen mensajes reales una vez conectado WhatsApp/Instagram en{' '}
-          <Link href="/panel/conexiones" className="text-amber-400">
-            Conexiones
+      {businesses.length === 0 ? (
+        <div className="mt-16 rounded-lg border border-dashed border-gray-800 py-16 text-center">
+          <p className="text-gray-400">Todavía no creaste ningún negocio.</p>
+          <Link
+            href="/panel/nuevo"
+            className="mt-4 inline-block rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
+          >
+            Crear el primero
           </Link>
-          .
-        </p>
+        </div>
       ) : (
-        <div className="flex flex-col divide-y divide-gray-800 rounded-lg border border-gray-800">
-          {conversations.map((conversation) => {
-            const last = conversation.messages[conversation.messages.length - 1]
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {businesses.map((business) => {
+            const template = getIndustryTemplate(business.templateId)
             return (
               <Link
-                key={conversation.id}
-                href={`/panel/conversaciones/${conversation.id}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-900/60"
+                key={business.id}
+                href={`/panel/${business.id}`}
+                className="rounded-lg border border-gray-800 p-5 hover:border-amber-500/50"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{conversation.contactName}</span>
-                    <span className="rounded-full border border-gray-700 px-2 py-0.5 text-xs text-gray-400">
-                      {CHANNEL_LABEL[conversation.channel]}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-sm text-gray-500">
-                    {last ? last.text : 'Sin mensajes todavía'}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{template?.emoji ?? '✨'}</span>
+                  <h2 className="font-medium text-white">{business.config.businessName}</h2>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs ${STATUS_STYLE[conversation.status]}`}
-                >
-                  {conversation.status}
-                </span>
+                <p className="mt-1 truncate text-sm text-gray-500">{business.config.industry}</p>
+                <p className="mt-3 text-xs text-gray-600">
+                  Agente: <span className="text-amber-400">{business.config.agentName}</span>
+                </p>
               </Link>
             )
           })}

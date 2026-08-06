@@ -4,12 +4,12 @@ import {
   appendMessage,
   createConversation,
   findConversationByContact,
-  getConfig,
   listKnowledge,
 } from './store'
-import type { Channel, Conversation } from './types'
+import type { Business, Channel, Conversation } from './types'
 
 interface IncomingMessage {
+  business: Business
   channel: Channel
   contactHandle: string
   contactName: string
@@ -25,14 +25,16 @@ interface IncomingMessage {
 export async function handleIncomingMessage(
   input: IncomingMessage,
 ): Promise<{ conversation: Conversation; reply: string }> {
-  const config = await getConfig()
-  if (!config) {
-    throw new Error('El agente todavía no fue configurado en /panel/configurar')
-  }
+  const { business } = input
 
-  let conversation = await findConversationByContact(input.channel, input.contactHandle)
+  let conversation = await findConversationByContact(
+    business.id,
+    input.channel,
+    input.contactHandle,
+  )
   if (!conversation) {
     conversation = await createConversation({
+      businessId: business.id,
       channel: input.channel,
       contactName: input.contactName,
       contactHandle: input.contactHandle,
@@ -44,8 +46,8 @@ export async function handleIncomingMessage(
     text: input.text,
   })
 
-  const knowledge = await listKnowledge()
-  const reply = await generateAgentReply(config, knowledge, conversation.messages)
+  const knowledge = await listKnowledge(business.id)
+  const reply = await generateAgentReply(business.config, knowledge, conversation.messages)
 
   conversation = await appendMessage(conversation.id, {
     sender: 'agent',

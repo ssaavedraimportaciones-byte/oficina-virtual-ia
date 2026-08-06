@@ -1,26 +1,41 @@
+import type { ChannelCredentials } from './types'
+
 const GRAPH_VERSION = 'v20.0'
 
-export async function sendInstagramMessage(recipientId: string, text: string): Promise<void> {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN
-  const pageId = process.env.INSTAGRAM_PAGE_ID
+/**
+ * Resuelve las credenciales a usar: primero las propias del negocio, y si no
+ * las cargó, las de las variables de entorno. Eso permite tanto una agencia
+ * con una sola app de Meta para todos sus clientes como negocios con su propia
+ * cuenta conectada.
+ */
+function resolveCredentials(credentials?: ChannelCredentials) {
+  return {
+    token: credentials?.instagramAccessToken || process.env.INSTAGRAM_ACCESS_TOKEN,
+    pageId: credentials?.instagramPageId || process.env.INSTAGRAM_PAGE_ID,
+  }
+}
+
+export async function sendInstagramMessage(
+  recipientId: string,
+  text: string,
+  credentials?: ChannelCredentials,
+): Promise<void> {
+  const { token, pageId } = resolveCredentials(credentials)
   if (!token || !pageId) {
-    throw new Error('Faltan INSTAGRAM_ACCESS_TOKEN o INSTAGRAM_PAGE_ID')
+    throw new Error('Faltan credenciales de Instagram para este negocio')
   }
 
-  const res = await fetch(
-    `https://graph.facebook.com/${GRAPH_VERSION}/${pageId}/messages`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text },
-      }),
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pageId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
-  )
+    body: JSON.stringify({
+      recipient: { id: recipientId },
+      message: { text },
+    }),
+  })
 
   if (!res.ok) {
     throw new Error(`Instagram API respondió ${res.status}: ${await res.text()}`)
@@ -42,19 +57,20 @@ interface BusinessDiscoveryResult {
 /**
  * Consulta el perfil público de una cuenta de Instagram Business/Creator
  * (bio, sitio, últimas publicaciones) usando la cuenta propia como puente,
- * tal como exige la API de Meta (Business Discovery). Sirve tanto para
- * importar la propia cuenta como la de un cliente/competidor público.
+ * tal como exige la API de Meta (Business Discovery).
  */
-export async function getBusinessDiscovery(username: string): Promise<{
+export async function getBusinessDiscovery(
+  username: string,
+  credentials?: ChannelCredentials,
+): Promise<{
   biography: string
   website: string | null
   followersCount: number | null
   recentCaptions: string[]
 }> {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN
-  const pageId = process.env.INSTAGRAM_PAGE_ID
+  const { token, pageId } = resolveCredentials(credentials)
   if (!token || !pageId) {
-    throw new Error('Faltan INSTAGRAM_ACCESS_TOKEN o INSTAGRAM_PAGE_ID')
+    throw new Error('Faltan credenciales de Instagram para este negocio')
   }
 
   const handle = username.replace(/^@/, '')
@@ -84,8 +100,9 @@ export async function getBusinessDiscovery(username: string): Promise<{
 /** Perfil público básico de quien nos escribe, para poder dirigirnos a esa persona por su nombre. */
 export async function getInstagramContactProfile(
   igsid: string,
+  credentials?: ChannelCredentials,
 ): Promise<{ name: string | null }> {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN
+  const { token } = resolveCredentials(credentials)
   if (!token) return { name: null }
 
   try {

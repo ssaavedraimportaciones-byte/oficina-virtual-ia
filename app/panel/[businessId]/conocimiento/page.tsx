@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import type { KnowledgeEntry, KnowledgeSource } from '@/lib/types'
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { getIndustryTemplate } from '@/lib/industries'
+import type { Business, KnowledgeEntry, KnowledgeSource } from '@/lib/types'
 
 const SOURCE_LABEL: Record<KnowledgeSource, string> = {
   manual: 'Manual',
@@ -10,6 +13,10 @@ const SOURCE_LABEL: Record<KnowledgeSource, string> = {
 }
 
 export default function ConocimientoPage() {
+  const params = useParams<{ businessId: string }>()
+  const businessId = params.businessId
+
+  const [business, setBusiness] = useState<Business | null>(null)
   const [entries, setEntries] = useState<KnowledgeEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -27,23 +34,29 @@ export default function ConocimientoPage() {
 
   const [refreshingId, setRefreshingId] = useState<string | null>(null)
 
-  async function load() {
-    const res = await fetch('/api/knowledge')
-    const data = await res.json()
+  const load = useCallback(async () => {
+    const [businessRes, knowledgeRes] = await Promise.all([
+      fetch(`/api/businesses/${businessId}`),
+      fetch(`/api/businesses/${businessId}/knowledge`),
+    ])
+    if (businessRes.ok) setBusiness((await businessRes.json()).business)
+    const data = await knowledgeRes.json()
     setEntries(data.knowledge ?? [])
     setLoading(false)
-  }
+  }, [businessId])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
+
+  const hints = business ? getIndustryTemplate(business.templateId)?.knowledgeHints ?? [] : []
 
   async function handleImport(e: React.FormEvent) {
     e.preventDefault()
     setImporting(true)
     setImportError(null)
 
-    const res = await fetch('/api/knowledge/import', {
+    const res = await fetch(`/api/businesses/${businessId}/knowledge/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
@@ -64,7 +77,7 @@ export default function ConocimientoPage() {
     setImportingIg(true)
     setImportIgError(null)
 
-    const res = await fetch('/api/knowledge/import-instagram', {
+    const res = await fetch(`/api/businesses/${businessId}/knowledge/import-instagram`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: igUsername }),
@@ -85,13 +98,13 @@ export default function ConocimientoPage() {
     setRefreshingId(entry.id)
     if (entry.sourceType === 'instagram') {
       const handle = entry.sourceUrl.replace(/^https?:\/\/(www\.)?instagram\.com\//, '')
-      await fetch('/api/knowledge/import-instagram', {
+      await fetch(`/api/businesses/${businessId}/knowledge/import-instagram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: handle, entryId: entry.id }),
       })
     } else {
-      await fetch('/api/knowledge/import', {
+      await fetch(`/api/businesses/${businessId}/knowledge/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: entry.sourceUrl, entryId: entry.id }),
@@ -105,7 +118,7 @@ export default function ConocimientoPage() {
     e.preventDefault()
     setSaving(true)
 
-    await fetch('/api/knowledge', {
+    await fetch(`/api/businesses/${businessId}/knowledge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, content }),
@@ -126,11 +139,24 @@ export default function ConocimientoPage() {
     <div className="mx-auto max-w-2xl px-8 py-12">
       <h1 className="text-2xl font-bold text-white">Base de conocimiento</h1>
       <p className="mt-2 text-sm text-gray-400">
-        Todo lo que cargues acá (precios, catálogo, preguntas frecuentes, tu sitio web) el agente
-        lo va a usar para responder con datos reales en vez de inventar.
+        Todo lo que cargues acá el agente lo va a usar para responder con datos reales en vez de
+        inventar.
       </p>
 
-      <section className="mt-8 rounded-lg border border-gray-800 p-6">
+      {hints.length > 0 && (
+        <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
+          <h2 className="text-sm font-medium text-amber-400">
+            Para tu rubro conviene cargar
+          </h2>
+          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-gray-400">
+            {hints.map((hint) => (
+              <li key={hint}>{hint}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Importar desde tu sitio web</h2>
         <p className="mt-1 text-xs text-gray-500">
           Pegá la URL de tu landing, la página de precios, o cualquier página pública.
@@ -158,12 +184,12 @@ export default function ConocimientoPage() {
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Importar desde Instagram</h2>
         <p className="mt-1 text-xs text-gray-500">
-          Si tu empresa tiene Instagram, poné el usuario y se trae la bio, el sitio y las últimas
-          publicaciones. Necesita que la cuenta esté conectada en{' '}
-          <a href="/panel/conexiones" className="text-amber-400 hover:underline">
+          Si el negocio tiene Instagram, poné el usuario y se trae la bio, el sitio y las últimas
+          publicaciones. Necesita la cuenta conectada en{' '}
+          <Link href={`/panel/${businessId}/conexiones`} className="text-amber-400 hover:underline">
             Conexiones
-          </a>{' '}
-          como cuenta Business o Creator.
+          </Link>{' '}
+          como Business o Creator.
         </p>
         <form onSubmit={handleImportInstagram} className="mt-4 flex gap-3">
           <input
@@ -202,7 +228,7 @@ export default function ConocimientoPage() {
             rows={5}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder={'Corte de pelo: $8000\nCorte + barba: $12000\nColoración: desde $15000'}
+            placeholder={'Semipermanente: $8000\nEsculpidas: $15000\nRetiro: $3000'}
             className="input"
           />
           <button

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Conversation } from '@/lib/types'
 
-export default function NewConversationButton() {
+export default function NewConversationButton({ businessId }: { businessId: string }) {
   const router = useRouter()
   const [creating, setCreating] = useState(false)
 
@@ -13,7 +13,7 @@ export default function NewConversationButton() {
     if (!contactName) return
 
     setCreating(true)
-    const res = await fetch('/api/conversations', {
+    const res = await fetch(`/api/businesses/${businessId}/conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -26,7 +26,7 @@ export default function NewConversationButton() {
 
     if (res.ok) {
       const { conversation }: { conversation: Conversation } = await res.json()
-      router.push(`/panel/conversaciones/${conversation.id}`)
+      router.push(`/panel/${businessId}/conversaciones/${conversation.id}`)
     }
   }
 

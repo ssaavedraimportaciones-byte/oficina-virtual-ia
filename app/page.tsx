@@ -57,14 +57,16 @@ const STEPS = [
 ]
 
 const INDUSTRIES = [
-  'Inmobiliarias',
-  'Clínicas y salud',
-  'Retail y e-commerce',
-  'Gastronomía',
-  'Servicios profesionales',
-  'Educación',
-  'Concesionarias',
-  'Turismo',
+  '💅 Manicura',
+  '🦷 Odontología',
+  '🔧 Taller mecánico',
+  '💈 Peluquería',
+  '🏠 Inmobiliaria',
+  '🍽️ Gastronomía',
+  '🏋️ Gimnasio',
+  '⚖️ Estudio jurídico',
+  '🛍️ Tienda / E-commerce',
+  '✨ Y cualquier otro',
 ]
 
 function Nav() {
@@ -79,7 +81,7 @@ function Nav() {
           <a href="/panel" className="hover:text-white">Ingresar</a>
         </nav>
         <a
-          href="/panel/configurar"
+          href="/panel/nuevo"
           className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
@@ -104,7 +106,7 @@ function Hero() {
       </p>
       <div className="mt-10 flex items-center justify-center gap-4">
         <a
-          href="/panel/configurar"
+          href="/panel/nuevo"
           className="rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
@@ -186,7 +188,8 @@ function Industries() {
       <div className="mx-auto max-w-6xl px-6 text-center">
         <h2 className="text-3xl font-bold text-white md:text-4xl">Moldeable a toda empresa</h2>
         <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-          El agente se configura con el tono, las preguntas y el proceso de venta de tu rubro.
+          Elegís tu rubro y el agente arranca preconfigurado con el tono, las preguntas y el
+          proceso de venta que corresponde. Un mismo sistema para todos tus negocios.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           {INDUSTRIES.map((industry) => (
@@ -214,7 +217,7 @@ function CTA() {
           Coordiná una demo y te mostramos el agente configurado para tu rubro.
         </p>
         <a
-          href="/panel/configurar"
+          href="/panel/nuevo"
           className="mt-8 inline-block rounded-md bg-amber-500 px-8 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis

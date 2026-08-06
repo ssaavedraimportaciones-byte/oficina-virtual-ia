@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { generateAgentReply } from '@/lib/claude'
 import { updateContactNotes } from '@/lib/contactNotes'
-import { appendMessage, getConfig, getConversation, listKnowledge } from '@/lib/store'
+import { appendMessage, getBusiness, getConversation, listKnowledge } from '@/lib/store'
 
 const messageSchema = z.object({
   sender: z.enum(['contact', 'human']),
@@ -11,8 +11,8 @@ const messageSchema = z.object({
 
 // Usado por el simulador del panel: mandás un mensaje "como si fueras el
 // contacto" y, si corresponde, el agente responde de verdad con Claude usando
-// la configuración activa. Los webhooks de WhatsApp/Instagram usan
-// lib/agentPipeline.ts en lugar de esta ruta.
+// la configuración del negocio dueño de la conversación. Los webhooks de
+// WhatsApp/Instagram usan lib/agentPipeline.ts en lugar de esta ruta.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -35,17 +35,14 @@ export async function POST(
     return NextResponse.json({ conversation })
   }
 
-  const config = await getConfig()
-  if (!config) {
-    return NextResponse.json(
-      { error: 'Configurá el agente en /panel/configurar antes de probarlo' },
-      { status: 409 },
-    )
+  const business = await getBusiness(conversation.businessId)
+  if (!business) {
+    return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
   }
 
   try {
-    const knowledge = await listKnowledge()
-    const reply = await generateAgentReply(config, knowledge, conversation.messages)
+    const knowledge = await listKnowledge(business.id)
+    const reply = await generateAgentReply(business.config, knowledge, conversation.messages)
     conversation = await appendMessage(conversation.id, { sender: 'agent', text: reply })
     conversation = await updateContactNotes(conversation)
   } catch (error) {

@@ -13,6 +13,27 @@ export interface AgentConfig {
   configuredAt: string
 }
 
+/**
+ * Credenciales de canal propias de cada negocio. El token puede quedar vacío y
+ * caer al de las variables de entorno: una sola app de Meta con un system user
+ * token puede operar varios números/cuentas, que es el caso típico de una
+ * agencia administrando a sus clientes.
+ */
+export interface ChannelCredentials {
+  whatsappPhoneNumberId: string | null
+  whatsappAccessToken: string | null
+  instagramPageId: string | null
+  instagramAccessToken: string | null
+}
+
+export interface Business {
+  id: string
+  templateId: string
+  config: AgentConfig
+  credentials: ChannelCredentials
+  createdAt: string
+}
+
 export type MessageSender = 'contact' | 'agent' | 'human'
 
 export interface Message {
@@ -26,6 +47,7 @@ export type ConversationStatus = 'abierta' | 'calificada' | 'cerrada'
 
 export interface Conversation {
   id: string
+  businessId: string
   channel: Channel
   contactName: string
   contactHandle: string
@@ -40,6 +62,7 @@ export type KnowledgeSource = 'manual' | 'web' | 'instagram'
 
 export interface KnowledgeEntry {
   id: string
+  businessId: string
   title: string
   content: string
   sourceType: KnowledgeSource
@@ -48,7 +71,7 @@ export interface KnowledgeEntry {
 }
 
 export interface Store {
-  config: AgentConfig | null
+  businesses: Business[]
   conversations: Conversation[]
   knowledge: KnowledgeEntry[]
 }

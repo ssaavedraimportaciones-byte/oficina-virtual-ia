@@ -1,29 +1,30 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import type { Conversation } from '@/lib/types'
 
 export default function ConversationPage() {
-  const params = useParams<{ id: string }>()
+  const params = useParams<{ businessId: string; conversationId: string }>()
+  const conversationId = params.conversationId
+
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  async function load() {
-    const res = await fetch(`/api/conversations/${params.id}`)
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/conversations/${conversationId}`)
     if (res.ok) {
       const data = await res.json()
       setConversation(data.conversation)
     }
-  }
+  }, [conversationId])
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id])
+  }, [load])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -35,7 +36,7 @@ export default function ConversationPage() {
     setSending(true)
     setError(null)
 
-    const res = await fetch(`/api/conversations/${params.id}/messages`, {
+    const res = await fetch(`/api/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sender: 'contact', text }),

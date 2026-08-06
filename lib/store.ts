@@ -1,34 +1,35 @@
 import { randomUUID } from 'crypto'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname } from 'path'
-import type { AgentConfig, Conversation, KnowledgeEntry, Message, Store } from './types'
+import type {
+  AgentConfig,
+  Business,
+  ChannelCredentials,
+  Conversation,
+  KnowledgeEntry,
+  Message,
+  Store,
+} from './types'
 
 // Prototipo: persistencia en un archivo JSON local. Para producción con más de
 // una instancia en simultáneo, reemplazar por una base de datos real
 // (Firebase/Postgres) manteniendo la misma interfaz de funciones.
 const DB_PATH = process.env.DB_PATH || '.data/store.json'
 
-const EMPTY_STORE: Store = { config: null, conversations: [], knowledge: [] }
+const EMPTY_STORE: Store = { businesses: [], conversations: [], knowledge: [] }
 
-function withDefaultNotes(conversation: Partial<Conversation>): Conversation {
-  if (typeof conversation.notes === 'string') return conversation as Conversation
-  return { ...conversation, notes: '' } as Conversation
-}
-
-function withDefaultSourceType(entry: Partial<KnowledgeEntry>): KnowledgeEntry {
-  if (entry.sourceType) return entry as KnowledgeEntry
-  return { ...entry, sourceType: 'manual' } as KnowledgeEntry
+export const EMPTY_CREDENTIALS: ChannelCredentials = {
+  whatsappPhoneNumberId: null,
+  whatsappAccessToken: null,
+  instagramPageId: null,
+  instagramAccessToken: null,
 }
 
 async function readStore(): Promise<Store> {
   try {
     const raw = await readFile(DB_PATH, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<Store>
-    const store = { ...EMPTY_STORE, ...parsed }
-    // Compatibilidad con datos guardados antes de agregar estos campos.
-    store.conversations = store.conversations.map((c) => withDefaultNotes(c))
-    store.knowledge = store.knowledge.map((k) => withDefaultSourceType(k))
-    return store
+    return { ...EMPTY_STORE, ...parsed }
   } catch {
     return { ...EMPTY_STORE }
   }
@@ -39,21 +40,101 @@ async function writeStore(store: Store): Promise<void> {
   await writeFile(DB_PATH, JSON.stringify(store, null, 2), 'utf-8')
 }
 
-export async function getConfig(): Promise<AgentConfig | null> {
+// --- Negocios (tenants) ---
+
+export async function listBusinesses(): Promise<Business[]> {
   const store = await readStore()
-  return store.config
+  return [...store.businesses].sort((a, b) => a.config.businessName.localeCompare(b.config.businessName))
 }
 
-export async function saveConfig(config: AgentConfig): Promise<AgentConfig> {
+export async function getBusiness(id: string): Promise<Business | null> {
   const store = await readStore()
-  store.config = config
+  return store.businesses.find((b) => b.id === id) ?? null
+}
+
+export async function createBusiness(
+  config: AgentConfig,
+  templateId: string,
+): Promise<Business> {
+  const store = await readStore()
+  const business: Business = {
+    id: randomUUID(),
+    templateId,
+    config,
+    credentials: { ...EMPTY_CREDENTIALS },
+    createdAt: new Date().toISOString(),
+  }
+  store.businesses.push(business)
   await writeStore(store)
-  return config
+  return business
 }
 
-export async function listConversations(): Promise<Conversation[]> {
+export async function updateBusinessConfig(
+  id: string,
+  config: AgentConfig,
+): Promise<Business> {
   const store = await readStore()
-  return [...store.conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  const business = store.businesses.find((b) => b.id === id)
+  if (!business) {
+    throw new Error(`Negocio ${id} no encontrado`)
+  }
+  business.config = config
+  await writeStore(store)
+  return business
+}
+
+export async function updateBusinessCredentials(
+  id: string,
+  credentials: ChannelCredentials,
+): Promise<Business> {
+  const store = await readStore()
+  const business = store.businesses.find((b) => b.id === id)
+  if (!business) {
+    throw new Error(`Negocio ${id} no encontrado`)
+  }
+  business.credentials = credentials
+  await writeStore(store)
+  return business
+}
+
+export async function deleteBusiness(id: string): Promise<void> {
+  const store = await readStore()
+  store.businesses = store.businesses.filter((b) => b.id !== id)
+  store.conversations = store.conversations.filter((c) => c.businessId !== id)
+  store.knowledge = store.knowledge.filter((k) => k.businessId !== id)
+  await writeStore(store)
+}
+
+/**
+ * Encuentra a qué negocio pertenece un mensaje entrante, según el número de
+ * WhatsApp o la cuenta de Instagram a la que le escribieron. Es lo que permite
+ * que un mismo webhook atienda a todos los clientes de la plataforma.
+ */
+export async function findBusinessByChannelId(
+  channel: 'whatsapp' | 'instagram',
+  channelId: string,
+): Promise<Business | null> {
+  const store = await readStore()
+  const match = store.businesses.find((b) =>
+    channel === 'whatsapp'
+      ? b.credentials.whatsappPhoneNumberId === channelId
+      : b.credentials.instagramPageId === channelId,
+  )
+  if (match) return match
+
+  // Fallback single-tenant: si hay un único negocio y todavía no cargó el ID
+  // del canal, se le atribuyen los mensajes entrantes igual.
+  if (store.businesses.length === 1) return store.businesses[0]
+  return null
+}
+
+// --- Conversaciones ---
+
+export async function listConversations(businessId: string): Promise<Conversation[]> {
+  const store = await readStore()
+  return store.conversations
+    .filter((c) => c.businessId === businessId)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
 export async function getConversation(id: string): Promise<Conversation | null> {
@@ -62,23 +143,29 @@ export async function getConversation(id: string): Promise<Conversation | null> 
 }
 
 export async function findConversationByContact(
+  businessId: string,
   channel: Conversation['channel'],
   contactHandle: string,
 ): Promise<Conversation | null> {
   const store = await readStore()
   return (
-    store.conversations.find((c) => c.channel === channel && c.contactHandle === contactHandle) ??
-    null
+    store.conversations.find(
+      (c) =>
+        c.businessId === businessId &&
+        c.channel === channel &&
+        c.contactHandle === contactHandle,
+    ) ?? null
   )
 }
 
 export async function createConversation(
-  input: Pick<Conversation, 'channel' | 'contactName' | 'contactHandle'>,
+  input: Pick<Conversation, 'businessId' | 'channel' | 'contactName' | 'contactHandle'>,
 ): Promise<Conversation> {
   const store = await readStore()
   const now = new Date().toISOString()
   const conversation: Conversation = {
     id: randomUUID(),
+    businessId: input.businessId,
     channel: input.channel,
     contactName: input.contactName,
     contactHandle: input.contactHandle,
@@ -112,17 +199,51 @@ export async function appendMessage(
   return conversation
 }
 
-export async function listKnowledge(): Promise<KnowledgeEntry[]> {
+export async function setConversationNotes(
+  conversationId: string,
+  notes: string,
+): Promise<Conversation> {
   const store = await readStore()
-  return [...store.knowledge].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  const conversation = store.conversations.find((c) => c.id === conversationId)
+  if (!conversation) {
+    throw new Error(`Conversación ${conversationId} no encontrada`)
+  }
+  conversation.notes = notes
+  await writeStore(store)
+  return conversation
+}
+
+export async function setConversationStatus(
+  conversationId: string,
+  status: Conversation['status'],
+): Promise<Conversation> {
+  const store = await readStore()
+  const conversation = store.conversations.find((c) => c.id === conversationId)
+  if (!conversation) {
+    throw new Error(`Conversación ${conversationId} no encontrada`)
+  }
+  conversation.status = status
+  conversation.updatedAt = new Date().toISOString()
+  await writeStore(store)
+  return conversation
+}
+
+// --- Base de conocimiento ---
+
+export async function listKnowledge(businessId: string): Promise<KnowledgeEntry[]> {
+  const store = await readStore()
+  return store.knowledge
+    .filter((k) => k.businessId === businessId)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
 export async function addKnowledgeEntry(
-  input: Pick<KnowledgeEntry, 'title' | 'content' | 'sourceUrl' | 'sourceType'>,
+  input: Pick<KnowledgeEntry, 'businessId' | 'title' | 'content' | 'sourceUrl' | 'sourceType'>,
 ): Promise<KnowledgeEntry> {
   const store = await readStore()
   const entry: KnowledgeEntry = {
     id: randomUUID(),
+    businessId: input.businessId,
     title: input.title,
     content: input.content,
     sourceType: input.sourceType,
@@ -154,33 +275,4 @@ export async function deleteKnowledgeEntry(id: string): Promise<void> {
   const store = await readStore()
   store.knowledge = store.knowledge.filter((k) => k.id !== id)
   await writeStore(store)
-}
-
-export async function setConversationNotes(
-  conversationId: string,
-  notes: string,
-): Promise<Conversation> {
-  const store = await readStore()
-  const conversation = store.conversations.find((c) => c.id === conversationId)
-  if (!conversation) {
-    throw new Error(`Conversación ${conversationId} no encontrada`)
-  }
-  conversation.notes = notes
-  await writeStore(store)
-  return conversation
-}
-
-export async function setConversationStatus(
-  conversationId: string,
-  status: Conversation['status'],
-): Promise<Conversation> {
-  const store = await readStore()
-  const conversation = store.conversations.find((c) => c.id === conversationId)
-  if (!conversation) {
-    throw new Error(`Conversación ${conversationId} no encontrada`)
-  }
-  conversation.status = status
-  conversation.updatedAt = new Date().toISOString()
-  await writeStore(store)
-  return conversation
 }

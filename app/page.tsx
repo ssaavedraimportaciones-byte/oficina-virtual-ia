@@ -76,12 +76,13 @@ function Nav() {
           <a href="#producto" className="hover:text-white">Producto</a>
           <a href="#funciones" className="hover:text-white">Funciones</a>
           <a href="#rubros" className="hover:text-white">Rubros</a>
+          <a href="/panel" className="hover:text-white">Ingresar</a>
         </nav>
         <a
-          href="#demo"
+          href="/panel/configurar"
           className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
         >
-          Solicitar demo
+          Probar gratis
         </a>
       </div>
     </header>
@@ -103,10 +104,10 @@ function Hero() {
       </p>
       <div className="mt-10 flex items-center justify-center gap-4">
         <a
-          href="#demo"
+          href="/panel/configurar"
           className="rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
-          Solicitar demo
+          Probar gratis
         </a>
         <a
           href="#funciones"
@@ -213,10 +214,10 @@ function CTA() {
           Coordiná una demo y te mostramos el agente configurado para tu rubro.
         </p>
         <a
-          href="mailto:hola@agentsapp.ar"
+          href="/panel/configurar"
           className="mt-8 inline-block rounded-md bg-amber-500 px-8 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
-          Solicitar demo
+          Probar gratis
         </a>
       </div>
     </section>

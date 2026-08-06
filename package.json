@@ -1,5 +1,5 @@
 {
-  "name": "safecheck",
+  "name": "agentsapp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,16 +10,13 @@
     "test": "vitest"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "firebase-admin": "^12.3.0",
-    "jose": "^5.9.3",
+    "@anthropic-ai/sdk": "^0.32.1",
     "next": "15.1.0",
     "react": "^19",
     "react-dom": "^19",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

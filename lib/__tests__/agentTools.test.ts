@@ -1,11 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { rm } from 'fs/promises'
-
-const DB = '.data/test-tools.json'
-process.env.DB_PATH = DB
-
-const { runAgentTool } = await import('../agentTools')
-const store = await import('../store')
+import { runAgentTool } from '../agentTools'
+import * as store from '../store'
 import type { Business, Conversation } from '../types'
 
 let business: Business
@@ -20,7 +15,6 @@ function nextMonday(): string {
 const MONDAY = nextMonday()
 
 beforeAll(async () => {
-  await rm(DB, { force: true })
   business = await store.createBusiness(
     {
       agentName: 'Bella', businessName: 'Uñas Bella', industry: 'Manicura',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requireBusinessAccess } from '@/lib/authz'
 import {
   addService,
   getBusiness,
@@ -10,6 +11,9 @@ import {
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const business = await getBusiness(id)
   if (!business) {
     return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
@@ -29,6 +33,9 @@ const hoursSchema = z.object({
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = hoursSchema.safeParse(body)
   if (!parsed.success) {
@@ -59,6 +66,9 @@ const serviceSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = serviceSchema.safeParse(body)
   if (!parsed.success) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requireUser } from '@/lib/authz'
 import { discoverInstagramAccounts, discoverWhatsAppNumbers } from '@/lib/metaConnect'
 
 const schema = z.object({
@@ -10,9 +11,14 @@ const schema = z.object({
 /**
  * Recibe un token de Meta y devuelve las cuentas a las que da acceso, para
  * elegirlas de una lista. El token no se guarda acá: eso lo hace el paso de
- * conexión una vez que el usuario eligió la cuenta.
+ * conexión una vez que el usuario eligió la cuenta. No pide un negocio
+ * puntual (todavía no se sabe a cuál se va a conectar), así que alcanza con
+ * estar autenticado.
  */
 export async function POST(request: NextRequest) {
+  const user = await requireUser()
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {

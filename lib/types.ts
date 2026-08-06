@@ -153,12 +153,3 @@ export interface KnowledgeEntry {
   updatedAt: string
 }
 
-export interface Store {
-  businesses: Business[]
-  conversations: Conversation[]
-  knowledge: KnowledgeEntry[]
-  services: Service[]
-  appointments: Appointment[]
-  products: Product[]
-  orders: Order[]
-}

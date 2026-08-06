@@ -1,39 +1,30 @@
-import { randomUUID } from 'crypto'
-import { mkdir, readFile, writeFile } from 'fs/promises'
-import { dirname } from 'path'
+import { prisma } from './db'
+import type { Prisma } from './generated/prisma/client'
+import { checkOrder, type RequestedItem } from './catalog'
+import { decryptOptional, encryptOptional } from './secrets'
+import type { SessionUser } from './auth'
 import type {
   AgentConfig,
   Appointment,
+  AppointmentStatus,
   Business,
+  Channel,
   ChannelCredentials,
   Conversation,
+  ConversationStatus,
   KnowledgeEntry,
+  KnowledgeSource,
   Message,
+  MessageSender,
   Order,
   OrderItem,
+  OrderStatus,
   Product,
   Service,
-  Store,
+  Tone,
   WeekHours,
 } from './types'
 import { DEFAULT_WEEK_HOURS } from './types'
-import { checkOrder, type RequestedItem } from './catalog'
-import { decryptOptional, encryptOptional } from './secrets'
-
-// Prototipo: persistencia en un archivo JSON local. Para producción con más de
-// una instancia en simultáneo, reemplazar por una base de datos real
-// (Firebase/Postgres) manteniendo la misma interfaz de funciones.
-const DB_PATH = process.env.DB_PATH || '.data/store.json'
-
-const EMPTY_STORE: Store = {
-  businesses: [],
-  conversations: [],
-  knowledge: [],
-  services: [],
-  appointments: [],
-  products: [],
-  orders: [],
-}
 
 export const EMPTY_CREDENTIALS: ChannelCredentials = {
   whatsappPhoneNumberId: null,
@@ -42,68 +33,250 @@ export const EMPTY_CREDENTIALS: ChannelCredentials = {
   instagramAccessToken: null,
 }
 
-async function readStore(): Promise<Store> {
-  try {
-    const raw = await readFile(DB_PATH, 'utf-8')
-    const parsed = JSON.parse(raw) as Partial<Store>
-    const store = { ...EMPTY_STORE, ...parsed }
-    // Compatibilidad con negocios guardados antes de que existiera la agenda.
-    store.businesses = store.businesses.map((b) =>
-      b.hours ? b : { ...b, hours: DEFAULT_WEEK_HOURS },
-    )
-    return store
-  } catch {
-    return { ...EMPTY_STORE }
+// --- Mapeo entre las filas planas de Postgres y los tipos de dominio de la
+// app (que anidan config/credentials, como venían del store en JSON). Así
+// ningún consumidor —páginas, prompt del agente, herramientas— tuvo que
+// cambiar al migrar de archivo a base de datos real. ---
+
+function mapBusiness(row: {
+  id: string
+  templateId: string
+  agentName: string
+  businessName: string
+  industry: string
+  description: string
+  goals: string
+  tone: string
+  channels: string[]
+  configuredAt: Date
+  whatsappPhoneNumberId: string | null
+  whatsappAccessToken: string | null
+  instagramPageId: string | null
+  instagramAccessToken: string | null
+  hours: unknown
+  createdAt: Date
+}): Business {
+  return {
+    id: row.id,
+    templateId: row.templateId,
+    config: {
+      agentName: row.agentName,
+      businessName: row.businessName,
+      industry: row.industry,
+      description: row.description,
+      goals: row.goals,
+      tone: row.tone as Tone,
+      channels: row.channels as Channel[],
+      configuredAt: row.configuredAt.toISOString(),
+    },
+    credentials: {
+      whatsappPhoneNumberId: row.whatsappPhoneNumberId,
+      whatsappAccessToken: row.whatsappAccessToken,
+      instagramPageId: row.instagramPageId,
+      instagramAccessToken: row.instagramAccessToken,
+    },
+    hours: (row.hours as WeekHours) ?? DEFAULT_WEEK_HOURS,
+    createdAt: row.createdAt.toISOString(),
   }
 }
 
-async function writeStore(store: Store): Promise<void> {
-  await mkdir(dirname(DB_PATH), { recursive: true })
-  await writeFile(DB_PATH, JSON.stringify(store, null, 2), 'utf-8')
+function mapMessage(row: {
+  id: string
+  sender: string
+  text: string
+  timestamp: Date
+}): Message {
+  return {
+    id: row.id,
+    sender: row.sender as MessageSender,
+    text: row.text,
+    timestamp: row.timestamp.toISOString(),
+  }
+}
+
+function mapConversation(row: {
+  id: string
+  businessId: string
+  channel: string
+  contactName: string
+  contactHandle: string
+  status: string
+  notes: string
+  createdAt: Date
+  updatedAt: Date
+  messages: Array<{ id: string; sender: string; text: string; timestamp: Date }>
+}): Conversation {
+  return {
+    id: row.id,
+    businessId: row.businessId,
+    channel: row.channel as Channel,
+    contactName: row.contactName,
+    contactHandle: row.contactHandle,
+    status: row.status as ConversationStatus,
+    messages: row.messages.map(mapMessage),
+    notes: row.notes,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }
+}
+
+function mapKnowledge(row: {
+  id: string
+  businessId: string
+  title: string
+  content: string
+  sourceType: string
+  sourceUrl: string | null
+  updatedAt: Date
+}): KnowledgeEntry {
+  return {
+    id: row.id,
+    businessId: row.businessId,
+    title: row.title,
+    content: row.content,
+    sourceType: row.sourceType as KnowledgeSource,
+    sourceUrl: row.sourceUrl,
+    updatedAt: row.updatedAt.toISOString(),
+  }
+}
+
+function mapService(row: {
+  id: string
+  businessId: string
+  name: string
+  durationMinutes: number
+  price: string
+}): Service {
+  return { ...row }
+}
+
+function mapAppointment(row: {
+  id: string
+  businessId: string
+  conversationId: string | null
+  serviceId: string | null
+  serviceName: string
+  contactName: string
+  contactHandle: string
+  startsAt: string
+  durationMinutes: number
+  status: string
+  createdAt: Date
+}): Appointment {
+  return {
+    id: row.id,
+    businessId: row.businessId,
+    conversationId: row.conversationId,
+    serviceId: row.serviceId,
+    serviceName: row.serviceName,
+    contactName: row.contactName,
+    contactHandle: row.contactHandle,
+    startsAt: row.startsAt,
+    durationMinutes: row.durationMinutes,
+    status: row.status as AppointmentStatus,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
+function mapProduct(row: {
+  id: string
+  businessId: string
+  name: string
+  price: number
+  stock: number | null
+  active: boolean
+}): Product {
+  return { ...row }
+}
+
+function mapOrder(row: {
+  id: string
+  businessId: string
+  conversationId: string | null
+  contactName: string
+  contactHandle: string
+  total: number
+  note: string
+  status: string
+  createdAt: Date
+  items: Array<{ productId: string; name: string; unitPrice: number; quantity: number }>
+}): Order {
+  return {
+    id: row.id,
+    businessId: row.businessId,
+    conversationId: row.conversationId,
+    contactName: row.contactName,
+    contactHandle: row.contactHandle,
+    items: row.items.map((i) => ({
+      productId: i.productId,
+      name: i.name,
+      unitPrice: i.unitPrice,
+      quantity: i.quantity,
+    })),
+    total: row.total,
+    note: row.note,
+    status: row.status as OrderStatus,
+    createdAt: row.createdAt.toISOString(),
+  }
 }
 
 // --- Negocios (tenants) ---
 
 export async function listBusinesses(): Promise<Business[]> {
-  const store = await readStore()
-  return [...store.businesses].sort((a, b) => a.config.businessName.localeCompare(b.config.businessName))
+  const rows = await prisma.business.findMany({ orderBy: { businessName: 'asc' } })
+  return rows.map(mapBusiness)
+}
+
+/** Negocios que puede ver un usuario: todos si es admin de plataforma, solo los suyos si no. */
+export async function listBusinessesForUser(user: SessionUser): Promise<Business[]> {
+  if (user.role === 'PLATFORM_ADMIN') return listBusinesses()
+
+  const ids = user.businesses.map((b) => b.businessId)
+  if (ids.length === 0) return []
+
+  const rows = await prisma.business.findMany({
+    where: { id: { in: ids } },
+    orderBy: { businessName: 'asc' },
+  })
+  return rows.map(mapBusiness)
 }
 
 export async function getBusiness(id: string): Promise<Business | null> {
-  const store = await readStore()
-  return store.businesses.find((b) => b.id === id) ?? null
+  const row = await prisma.business.findUnique({ where: { id } })
+  return row ? mapBusiness(row) : null
 }
 
-export async function createBusiness(
-  config: AgentConfig,
-  templateId: string,
-): Promise<Business> {
-  const store = await readStore()
-  const business: Business = {
-    id: randomUUID(),
-    templateId,
-    config,
-    credentials: { ...EMPTY_CREDENTIALS },
-    hours: DEFAULT_WEEK_HOURS,
-    createdAt: new Date().toISOString(),
-  }
-  store.businesses.push(business)
-  await writeStore(store)
-  return business
+export async function createBusiness(config: AgentConfig, templateId: string): Promise<Business> {
+  const row = await prisma.business.create({
+    data: {
+      templateId,
+      agentName: config.agentName,
+      businessName: config.businessName,
+      industry: config.industry,
+      description: config.description,
+      goals: config.goals,
+      tone: config.tone,
+      channels: config.channels,
+      hours: DEFAULT_WEEK_HOURS as unknown as Prisma.InputJsonValue,
+    },
+  })
+  return mapBusiness(row)
 }
 
-export async function updateBusinessConfig(
-  id: string,
-  config: AgentConfig,
-): Promise<Business> {
-  const store = await readStore()
-  const business = store.businesses.find((b) => b.id === id)
-  if (!business) {
-    throw new Error(`Negocio ${id} no encontrado`)
-  }
-  business.config = config
-  await writeStore(store)
-  return business
+export async function updateBusinessConfig(id: string, config: AgentConfig): Promise<Business> {
+  const row = await prisma.business.update({
+    where: { id },
+    data: {
+      agentName: config.agentName,
+      businessName: config.businessName,
+      industry: config.industry,
+      description: config.description,
+      goals: config.goals,
+      tone: config.tone,
+      channels: config.channels,
+    },
+  })
+  return mapBusiness(row)
 }
 
 /** Los tokens se guardan cifrados; los IDs de cuenta no son secretos. */
@@ -111,18 +284,16 @@ export async function updateBusinessCredentials(
   id: string,
   credentials: ChannelCredentials,
 ): Promise<Business> {
-  const store = await readStore()
-  const business = store.businesses.find((b) => b.id === id)
-  if (!business) {
-    throw new Error(`Negocio ${id} no encontrado`)
-  }
-  business.credentials = {
-    ...credentials,
-    whatsappAccessToken: encryptOptional(credentials.whatsappAccessToken),
-    instagramAccessToken: encryptOptional(credentials.instagramAccessToken),
-  }
-  await writeStore(store)
-  return business
+  const row = await prisma.business.update({
+    where: { id },
+    data: {
+      whatsappPhoneNumberId: credentials.whatsappPhoneNumberId,
+      whatsappAccessToken: encryptOptional(credentials.whatsappAccessToken),
+      instagramPageId: credentials.instagramPageId,
+      instagramAccessToken: encryptOptional(credentials.instagramAccessToken),
+    },
+  })
+  return mapBusiness(row)
 }
 
 /**
@@ -137,12 +308,18 @@ export function decryptCredentials(credentials: ChannelCredentials): ChannelCred
   }
 }
 
+export async function updateBusinessHours(id: string, hours: WeekHours): Promise<Business> {
+  const row = await prisma.business.update({
+    where: { id },
+    data: { hours: hours as unknown as Prisma.InputJsonValue },
+  })
+  return mapBusiness(row)
+}
+
 export async function deleteBusiness(id: string): Promise<void> {
-  const store = await readStore()
-  store.businesses = store.businesses.filter((b) => b.id !== id)
-  store.conversations = store.conversations.filter((c) => c.businessId !== id)
-  store.knowledge = store.knowledge.filter((k) => k.businessId !== id)
-  await writeStore(store)
+  // Conversaciones, conocimiento, servicios, turnos, productos y pedidos
+  // cuelgan de Business con onDelete: Cascade en el schema.
+  await prisma.business.delete({ where: { id } })
 }
 
 /**
@@ -154,32 +331,43 @@ export async function findBusinessByChannelId(
   channel: 'whatsapp' | 'instagram',
   channelId: string,
 ): Promise<Business | null> {
-  const store = await readStore()
-  const match = store.businesses.find((b) =>
-    channel === 'whatsapp'
-      ? b.credentials.whatsappPhoneNumberId === channelId
-      : b.credentials.instagramPageId === channelId,
-  )
-  if (match) return match
+  const match = await prisma.business.findFirst({
+    where:
+      channel === 'whatsapp'
+        ? { whatsappPhoneNumberId: channelId }
+        : { instagramPageId: channelId },
+  })
+  if (match) return mapBusiness(match)
 
   // Fallback single-tenant: si hay un único negocio y todavía no cargó el ID
   // del canal, se le atribuyen los mensajes entrantes igual.
-  if (store.businesses.length === 1) return store.businesses[0]
+  const [only, count] = await Promise.all([
+    prisma.business.findFirst(),
+    prisma.business.count(),
+  ])
+  if (count === 1 && only) return mapBusiness(only)
   return null
 }
 
 // --- Conversaciones ---
 
+const CONVERSATION_INCLUDE = { messages: { orderBy: { timestamp: 'asc' as const } } }
+
 export async function listConversations(businessId: string): Promise<Conversation[]> {
-  const store = await readStore()
-  return store.conversations
-    .filter((c) => c.businessId === businessId)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  const rows = await prisma.conversation.findMany({
+    where: { businessId },
+    orderBy: { updatedAt: 'desc' },
+    include: CONVERSATION_INCLUDE,
+  })
+  return rows.map(mapConversation)
 }
 
 export async function getConversation(id: string): Promise<Conversation | null> {
-  const store = await readStore()
-  return store.conversations.find((c) => c.id === id) ?? null
+  const row = await prisma.conversation.findUnique({
+    where: { id },
+    include: CONVERSATION_INCLUDE,
+  })
+  return row ? mapConversation(row) : null
 }
 
 export async function findConversationByContact(
@@ -187,207 +375,152 @@ export async function findConversationByContact(
   channel: Conversation['channel'],
   contactHandle: string,
 ): Promise<Conversation | null> {
-  const store = await readStore()
-  return (
-    store.conversations.find(
-      (c) =>
-        c.businessId === businessId &&
-        c.channel === channel &&
-        c.contactHandle === contactHandle,
-    ) ?? null
-  )
+  const row = await prisma.conversation.findUnique({
+    where: { businessId_channel_contactHandle: { businessId, channel, contactHandle } },
+    include: CONVERSATION_INCLUDE,
+  })
+  return row ? mapConversation(row) : null
 }
 
 export async function createConversation(
   input: Pick<Conversation, 'businessId' | 'channel' | 'contactName' | 'contactHandle'>,
 ): Promise<Conversation> {
-  const store = await readStore()
-  const now = new Date().toISOString()
-  const conversation: Conversation = {
-    id: randomUUID(),
-    businessId: input.businessId,
-    channel: input.channel,
-    contactName: input.contactName,
-    contactHandle: input.contactHandle,
-    status: 'abierta',
-    messages: [],
-    notes: '',
-    createdAt: now,
-    updatedAt: now,
-  }
-  store.conversations.push(conversation)
-  await writeStore(store)
-  return conversation
+  const row = await prisma.conversation.create({
+    data: { ...input, status: 'abierta', notes: '' },
+    include: CONVERSATION_INCLUDE,
+  })
+  return mapConversation(row)
 }
 
 export async function appendMessage(
   conversationId: string,
   message: Omit<Message, 'id' | 'timestamp'>,
 ): Promise<Conversation> {
-  const store = await readStore()
-  const conversation = store.conversations.find((c) => c.id === conversationId)
-  if (!conversation) {
-    throw new Error(`Conversación ${conversationId} no encontrada`)
-  }
-  conversation.messages.push({
-    id: randomUUID(),
-    timestamp: new Date().toISOString(),
-    ...message,
+  const row = await prisma.conversation.update({
+    where: { id: conversationId },
+    data: {
+      updatedAt: new Date(),
+      messages: { create: { sender: message.sender, text: message.text } },
+    },
+    include: CONVERSATION_INCLUDE,
   })
-  conversation.updatedAt = new Date().toISOString()
-  await writeStore(store)
-  return conversation
+  return mapConversation(row)
 }
 
 export async function setConversationNotes(
   conversationId: string,
   notes: string,
 ): Promise<Conversation> {
-  const store = await readStore()
-  const conversation = store.conversations.find((c) => c.id === conversationId)
-  if (!conversation) {
-    throw new Error(`Conversación ${conversationId} no encontrada`)
-  }
-  conversation.notes = notes
-  await writeStore(store)
-  return conversation
+  const row = await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { notes },
+    include: CONVERSATION_INCLUDE,
+  })
+  return mapConversation(row)
 }
 
 export async function setConversationStatus(
   conversationId: string,
   status: Conversation['status'],
 ): Promise<Conversation> {
-  const store = await readStore()
-  const conversation = store.conversations.find((c) => c.id === conversationId)
-  if (!conversation) {
-    throw new Error(`Conversación ${conversationId} no encontrada`)
-  }
-  conversation.status = status
-  conversation.updatedAt = new Date().toISOString()
-  await writeStore(store)
-  return conversation
+  const row = await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { status, updatedAt: new Date() },
+    include: CONVERSATION_INCLUDE,
+  })
+  return mapConversation(row)
 }
 
-// --- Agenda: horarios, servicios y turnos ---
-
-export async function updateBusinessHours(id: string, hours: WeekHours): Promise<Business> {
-  const store = await readStore()
-  const business = store.businesses.find((b) => b.id === id)
-  if (!business) {
-    throw new Error(`Negocio ${id} no encontrado`)
-  }
-  business.hours = hours
-  await writeStore(store)
-  return business
-}
+// --- Agenda: servicios y turnos ---
 
 export async function listServices(businessId: string): Promise<Service[]> {
-  const store = await readStore()
-  return store.services.filter((s) => s.businessId === businessId)
+  const rows = await prisma.service.findMany({ where: { businessId } })
+  return rows.map(mapService)
 }
 
 export async function addService(
   input: Pick<Service, 'businessId' | 'name' | 'durationMinutes' | 'price'>,
 ): Promise<Service> {
-  const store = await readStore()
-  const service: Service = { id: randomUUID(), ...input }
-  store.services.push(service)
-  await writeStore(store)
-  return service
+  const row = await prisma.service.create({ data: input })
+  return mapService(row)
 }
 
 export async function deleteService(id: string): Promise<void> {
-  const store = await readStore()
-  store.services = store.services.filter((s) => s.id !== id)
-  await writeStore(store)
+  await prisma.service.delete({ where: { id } }).catch(() => {})
 }
 
 export async function listAppointments(businessId: string): Promise<Appointment[]> {
-  const store = await readStore()
-  return store.appointments
-    .filter((a) => a.businessId === businessId)
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+  const rows = await prisma.appointment.findMany({
+    where: { businessId },
+    orderBy: { startsAt: 'asc' },
+  })
+  return rows.map(mapAppointment)
 }
 
 export async function addAppointment(
   input: Omit<Appointment, 'id' | 'status' | 'createdAt'>,
 ): Promise<Appointment> {
-  const store = await readStore()
-  const appointment: Appointment = {
-    id: randomUUID(),
-    ...input,
-    status: 'confirmado',
-    createdAt: new Date().toISOString(),
-  }
-  store.appointments.push(appointment)
-  await writeStore(store)
-  return appointment
+  const row = await prisma.appointment.create({
+    data: { ...input, status: 'confirmado' },
+  })
+  return mapAppointment(row)
 }
 
 export async function cancelAppointment(id: string): Promise<Appointment> {
-  const store = await readStore()
-  const appointment = store.appointments.find((a) => a.id === id)
-  if (!appointment) {
-    throw new Error(`Turno ${id} no encontrado`)
-  }
-  appointment.status = 'cancelado'
-  await writeStore(store)
-  return appointment
+  const row = await prisma.appointment.update({
+    where: { id },
+    data: { status: 'cancelado' },
+  })
+  return mapAppointment(row)
 }
 
 // --- Catálogo y pedidos ---
 
 export async function listProducts(businessId: string): Promise<Product[]> {
-  const store = await readStore()
-  return store.products.filter((p) => p.businessId === businessId)
+  const rows = await prisma.product.findMany({ where: { businessId } })
+  return rows.map(mapProduct)
 }
 
 export async function addProduct(
   input: Pick<Product, 'businessId' | 'name' | 'price' | 'stock'>,
 ): Promise<Product> {
-  const store = await readStore()
-  const product: Product = { id: randomUUID(), ...input, active: true }
-  store.products.push(product)
-  await writeStore(store)
-  return product
+  const row = await prisma.product.create({ data: { ...input, active: true } })
+  return mapProduct(row)
 }
 
 export async function updateProduct(
   id: string,
   update: Partial<Pick<Product, 'name' | 'price' | 'stock' | 'active'>>,
 ): Promise<Product> {
-  const store = await readStore()
-  const product = store.products.find((p) => p.id === id)
-  if (!product) {
-    throw new Error(`Producto ${id} no encontrado`)
-  }
-  Object.assign(product, update)
-  await writeStore(store)
-  return product
+  const row = await prisma.product.update({ where: { id }, data: update })
+  return mapProduct(row)
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  const store = await readStore()
-  store.products = store.products.filter((p) => p.id !== id)
-  await writeStore(store)
+  await prisma.product.delete({ where: { id } }).catch(() => {})
 }
 
 export async function listOrders(businessId: string): Promise<Order[]> {
-  const store = await readStore()
-  return store.orders
-    .filter((o) => o.businessId === businessId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const rows = await prisma.order.findMany({
+    where: { businessId },
+    orderBy: { createdAt: 'desc' },
+    include: { items: true },
+  })
+  return rows.map(mapOrder)
 }
 
-export type CreateOrderResult =
-  | { ok: true; order: Order }
-  | { ok: false; reason: string }
+export type CreateOrderResult = { ok: true; order: Order } | { ok: false; reason: string }
+
+class StockRaceError extends Error {}
 
 /**
- * Crea el pedido y descuenta el stock en una sola lectura-escritura del store.
- * La validación se rehace acá adentro — no alcanza con haberla hecho antes —
- * porque entre que el agente consultó el catálogo y el cliente confirmó, otro
- * pedido puede haberse llevado las últimas unidades.
+ * Crea el pedido y descuenta el stock dentro de una transacción, con un UPDATE
+ * condicional por producto (`stock >= cantidad`) en vez de leer-y-luego-escribir.
+ * Eso es lo que de verdad evita la sobreventa con varias instancias del server
+ * pegándole a la misma base al mismo tiempo: si dos pedidos compiten por la
+ * última unidad, el UPDATE de uno de los dos afecta 0 filas y se aborta con un
+ * mensaje claro, en vez de que ambos "vean" stock disponible y lo descuenten
+ * los dos.
  */
 export async function createOrder(input: {
   businessId: string
@@ -397,68 +530,91 @@ export async function createOrder(input: {
   requested: RequestedItem[]
   note: string
 }): Promise<CreateOrderResult> {
-  const store = await readStore()
-  const products = store.products.filter((p) => p.businessId === input.businessId)
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const products = (await tx.product.findMany({ where: { businessId: input.businessId } })).map(
+        mapProduct,
+      )
 
-  const check = checkOrder(products, input.requested)
-  if (!check.ok) return check
+      const check = checkOrder(products, input.requested)
+      if (!check.ok) return check
 
-  const items: OrderItem[] = check.items.map(({ product, quantity }) => ({
-    productId: product.id,
-    name: product.name,
-    unitPrice: product.price,
-    quantity,
-  }))
+      for (const { product, quantity } of check.items) {
+        if (product.stock === null) continue
+        const updated = await tx.product.updateMany({
+          where: { id: product.id, stock: { gte: quantity } },
+          data: { stock: { decrement: quantity } },
+        })
+        if (updated.count === 0) {
+          throw new StockRaceError(
+            `"${product.name}" se quedó sin stock justo ahora. Volvé a consultar el catálogo.`,
+          )
+        }
+      }
 
-  for (const { product, quantity } of check.items) {
-    if (product.stock !== null) product.stock -= quantity
+      const row = await tx.order.create({
+        data: {
+          businessId: input.businessId,
+          conversationId: input.conversationId,
+          contactName: input.contactName,
+          contactHandle: input.contactHandle,
+          total: check.total,
+          note: input.note,
+          status: 'pendiente',
+          items: {
+            create: check.items.map(({ product, quantity }) => ({
+              productId: product.id,
+              name: product.name,
+              unitPrice: product.price,
+              quantity,
+            })),
+          },
+        },
+        include: { items: true },
+      })
+
+      return { ok: true, order: mapOrder(row) }
+    })
+  } catch (error) {
+    if (error instanceof StockRaceError) return { ok: false, reason: error.message }
+    throw error
   }
-
-  const order: Order = {
-    id: randomUUID(),
-    businessId: input.businessId,
-    conversationId: input.conversationId,
-    contactName: input.contactName,
-    contactHandle: input.contactHandle,
-    items,
-    total: check.total,
-    note: input.note,
-    status: 'pendiente',
-    createdAt: new Date().toISOString(),
-  }
-
-  store.orders.push(order)
-  await writeStore(store)
-  return { ok: true, order }
 }
 
-export async function setOrderStatus(
-  id: string,
-  status: Order['status'],
-): Promise<Order> {
-  const store = await readStore()
-  const order = store.orders.find((o) => o.id === id)
-  if (!order) {
-    throw new Error(`Pedido ${id} no encontrado`)
-  }
+export async function setOrderStatus(id: string, status: Order['status']): Promise<Order> {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } })
 
-  // Cancelar devuelve las unidades al stock; volver a activarlo las descuenta
-  // de nuevo, para que el inventario no quede desfasado por un cambio de estado.
-  const wasCancelled = order.status === 'cancelado'
-  const willCancel = status === 'cancelado'
-  if (wasCancelled !== willCancel) {
-    const delta = willCancel ? 1 : -1
-    for (const item of order.items) {
-      const product = store.products.find((p) => p.id === item.productId)
-      if (product && product.stock !== null) {
-        product.stock = Math.max(0, product.stock + item.quantity * delta)
+    // Cancelar devuelve las unidades al stock; volver a activarlo las descuenta
+    // de nuevo, para que el inventario no quede desfasado por un cambio de estado.
+    const wasCancelled = existing.status === 'cancelado'
+    const willCancel = status === 'cancelado'
+    if (wasCancelled !== willCancel) {
+      const delta = willCancel ? 1 : -1
+      for (const item of existing.items) {
+        // updateMany, no update: el producto puede haber sido borrado.
+        await tx.product.updateMany({
+          where: { id: item.productId, stock: { not: null } },
+          data: { stock: { increment: item.quantity * delta } },
+        })
+      }
+      // Un update no puede dejar el stock negativo si canceló dos veces
+      // seguidas por error: se recorta a 0 como piso.
+      if (willCancel) {
+        await tx.product.updateMany({
+          where: { businessId: existing.businessId, stock: { lt: 0 } },
+          data: { stock: 0 },
+        })
       }
     }
-  }
 
-  order.status = status
-  await writeStore(store)
-  return order
+    const row = await tx.order.update({
+      where: { id },
+      data: { status },
+      include: { items: true },
+    })
+    return mapOrder(row)
+  })
 }
 
 export interface BusinessOverview {
@@ -473,76 +629,105 @@ export interface BusinessOverview {
 
 /** Resumen de toda la plataforma para el panel de administración. */
 export async function getAdminOverview(): Promise<BusinessOverview[]> {
-  const store = await readStore()
-  return store.businesses
-    .map((business) => {
-      const conversations = store.conversations.filter((c) => c.businessId === business.id)
-      const lastActivityAt = conversations.reduce<string | null>(
-        (latest, c) => (latest === null || c.updatedAt > latest ? c.updatedAt : latest),
-        null,
-      )
+  const businesses = await prisma.business.findMany()
+
+  const overview = await Promise.all(
+    businesses.map(async (business) => {
+      const [
+        conversationCount,
+        messageCount,
+        knowledgeCount,
+        pendingOrders,
+        soldOutProducts,
+        lastConversation,
+      ] = await Promise.all([
+        prisma.conversation.count({ where: { businessId: business.id } }),
+        prisma.message.count({ where: { conversation: { businessId: business.id } } }),
+        prisma.knowledgeEntry.count({ where: { businessId: business.id } }),
+        prisma.order.count({ where: { businessId: business.id, status: 'pendiente' } }),
+        prisma.product.count({
+          where: { businessId: business.id, active: true, stock: { lte: 0 } },
+        }),
+        prisma.conversation.findFirst({
+          where: { businessId: business.id },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
+      ])
+
       return {
-        business,
-        conversationCount: conversations.length,
-        messageCount: conversations.reduce((sum, c) => sum + c.messages.length, 0),
-        knowledgeCount: store.knowledge.filter((k) => k.businessId === business.id).length,
-        pendingOrders: store.orders.filter(
-          (o) => o.businessId === business.id && o.status === 'pendiente',
-        ).length,
-        soldOutProducts: store.products.filter(
-          (p) => p.businessId === business.id && p.active && p.stock !== null && p.stock <= 0,
-        ).length,
-        lastActivityAt,
+        business: mapBusiness(business),
+        conversationCount,
+        messageCount,
+        knowledgeCount,
+        pendingOrders,
+        soldOutProducts,
+        lastActivityAt: lastConversation?.updatedAt.toISOString() ?? null,
       }
-    })
-    .sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
+    }),
+  )
+
+  return overview.sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
 }
 
 // --- Base de conocimiento ---
 
 export async function listKnowledge(businessId: string): Promise<KnowledgeEntry[]> {
-  const store = await readStore()
-  return store.knowledge
-    .filter((k) => k.businessId === businessId)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  const rows = await prisma.knowledgeEntry.findMany({
+    where: { businessId },
+    orderBy: { updatedAt: 'desc' },
+  })
+  return rows.map(mapKnowledge)
 }
 
 export async function addKnowledgeEntry(
   input: Pick<KnowledgeEntry, 'businessId' | 'title' | 'content' | 'sourceUrl' | 'sourceType'>,
 ): Promise<KnowledgeEntry> {
-  const store = await readStore()
-  const entry: KnowledgeEntry = {
-    id: randomUUID(),
-    businessId: input.businessId,
-    title: input.title,
-    content: input.content,
-    sourceType: input.sourceType,
-    sourceUrl: input.sourceUrl,
-    updatedAt: new Date().toISOString(),
-  }
-  store.knowledge.push(entry)
-  await writeStore(store)
-  return entry
+  const row = await prisma.knowledgeEntry.create({ data: input })
+  return mapKnowledge(row)
 }
 
 export async function refreshKnowledgeEntry(
   id: string,
   update: Pick<KnowledgeEntry, 'title' | 'content'>,
 ): Promise<KnowledgeEntry> {
-  const store = await readStore()
-  const entry = store.knowledge.find((k) => k.id === id)
-  if (!entry) {
-    throw new Error(`Entrada de conocimiento ${id} no encontrada`)
-  }
-  entry.title = update.title
-  entry.content = update.content
-  entry.updatedAt = new Date().toISOString()
-  await writeStore(store)
-  return entry
+  const row = await prisma.knowledgeEntry.update({
+    where: { id },
+    data: { ...update, updatedAt: new Date() },
+  })
+  return mapKnowledge(row)
 }
 
 export async function deleteKnowledgeEntry(id: string): Promise<void> {
-  const store = await readStore()
-  store.knowledge = store.knowledge.filter((k) => k.id !== id)
-  await writeStore(store)
+  await prisma.knowledgeEntry.delete({ where: { id } }).catch(() => {})
+}
+
+// --- Dueño de un recurso ---
+// La URL de estas rutas trae solo el id del recurso (no el del negocio), así
+// que antes de autorizar hay que resolver de qué negocio es. Se hace con un
+// SELECT liviano en vez de traer y mapear el objeto entero.
+
+export async function getKnowledgeEntryBusinessId(id: string): Promise<string | null> {
+  const row = await prisma.knowledgeEntry.findUnique({ where: { id }, select: { businessId: true } })
+  return row?.businessId ?? null
+}
+
+export async function getServiceBusinessId(id: string): Promise<string | null> {
+  const row = await prisma.service.findUnique({ where: { id }, select: { businessId: true } })
+  return row?.businessId ?? null
+}
+
+export async function getAppointmentBusinessId(id: string): Promise<string | null> {
+  const row = await prisma.appointment.findUnique({ where: { id }, select: { businessId: true } })
+  return row?.businessId ?? null
+}
+
+export async function getProductBusinessId(id: string): Promise<string | null> {
+  const row = await prisma.product.findUnique({ where: { id }, select: { businessId: true } })
+  return row?.businessId ?? null
+}
+
+export async function getOrderBusinessId(id: string): Promise<string | null> {
+  const row = await prisma.order.findUnique({ where: { id }, select: { businessId: true } })
+  return row?.businessId ?? null
 }

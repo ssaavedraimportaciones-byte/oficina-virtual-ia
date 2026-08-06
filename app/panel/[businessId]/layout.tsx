@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { canAccessBusiness, getCurrentUser } from '@/lib/auth'
 import { getBusiness } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 
@@ -13,8 +14,14 @@ export default async function BusinessLayout({
   params: Promise<{ businessId: string }>
 }) {
   const { businessId } = await params
+
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+
   const business = await getBusiness(businessId)
-  if (!business) notFound()
+  // Mismo 404 tanto si el negocio no existe como si el usuario no tiene
+  // acceso: no le confirma a nadie que un negocio ajeno existe.
+  if (!business || !canAccessBusiness(user, businessId)) notFound()
 
   const template = getIndustryTemplate(business.templateId)
 

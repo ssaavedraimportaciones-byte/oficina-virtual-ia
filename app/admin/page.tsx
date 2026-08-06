@@ -1,11 +1,13 @@
 import Link from 'next/link'
-import { getAccess } from '@/lib/adminAuth'
-import { getAdminOverview } from '@/lib/store'
+import { redirect } from 'next/navigation'
+import { getCurrentUser, isPlatformAdmin, listUsers } from '@/lib/auth'
+import { getAdminOverview, listBusinesses } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import { providerStatus } from '@/lib/llm'
 import { encryptionConfigured } from '@/lib/secrets'
-import LoginForm from './LoginForm'
+import LogoutButton from '../LogoutButton'
 import DeleteBusinessButton from './DeleteBusinessButton'
+import UsersSection from './UsersSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,32 +32,15 @@ function formatDate(value: string | null) {
 }
 
 export default async function AdminPage() {
-  const access = await getAccess('admin')
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+  if (!isPlatformAdmin(user)) redirect('/panel')
 
-  if (!access.configured) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-8">
-        <div className="max-w-md text-center">
-          <h1 className="text-xl font-bold text-white">Panel bloqueado</h1>
-          <p className="mt-3 text-sm text-gray-400">
-            Falta definir <code className="text-amber-400">ADMIN_PASSWORD</code> en las variables
-            de entorno. Sin eso el panel queda bloqueado a propósito, para no exponer todos los
-            negocios por una variable olvidada.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!access.authorized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-8">
-        <LoginForm />
-      </div>
-    )
-  }
-
-  const overview = await getAdminOverview()
+  const [overview, users, businesses] = await Promise.all([
+    getAdminOverview(),
+    listUsers(),
+    listBusinesses(),
+  ])
 
   const totals = overview.reduce(
     (acc, item) => ({
@@ -84,12 +69,12 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold text-white">Administración</h1>
           <p className="mt-1 text-sm text-gray-400">Todos los negocios de la plataforma.</p>
         </div>
-        <Link
-          href="/panel"
-          className="text-sm text-gray-400 hover:text-amber-400"
-        >
-          Ir al panel →
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/panel" className="text-sm text-gray-400 hover:text-amber-400">
+            Ir al panel →
+          </Link>
+          <LogoutButton className="text-sm text-gray-500 hover:text-gray-300" />
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-4">
@@ -245,6 +230,19 @@ export default async function AdminPage() {
           &ldquo;Datos&rdquo; es la cantidad de entradas en la base de conocimiento: en rojo si
           está en cero, porque ahí el agente responde sin datos del negocio.
         </p>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-3 font-medium text-white">Usuarios</h2>
+        <p className="mb-4 text-sm text-gray-400">
+          Cada usuario solo ve, en <code className="text-amber-400">/panel</code>, los negocios
+          donde tiene una membresía. Un administrador de plataforma ve todo, acá y en el panel.
+        </p>
+        <UsersSection
+          initialUsers={users}
+          businesses={businesses.map((b) => ({ id: b.id, name: b.config.businessName }))}
+          currentUserId={user.id}
+        />
       </section>
     </div>
   )

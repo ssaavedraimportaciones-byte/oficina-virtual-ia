@@ -1,11 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { rm } from 'fs/promises'
-
-const DB = '.data/test-pedidos.json'
-process.env.DB_PATH = DB
-
-const { runAgentTool } = await import('../agentTools')
-const store = await import('../store')
+import { runAgentTool } from '../agentTools'
+import * as store from '../store'
 import { checkOrder, isOrderable, isSoldOut } from '../catalog'
 import type { Business, Conversation, Product } from '../types'
 
@@ -54,7 +49,6 @@ describe('pedidos punta a punta', () => {
   let conversation: Conversation
 
   beforeAll(async () => {
-    await rm(DB, { force: true })
     business = await store.createBusiness(
       { agentName: 'Ema', businessName: 'Pastelería', industry: 'Gastronomía',
         description: 'x', goals: 'y', tone: 'cercano', channels: ['whatsapp'],

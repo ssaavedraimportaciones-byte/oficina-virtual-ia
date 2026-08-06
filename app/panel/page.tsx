@@ -1,27 +1,45 @@
 import Link from 'next/link'
-import { listBusinesses } from '@/lib/store'
+import { redirect } from 'next/navigation'
+import { getCurrentUser, isPlatformAdmin } from '@/lib/auth'
+import { listBusinessesForUser } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
+import LogoutButton from '../LogoutButton'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PanelPage() {
-  const businesses = await listBusinesses()
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+
+  const businesses = await listBusinessesForUser(user)
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-12">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-md">
           <h1 className="text-2xl font-bold text-white">Tus negocios</h1>
           <p className="mt-1 text-sm text-gray-400">
             Cada negocio tiene su propio agente, su base de conocimiento y sus conversaciones.
           </p>
+          <p className="mt-1 text-xs text-gray-600">
+            {user.email}
+            {isPlatformAdmin(user) && ' · administrador'}
+          </p>
         </div>
-        <Link
-          href="/panel/nuevo"
-          className="shrink-0 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
-        >
-          + Nuevo negocio
-        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          {isPlatformAdmin(user) && (
+            <Link href="/admin" className="text-sm text-gray-400 hover:text-amber-400">
+              Administración
+            </Link>
+          )}
+          <Link
+            href="/panel/nuevo"
+            className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
+          >
+            + Nuevo negocio
+          </Link>
+          <LogoutButton className="text-sm text-gray-500 hover:text-gray-300" />
+        </div>
       </div>
 
       {businesses.length === 0 ? (

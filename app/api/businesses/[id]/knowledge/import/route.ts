@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { addKnowledgeEntry, getBusiness, refreshKnowledgeEntry } from '@/lib/store'
+import { requireBusinessAccess } from '@/lib/authz'
+import { addKnowledgeEntry, refreshKnowledgeEntry } from '@/lib/store'
 import { importPageText } from '@/lib/webImport'
 
 const importSchema = z.object({
@@ -13,14 +14,13 @@ const importSchema = z.object({
 // de precios publicada en el sitio).
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = importSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
-  }
-
-  if (!(await getBusiness(id))) {
-    return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
   }
 
   let page: { title: string; text: string }

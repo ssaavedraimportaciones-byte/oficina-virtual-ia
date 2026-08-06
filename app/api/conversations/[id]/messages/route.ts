@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { describeApiError, generateAgentReply } from '@/lib/agentEngine'
+import { requireBusinessAccess } from '@/lib/authz'
 import { updateContactNotes } from '@/lib/contactNotes'
 import {
   appendMessage,
@@ -35,6 +36,9 @@ export async function POST(
   if (!conversation) {
     return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
   }
+
+  const user = await requireBusinessAccess(conversation.businessId)
+  if (user instanceof NextResponse) return user
 
   conversation = await appendMessage(conversation.id, parsed.data)
 

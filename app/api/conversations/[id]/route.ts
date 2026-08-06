@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireBusinessAccess } from '@/lib/authz'
 import { getConversation } from '@/lib/store'
 
 export async function GET(
@@ -10,5 +11,9 @@ export async function GET(
   if (!conversation) {
     return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
   }
+
+  const user = await requireBusinessAccess(conversation.businessId)
+  if (user instanceof NextResponse) return user
+
   return NextResponse.json({ conversation })
 }

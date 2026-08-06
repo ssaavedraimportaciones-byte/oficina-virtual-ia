@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requireBusinessAccess } from '@/lib/authz'
 import { decryptCredentials, getBusiness, updateBusinessCredentials } from '@/lib/store'
 import { verifyInstagramAccount, verifyWhatsAppNumber } from '@/lib/metaConnect'
 
@@ -16,6 +17,9 @@ const connectSchema = z.object({
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = connectSchema.safeParse(body)
   if (!parsed.success) {
@@ -70,6 +74,9 @@ const disconnectSchema = z.object({
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = disconnectSchema.safeParse(body)
   if (!parsed.success) {

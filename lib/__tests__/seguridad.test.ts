@@ -1,12 +1,7 @@
-import { beforeAll, describe, expect, it } from 'vitest'
-import { rm, readFile } from 'fs/promises'
+import { describe, expect, it } from 'vitest'
 import { createHmac } from 'crypto'
-
-const DB = '.data/test-seguridad.json'
-process.env.DB_PATH = DB
-process.env.ENCRYPTION_KEY = '4f8b2c1e9a7d3f5b6c8e0a2d4f6b8c1e3a5d7f9b1c3e5a7d9f1b3c5e7a9d1f3b'
-
-const store = await import('../store')
+import * as store from '../store'
+import { prisma } from '../db'
 import { decryptSecret, encryptSecret } from '../secrets'
 import { isPrivateAddress, assertPublicUrl } from '../ssrf'
 import { verifyMetaSignature } from '../webhookSignature'
@@ -39,12 +34,8 @@ describe('cifrado de secretos', () => {
   })
 })
 
-describe('tokens en disco', () => {
-  beforeAll(async () => {
-    await rm(DB, { force: true })
-  })
-
-  it('el token no queda en texto plano en el archivo', async () => {
+describe('tokens en la base', () => {
+  it('el token no queda en texto plano en la fila', async () => {
     const business = await store.createBusiness(
       { agentName: 'S', businessName: 'B', industry: 'i', description: 'd',
         goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },
@@ -57,9 +48,11 @@ describe('tokens en disco', () => {
       instagramAccessToken: null,
     })
 
-    const raw = await readFile(DB, 'utf-8')
-    expect(raw).not.toContain('EAAG-token-supersecreto')
-    expect(raw).toContain('enc:v1:')
+    // Se lee la columna directo de Postgres, sin pasar por el store (que
+    // descifraría), para verificar qué queda guardado de verdad.
+    const row = await prisma.business.findUniqueOrThrow({ where: { id: business.id } })
+    expect(row.whatsappAccessToken).not.toContain('EAAG-token-supersecreto')
+    expect(row.whatsappAccessToken).toContain('enc:v1:')
 
     // Pero se puede recuperar para usarlo.
     const saved = await store.getBusiness(business.id)

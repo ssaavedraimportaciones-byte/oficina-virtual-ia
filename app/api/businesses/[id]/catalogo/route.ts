@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { addProduct, getBusiness, listOrders, listProducts } from '@/lib/store'
+import { requireBusinessAccess } from '@/lib/authz'
+import { addProduct, listOrders, listProducts } from '@/lib/store'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  if (!(await getBusiness(id))) {
-    return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
-  }
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
 
   const [products, orders] = await Promise.all([listProducts(id), listOrders(id)])
   return NextResponse.json({ products, orders })
@@ -21,14 +21,13 @@ const productSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = productSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
-  }
-
-  if (!(await getBusiness(id))) {
-    return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
   }
 
   const product = await addProduct({ businessId: id, ...parsed.data })

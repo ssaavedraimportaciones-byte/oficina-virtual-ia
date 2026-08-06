@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requireBusinessAccess } from '@/lib/authz'
 import {
   addKnowledgeEntry,
   decryptCredentials,
@@ -33,6 +34,9 @@ function formatProfileText(profile: {
 // consultar el perfil público de cualquier otra (Business Discovery).
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await requireBusinessAccess(id)
+  if (user instanceof NextResponse) return user
+
   const body = await request.json()
   const parsed = importSchema.safeParse(body)
   if (!parsed.success) {

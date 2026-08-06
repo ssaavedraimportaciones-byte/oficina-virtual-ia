@@ -3,6 +3,7 @@ import Link from 'next/link'
 const NAV_ITEMS = [
   { href: '/panel', label: 'Conversaciones' },
   { href: '/panel/configurar', label: 'Configurar agente' },
+  { href: '/panel/conocimiento', label: 'Base de conocimiento' },
   { href: '/panel/conexiones', label: 'Conexiones' },
 ]
 

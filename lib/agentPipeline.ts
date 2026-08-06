@@ -4,6 +4,7 @@ import {
   createConversation,
   findConversationByContact,
   getConfig,
+  listKnowledge,
 } from './store'
 import type { Channel, Conversation } from './types'
 
@@ -42,7 +43,8 @@ export async function handleIncomingMessage(
     text: input.text,
   })
 
-  const reply = await generateAgentReply(config, conversation.messages)
+  const knowledge = await listKnowledge()
+  const reply = await generateAgentReply(config, knowledge, conversation.messages)
 
   conversation = await appendMessage(conversation.id, {
     sender: 'agent',

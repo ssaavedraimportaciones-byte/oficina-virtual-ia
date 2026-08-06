@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { generateAgentReply } from '@/lib/claude'
-import { appendMessage, getConfig, getConversation } from '@/lib/store'
+import { appendMessage, getConfig, getConversation, listKnowledge } from '@/lib/store'
 
 const messageSchema = z.object({
   sender: z.enum(['contact', 'human']),
@@ -43,7 +43,8 @@ export async function POST(
   }
 
   try {
-    const reply = await generateAgentReply(config, conversation.messages)
+    const knowledge = await listKnowledge()
+    const reply = await generateAgentReply(config, knowledge, conversation.messages)
     conversation = await appendMessage(conversation.id, { sender: 'agent', text: reply })
   } catch (error) {
     return NextResponse.json(

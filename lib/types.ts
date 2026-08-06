@@ -35,7 +35,16 @@ export interface Conversation {
   updatedAt: string
 }
 
+export interface KnowledgeEntry {
+  id: string
+  title: string
+  content: string
+  sourceUrl: string | null
+  updatedAt: string
+}
+
 export interface Store {
   config: AgentConfig | null
   conversations: Conversation[]
+  knowledge: KnowledgeEntry[]
 }

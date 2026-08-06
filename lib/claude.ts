@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { AgentConfig, Message } from './types'
+import type { AgentConfig, KnowledgeEntry, Message } from './types'
 import { buildSystemPrompt } from './agentPrompt'
 
 let client: Anthropic | null = null
@@ -18,6 +18,7 @@ function getClient(): Anthropic {
 
 export async function generateAgentReply(
   config: AgentConfig,
+  knowledge: KnowledgeEntry[],
   history: Message[],
 ): Promise<string> {
   const anthropic = getClient()
@@ -26,7 +27,7 @@ export async function generateAgentReply(
   const response = await anthropic.messages.create({
     model,
     max_tokens: 400,
-    system: buildSystemPrompt(config),
+    system: buildSystemPrompt(config, knowledge),
     messages: history
       .filter((m) => m.sender !== 'human')
       .map((m) => ({

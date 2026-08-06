@@ -76,7 +76,12 @@ export default function ConfigurarPage() {
       <h1 className="text-2xl font-bold text-white">Configurá tu agente</h1>
       <p className="mt-2 text-sm text-gray-400">
         Contanos de tu empresa y qué necesitás que haga el agente. Con eso se auto-estructura su
-        forma de hablar y de vender.
+        forma de hablar y de vender. Los datos concretos (precios, catálogo, tu sitio web) se
+        cargan aparte en{' '}
+        <a href="/panel/conocimiento" className="text-amber-400 hover:underline">
+          Base de conocimiento
+        </a>
+        .
       </p>
 
       <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-6">

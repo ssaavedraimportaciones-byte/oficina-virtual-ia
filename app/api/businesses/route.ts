@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createBusiness, listBusinesses } from '@/lib/store'
+import { toPublicBusiness } from '@/lib/publicBusiness'
 import { agentConfigSchema } from '@/lib/validation'
 
 export async function GET() {
   const businesses = await listBusinesses()
-  return NextResponse.json({ businesses })
+  return NextResponse.json({ businesses: businesses.map(toPublicBusiness) })
 }
 
 const createSchema = z.object({
@@ -25,5 +26,5 @@ export async function POST(request: NextRequest) {
     parsed.data.templateId,
   )
 
-  return NextResponse.json({ business })
+  return NextResponse.json({ business: toPublicBusiness(business) })
 }

@@ -228,6 +228,35 @@ export async function setConversationStatus(
   return conversation
 }
 
+export interface BusinessOverview {
+  business: Business
+  conversationCount: number
+  messageCount: number
+  knowledgeCount: number
+  lastActivityAt: string | null
+}
+
+/** Resumen de toda la plataforma para el panel de administración. */
+export async function getAdminOverview(): Promise<BusinessOverview[]> {
+  const store = await readStore()
+  return store.businesses
+    .map((business) => {
+      const conversations = store.conversations.filter((c) => c.businessId === business.id)
+      const lastActivityAt = conversations.reduce<string | null>(
+        (latest, c) => (latest === null || c.updatedAt > latest ? c.updatedAt : latest),
+        null,
+      )
+      return {
+        business,
+        conversationCount: conversations.length,
+        messageCount: conversations.reduce((sum, c) => sum + c.messages.length, 0),
+        knowledgeCount: store.knowledge.filter((k) => k.businessId === business.id).length,
+        lastActivityAt,
+      }
+    })
+    .sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
+}
+
 // --- Base de conocimiento ---
 
 export async function listKnowledge(businessId: string): Promise<KnowledgeEntry[]> {

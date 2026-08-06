@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteBusiness, getBusiness, updateBusinessConfig } from '@/lib/store'
+import { toPublicBusiness } from '@/lib/publicBusiness'
 import { agentConfigSchema } from '@/lib/validation'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -8,7 +9,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!business) {
     return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
   }
-  return NextResponse.json({ business })
+  return NextResponse.json({ business: toPublicBusiness(business) })
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     ...parsed.data,
     configuredAt: existing.config.configuredAt,
   })
-  return NextResponse.json({ business })
+  return NextResponse.json({ business: toPublicBusiness(business) })
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {

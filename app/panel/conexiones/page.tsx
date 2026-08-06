@@ -77,11 +77,26 @@ export default function ConexionesPage() {
             ? 'Credenciales cargadas.'
             : 'Faltan INSTAGRAM_ACCESS_TOKEN y INSTAGRAM_PAGE_ID.'}
         </p>
+        <p className="mt-2 text-xs text-gray-500">
+          Las mismas credenciales se usan para responder mensajes y para importar el perfil de
+          Instagram en{' '}
+          <a href="/panel/conocimiento" className="text-amber-400 hover:underline">
+            Base de conocimiento
+          </a>
+          .
+        </p>
         <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-gray-400">
-          <li>Vinculá tu cuenta de Instagram profesional a una página de Facebook.</li>
+          <li>
+            Vinculá tu cuenta de Instagram (tiene que ser Business o Creator) a una página de
+            Facebook.
+          </li>
           <li>
             En la misma app de Meta, agregá el producto{' '}
             <span className="text-gray-200">Instagram</span> y generá el token de la página.
+          </li>
+          <li>
+            Copiá el ID de esa cuenta a <code className="text-amber-400">INSTAGRAM_PAGE_ID</code>{' '}
+            y el token a <code className="text-amber-400">INSTAGRAM_ACCESS_TOKEN</code>.
           </li>
           <li>
             Configurá el webhook con URL{' '}

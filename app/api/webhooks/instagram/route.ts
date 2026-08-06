@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handleIncomingMessage } from '@/lib/agentPipeline'
-import { sendInstagramMessage } from '@/lib/instagram'
+import { getInstagramContactProfile, sendInstagramMessage } from '@/lib/instagram'
+import { findConversationByContact } from '@/lib/store'
 
 // Handshake de verificación que pide Meta al configurar el webhook.
 export async function GET(request: NextRequest) {
@@ -34,10 +35,17 @@ export async function POST(request: NextRequest) {
       // is_echo: eventos que genera la propia cuenta al enviar un mensaje, se ignoran.
       if (!text || !senderId || event.message?.is_echo) continue
 
+      // Solo consultamos el perfil si es un contacto nuevo, para no gastar
+      // llamadas de más en cada mensaje de una conversación ya existente.
+      const existing = await findConversationByContact('instagram', senderId)
+      const contactName = existing
+        ? existing.contactName
+        : (await getInstagramContactProfile(senderId)).name ?? senderId
+
       const { reply } = await handleIncomingMessage({
         channel: 'instagram',
         contactHandle: senderId,
-        contactName: senderId,
+        contactName,
         text,
       })
 

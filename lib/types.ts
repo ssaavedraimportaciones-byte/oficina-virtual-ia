@@ -31,14 +31,18 @@ export interface Conversation {
   contactHandle: string
   status: ConversationStatus
   messages: Message[]
+  notes: string
   createdAt: string
   updatedAt: string
 }
+
+export type KnowledgeSource = 'manual' | 'web' | 'instagram'
 
 export interface KnowledgeEntry {
   id: string
   title: string
   content: string
+  sourceType: KnowledgeSource
   sourceUrl: string | null
   updatedAt: string
 }

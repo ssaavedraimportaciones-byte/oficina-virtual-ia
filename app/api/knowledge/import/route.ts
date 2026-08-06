@@ -30,7 +30,12 @@ export async function POST(request: NextRequest) {
 
   const entry = parsed.data.entryId
     ? await refreshKnowledgeEntry(parsed.data.entryId, { title: page.title, content: page.text })
-    : await addKnowledgeEntry({ title: page.title, content: page.text, sourceUrl: parsed.data.url })
+    : await addKnowledgeEntry({
+        title: page.title,
+        content: page.text,
+        sourceType: 'web',
+        sourceUrl: parsed.data.url,
+      })
 
   return NextResponse.json({ entry })
 }

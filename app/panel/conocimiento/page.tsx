@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { KnowledgeEntry } from '@/lib/types'
+import type { KnowledgeEntry, KnowledgeSource } from '@/lib/types'
+
+const SOURCE_LABEL: Record<KnowledgeSource, string> = {
+  manual: 'Manual',
+  web: 'Sitio web',
+  instagram: 'Instagram',
+}
 
 export default function ConocimientoPage() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([])
@@ -10,6 +16,10 @@ export default function ConocimientoPage() {
   const [url, setUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+
+  const [igUsername, setIgUsername] = useState('')
+  const [importingIg, setImportingIg] = useState(false)
+  const [importIgError, setImportIgError] = useState<string | null>(null)
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -49,14 +59,44 @@ export default function ConocimientoPage() {
     await load()
   }
 
+  async function handleImportInstagram(e: React.FormEvent) {
+    e.preventDefault()
+    setImportingIg(true)
+    setImportIgError(null)
+
+    const res = await fetch('/api/knowledge/import-instagram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: igUsername }),
+    })
+    const data = await res.json()
+
+    setImportingIg(false)
+    if (!res.ok) {
+      setImportIgError(data.error ?? 'No se pudo importar el perfil de Instagram')
+      return
+    }
+    setIgUsername('')
+    await load()
+  }
+
   async function handleRefresh(entry: KnowledgeEntry) {
     if (!entry.sourceUrl) return
     setRefreshingId(entry.id)
-    await fetch('/api/knowledge/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: entry.sourceUrl, entryId: entry.id }),
-    })
+    if (entry.sourceType === 'instagram') {
+      const handle = entry.sourceUrl.replace(/^https?:\/\/(www\.)?instagram\.com\//, '')
+      await fetch('/api/knowledge/import-instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: handle, entryId: entry.id }),
+      })
+    } else {
+      await fetch('/api/knowledge/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: entry.sourceUrl, entryId: entry.id }),
+      })
+    }
     setRefreshingId(null)
     await load()
   }
@@ -116,6 +156,35 @@ export default function ConocimientoPage() {
       </section>
 
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
+        <h2 className="font-medium text-white">Importar desde Instagram</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          Si tu empresa tiene Instagram, poné el usuario y se trae la bio, el sitio y las últimas
+          publicaciones. Necesita que la cuenta esté conectada en{' '}
+          <a href="/panel/conexiones" className="text-amber-400 hover:underline">
+            Conexiones
+          </a>{' '}
+          como cuenta Business o Creator.
+        </p>
+        <form onSubmit={handleImportInstagram} className="mt-4 flex gap-3">
+          <input
+            required
+            value={igUsername}
+            onChange={(e) => setIgUsername(e.target.value)}
+            placeholder="@tuempresa"
+            className="input flex-1"
+          />
+          <button
+            type="submit"
+            disabled={importingIg}
+            className="shrink-0 rounded-md bg-amber-500 px-5 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400 disabled:opacity-50"
+          >
+            {importingIg ? 'Importando…' : 'Importar'}
+          </button>
+        </form>
+        {importIgError && <p className="mt-2 text-sm text-danger">{importIgError}</p>}
+      </section>
+
+      <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Agregar información manualmente</h2>
         <p className="mt-1 text-xs text-gray-500">
           Por ejemplo tu lista de precios, horarios de atención o preguntas frecuentes.
@@ -158,7 +227,12 @@ export default function ConocimientoPage() {
               <div key={entry.id} className="rounded-lg border border-gray-800 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h3 className="font-medium text-white">{entry.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-white">{entry.title}</h3>
+                      <span className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] uppercase text-gray-500">
+                        {SOURCE_LABEL[entry.sourceType]}
+                      </span>
+                    </div>
                     {entry.sourceUrl && (
                       <a
                         href={entry.sourceUrl}

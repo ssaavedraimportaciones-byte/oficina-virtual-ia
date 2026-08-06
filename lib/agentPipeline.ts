@@ -1,4 +1,5 @@
 import { generateAgentReply } from './claude'
+import { updateContactNotes } from './contactNotes'
 import {
   appendMessage,
   createConversation,
@@ -50,6 +51,8 @@ export async function handleIncomingMessage(
     sender: 'agent',
     text: reply,
   })
+
+  conversation = await updateContactNotes(conversation)
 
   return { conversation, reply }
 }

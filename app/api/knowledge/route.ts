@@ -19,6 +19,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const entry = await addKnowledgeEntry({ ...parsed.data, sourceUrl: null })
+  const entry = await addKnowledgeEntry({ ...parsed.data, sourceType: 'manual', sourceUrl: null })
   return NextResponse.json({ entry })
 }

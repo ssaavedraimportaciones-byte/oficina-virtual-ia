@@ -10,11 +10,25 @@ const DB_PATH = process.env.DB_PATH || '.data/store.json'
 
 const EMPTY_STORE: Store = { config: null, conversations: [], knowledge: [] }
 
+function withDefaultNotes(conversation: Partial<Conversation>): Conversation {
+  if (typeof conversation.notes === 'string') return conversation as Conversation
+  return { ...conversation, notes: '' } as Conversation
+}
+
+function withDefaultSourceType(entry: Partial<KnowledgeEntry>): KnowledgeEntry {
+  if (entry.sourceType) return entry as KnowledgeEntry
+  return { ...entry, sourceType: 'manual' } as KnowledgeEntry
+}
+
 async function readStore(): Promise<Store> {
   try {
     const raw = await readFile(DB_PATH, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<Store>
-    return { ...EMPTY_STORE, ...parsed }
+    const store = { ...EMPTY_STORE, ...parsed }
+    // Compatibilidad con datos guardados antes de agregar estos campos.
+    store.conversations = store.conversations.map((c) => withDefaultNotes(c))
+    store.knowledge = store.knowledge.map((k) => withDefaultSourceType(k))
+    return store
   } catch {
     return { ...EMPTY_STORE }
   }
@@ -70,6 +84,7 @@ export async function createConversation(
     contactHandle: input.contactHandle,
     status: 'abierta',
     messages: [],
+    notes: '',
     createdAt: now,
     updatedAt: now,
   }
@@ -103,13 +118,14 @@ export async function listKnowledge(): Promise<KnowledgeEntry[]> {
 }
 
 export async function addKnowledgeEntry(
-  input: Pick<KnowledgeEntry, 'title' | 'content' | 'sourceUrl'>,
+  input: Pick<KnowledgeEntry, 'title' | 'content' | 'sourceUrl' | 'sourceType'>,
 ): Promise<KnowledgeEntry> {
   const store = await readStore()
   const entry: KnowledgeEntry = {
     id: randomUUID(),
     title: input.title,
     content: input.content,
+    sourceType: input.sourceType,
     sourceUrl: input.sourceUrl,
     updatedAt: new Date().toISOString(),
   }
@@ -138,6 +154,20 @@ export async function deleteKnowledgeEntry(id: string): Promise<void> {
   const store = await readStore()
   store.knowledge = store.knowledge.filter((k) => k.id !== id)
   await writeStore(store)
+}
+
+export async function setConversationNotes(
+  conversationId: string,
+  notes: string,
+): Promise<Conversation> {
+  const store = await readStore()
+  const conversation = store.conversations.find((c) => c.id === conversationId)
+  if (!conversation) {
+    throw new Error(`Conversación ${conversationId} no encontrada`)
+  }
+  conversation.notes = notes
+  await writeStore(store)
+  return conversation
 }
 
 export async function setConversationStatus(

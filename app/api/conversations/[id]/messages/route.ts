@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { generateAgentReply } from '@/lib/claude'
+import { updateContactNotes } from '@/lib/contactNotes'
 import { appendMessage, getConfig, getConversation, listKnowledge } from '@/lib/store'
 
 const messageSchema = z.object({
@@ -46,6 +47,7 @@ export async function POST(
     const knowledge = await listKnowledge()
     const reply = await generateAgentReply(config, knowledge, conversation.messages)
     conversation = await appendMessage(conversation.id, { sender: 'agent', text: reply })
+    conversation = await updateContactNotes(conversation)
   } catch (error) {
     return NextResponse.json(
       { conversation, error: error instanceof Error ? error.message : 'Error generando respuesta' },

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { addKnowledgeEntry, getBusiness, refreshKnowledgeEntry } from '@/lib/store'
+import {
+  addKnowledgeEntry,
+  decryptCredentials,
+  getBusiness,
+  refreshKnowledgeEntry,
+} from '@/lib/store'
 import { getBusinessDiscovery } from '@/lib/instagram'
 
 const importSchema = z.object({
@@ -43,7 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   let profile: Awaited<ReturnType<typeof getBusinessDiscovery>>
   try {
-    profile = await getBusinessDiscovery(handle, business.credentials)
+    profile = await getBusinessDiscovery(handle, decryptCredentials(business.credentials))
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'No se pudo importar el perfil' },

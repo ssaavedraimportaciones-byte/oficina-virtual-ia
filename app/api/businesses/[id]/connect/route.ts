@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getBusiness, updateBusinessCredentials } from '@/lib/store'
+import { decryptCredentials, getBusiness, updateBusinessCredentials } from '@/lib/store'
 import { verifyInstagramAccount, verifyWhatsAppNumber } from '@/lib/metaConnect'
 
 const connectSchema = z.object({
@@ -50,12 +50,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const credentials =
     channel === 'whatsapp'
       ? {
-          ...business.credentials,
+          ...decryptCredentials(business.credentials),
           whatsappPhoneNumberId: accountId,
           whatsappAccessToken: token,
         }
       : {
-          ...business.credentials,
+          ...decryptCredentials(business.credentials),
           instagramPageId: accountId,
           instagramAccessToken: token,
         }
@@ -83,8 +83,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const credentials =
     parsed.data.channel === 'whatsapp'
-      ? { ...business.credentials, whatsappPhoneNumberId: null, whatsappAccessToken: null }
-      : { ...business.credentials, instagramPageId: null, instagramAccessToken: null }
+      ? { ...decryptCredentials(business.credentials), whatsappPhoneNumberId: null, whatsappAccessToken: null }
+      : { ...decryptCredentials(business.credentials), instagramPageId: null, instagramAccessToken: null }
 
   await updateBusinessCredentials(id, credentials)
   return NextResponse.json({ ok: true })

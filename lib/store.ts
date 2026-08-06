@@ -18,6 +18,7 @@ import type {
 } from './types'
 import { DEFAULT_WEEK_HOURS } from './types'
 import { checkOrder, type RequestedItem } from './catalog'
+import { decryptOptional, encryptOptional } from './secrets'
 
 // Prototipo: persistencia en un archivo JSON local. Para producción con más de
 // una instancia en simultáneo, reemplazar por una base de datos real
@@ -105,6 +106,7 @@ export async function updateBusinessConfig(
   return business
 }
 
+/** Los tokens se guardan cifrados; los IDs de cuenta no son secretos. */
 export async function updateBusinessCredentials(
   id: string,
   credentials: ChannelCredentials,
@@ -114,9 +116,25 @@ export async function updateBusinessCredentials(
   if (!business) {
     throw new Error(`Negocio ${id} no encontrado`)
   }
-  business.credentials = credentials
+  business.credentials = {
+    ...credentials,
+    whatsappAccessToken: encryptOptional(credentials.whatsappAccessToken),
+    instagramAccessToken: encryptOptional(credentials.instagramAccessToken),
+  }
   await writeStore(store)
   return business
+}
+
+/**
+ * Credenciales listas para usar contra la API de Meta, con los tokens
+ * descifrados. Se usa solo en el servidor, al momento de enviar un mensaje.
+ */
+export function decryptCredentials(credentials: ChannelCredentials): ChannelCredentials {
+  return {
+    ...credentials,
+    whatsappAccessToken: decryptOptional(credentials.whatsappAccessToken),
+    instagramAccessToken: decryptOptional(credentials.instagramAccessToken),
+  }
 }
 
 export async function deleteBusiness(id: string): Promise<void> {

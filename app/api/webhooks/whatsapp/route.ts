@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handleIncomingMessage } from '@/lib/agentPipeline'
-import { findBusinessByChannelId } from '@/lib/store'
+import { decryptCredentials, findBusinessByChannelId } from '@/lib/store'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { verifyMetaSignature } from '@/lib/webhookSignature'
 
 // Handshake de verificación que pide Meta al configurar el webhook.
 export async function GET(request: NextRequest) {
@@ -29,7 +30,21 @@ interface WhatsAppWebhookBody {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as WhatsAppWebhookBody
+  // La firma se calcula sobre el cuerpo crudo, así que hay que leerlo como
+  // texto y recién después parsearlo.
+  const rawBody = await request.text()
+  const signature = verifyMetaSignature(rawBody, request.headers.get('x-hub-signature-256'))
+  if (!signature.ok) {
+    console.error('[webhook whatsapp] rechazado:', signature.reason)
+    return NextResponse.json({ error: signature.reason }, { status: signature.status })
+  }
+
+  let body: WhatsAppWebhookBody
+  try {
+    body = JSON.parse(rawBody) as WhatsAppWebhookBody
+  } catch {
+    return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
+  }
 
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
@@ -57,7 +72,7 @@ export async function POST(request: NextRequest) {
             text: message.text.body,
           })
 
-          await sendWhatsAppMessage(message.from, reply, business.credentials)
+          await sendWhatsAppMessage(message.from, reply, decryptCredentials(business.credentials))
         } catch (error) {
           console.error('[webhook whatsapp] no se pudo responder:', error)
         }

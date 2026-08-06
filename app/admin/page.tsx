@@ -3,6 +3,7 @@ import { getAccess } from '@/lib/adminAuth'
 import { getAdminOverview } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import { providerStatus } from '@/lib/llm'
+import { encryptionConfigured } from '@/lib/secrets'
 import LoginForm from './LoginForm'
 import DeleteBusinessButton from './DeleteBusinessButton'
 
@@ -71,6 +72,8 @@ export default async function AdminPage() {
   )
 
   const llm = providerStatus()
+  const encryptionOn = encryptionConfigured()
+  const webhookSecretOn = Boolean(process.env.META_APP_SECRET)
   const whatsappVerify = Boolean(process.env.WHATSAPP_VERIFY_TOKEN)
   const instagramVerify = Boolean(process.env.INSTAGRAM_VERIFY_TOKEN)
 
@@ -115,6 +118,39 @@ export default async function AdminPage() {
           <div className="flex items-center gap-2">
             <Dot ok={instagramVerify} />
             <span className="text-gray-300">INSTAGRAM_VERIFY_TOKEN</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-gray-800 p-6">
+        <h2 className="font-medium text-white">Seguridad</h2>
+        <div className="mt-4 flex flex-col gap-3 text-sm">
+          <div className="flex items-start gap-2">
+            <span className="mt-1.5">
+              <Dot ok={encryptionOn} />
+            </span>
+            <div>
+              <span className="text-gray-300">Cifrado de tokens (ENCRYPTION_KEY)</span>
+              {!encryptionOn && (
+                <p className="text-xs text-danger">
+                  Sin esto no se pueden conectar canales nuevos. Generá una con{' '}
+                  <code>openssl rand -hex 32</code>.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="mt-1.5">
+              <Dot ok={webhookSecretOn} />
+            </span>
+            <div>
+              <span className="text-gray-300">Firma de webhooks (META_APP_SECRET)</span>
+              {!webhookSecretOn && (
+                <p className="text-xs text-danger">
+                  Sin esto los webhooks se rechazan, para que nadie pueda inyectar mensajes falsos.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </section>

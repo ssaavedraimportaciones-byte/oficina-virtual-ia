@@ -1,4 +1,4 @@
-import type Anthropic from '@anthropic-ai/sdk'
+import type { LlmTool } from './llm'
 import {
   buildLocal,
   findServiceByName,
@@ -16,12 +16,12 @@ import {
 } from './store'
 import type { Business, Conversation } from './types'
 
-export const AGENDA_TOOLS: Anthropic.Tool[] = [
+export const AGENDA_TOOLS: LlmTool[] = [
   {
     name: 'consultar_disponibilidad',
     description:
       'Devuelve los horarios libres para reservar un servicio. Usalo SIEMPRE antes de ofrecerle horarios al cliente: nunca inventes disponibilidad.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         servicio: {
@@ -40,7 +40,7 @@ export const AGENDA_TOOLS: Anthropic.Tool[] = [
     name: 'agendar_turno',
     description:
       'Reserva un turno en la agenda del negocio. Usalo solo cuando el cliente ya confirmó un horario concreto que salió de consultar_disponibilidad.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         servicio: { type: 'string', description: 'Nombre del servicio a reservar.' },
@@ -56,12 +56,12 @@ export const AGENDA_TOOLS: Anthropic.Tool[] = [
   },
 ]
 
-export const PEDIDO_TOOLS: Anthropic.Tool[] = [
+export const PEDIDO_TOOLS: LlmTool[] = [
   {
     name: 'consultar_catalogo',
     description:
       'Devuelve los productos disponibles con su precio y su stock. Usalo SIEMPRE antes de confirmar precios o disponibilidad: nunca inventes productos ni digas que hay stock sin consultarlo.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         busqueda: {
@@ -76,7 +76,7 @@ export const PEDIDO_TOOLS: Anthropic.Tool[] = [
     name: 'crear_pedido',
     description:
       'Registra un pedido y descuenta el stock. Usalo solo cuando el cliente ya confirmó qué quiere llevar y en qué cantidad, y sabés su nombre.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         items: {

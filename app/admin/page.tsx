@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getAccess } from '@/lib/adminAuth'
 import { getAdminOverview } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
+import { providerStatus } from '@/lib/llm'
 import LoginForm from './LoginForm'
 import DeleteBusinessButton from './DeleteBusinessButton'
 
@@ -69,7 +70,7 @@ export default async function AdminPage() {
     { conversations: 0, messages: 0, connected: 0 },
   )
 
-  const claudeReady = Boolean(process.env.ANTHROPIC_API_KEY)
+  const llm = providerStatus()
   const whatsappVerify = Boolean(process.env.WHATSAPP_VERIFY_TOKEN)
   const instagramVerify = Boolean(process.env.INSTAGRAM_VERIFY_TOKEN)
 
@@ -99,10 +100,12 @@ export default async function AdminPage() {
         <h2 className="font-medium text-white">Estado del sistema</h2>
         <div className="mt-4 flex flex-col gap-2 text-sm">
           <div className="flex items-center gap-2">
-            <Dot ok={claudeReady} />
-            <span className="text-gray-300">Claude (ANTHROPIC_API_KEY)</span>
+            <Dot ok={llm.configured} />
+            <span className="text-gray-300">Motor de IA</span>
             <span className="text-gray-600">
-              {claudeReady ? `modelo ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'}` : 'sin configurar'}
+              {llm.configured
+                ? `${llm.id === 'openai' ? 'OpenAI' : 'Anthropic'} · modelo ${llm.model}`
+                : 'sin configurar — cargá ANTHROPIC_API_KEY u OPENAI_API_KEY'}
             </span>
           </div>
           <div className="flex items-center gap-2">

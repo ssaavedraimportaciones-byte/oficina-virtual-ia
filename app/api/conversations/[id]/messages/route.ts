@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { describeApiError, generateAgentReply } from '@/lib/claude'
+import { describeApiError, generateAgentReply } from '@/lib/agentEngine'
 import { updateContactNotes } from '@/lib/contactNotes'
 import {
   appendMessage,

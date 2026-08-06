@@ -1,4 +1,4 @@
-import { generateAgentReply } from './claude'
+import { generateAgentReply } from './agentEngine'
 import { updateContactNotes } from './contactNotes'
 import {
   appendMessage,

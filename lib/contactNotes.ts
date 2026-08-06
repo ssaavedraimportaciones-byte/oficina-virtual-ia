@@ -1,4 +1,4 @@
-import { generateContactNotes } from './claude'
+import { generateContactNotes } from './agentEngine'
 import { setConversationNotes } from './store'
 import type { Conversation } from './types'
 

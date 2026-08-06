@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateAgentReply } from '@/lib/claude'
+import { describeApiError, generateAgentReply } from '@/lib/claude'
 import { updateContactNotes } from '@/lib/contactNotes'
 import {
   appendMessage,
@@ -61,10 +61,7 @@ export async function POST(
     conversation = await appendMessage(conversation.id, { sender: 'agent', text: reply })
     conversation = await updateContactNotes(conversation)
   } catch (error) {
-    return NextResponse.json(
-      { conversation, error: error instanceof Error ? error.message : 'Error generando respuesta' },
-      { status: 502 },
-    )
+    return NextResponse.json({ conversation, error: describeApiError(error) }, { status: 502 })
   }
 
   return NextResponse.json({ conversation })

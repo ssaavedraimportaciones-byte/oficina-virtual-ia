@@ -21,6 +21,32 @@ function model(): string {
   return process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'
 }
 
+/**
+ * Traduce los errores de la API a algo accionable. Son los que aparecen en la
+ * práctica y el JSON crudo de la API no le dice nada a quien administra el panel.
+ */
+export function describeApiError(error: unknown): string {
+  const status = (error as { status?: number })?.status
+  const raw = error instanceof Error ? error.message : String(error)
+
+  if (status === 401 || /API key is invalid/i.test(raw)) {
+    return 'La API key de Anthropic es inválida. Revisá ANTHROPIC_API_KEY.'
+  }
+  if (/credit balance is too low/i.test(raw)) {
+    return 'La cuenta de Anthropic no tiene saldo. Cargá créditos en console.anthropic.com (Plans & Billing) para que el agente pueda responder.'
+  }
+  if (status === 429) {
+    return 'Se alcanzó el límite de uso de la API de Anthropic. Esperá un momento y reintentá.'
+  }
+  if (status === 404 || /model/i.test(raw)) {
+    return `El modelo configurado (${model()}) no está disponible para esta cuenta. Revisá ANTHROPIC_MODEL.`
+  }
+  if (status && status >= 500) {
+    return 'La API de Anthropic tuvo un error temporal. Reintentá en un momento.'
+  }
+  return raw
+}
+
 function toAnthropicMessages(history: Message[]): Anthropic.MessageParam[] {
   return history
     .filter((m) => m.sender !== 'human')

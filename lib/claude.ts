@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { AgentConfig, KnowledgeEntry, Message } from './types'
+import type { AgentConfig, KnowledgeEntry, Message, Service } from './types'
 import { buildSystemPrompt } from './agentPrompt'
+import { AGENT_TOOLS, runAgentTool, type ToolContext } from './agentTools'
 
 let client: Anthropic | null = null
 
@@ -16,7 +17,11 @@ function getClient(): Anthropic {
   return client
 }
 
-function toAnthropicMessages(history: Message[]) {
+function model(): string {
+  return process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'
+}
+
+function toAnthropicMessages(history: Message[]): Anthropic.MessageParam[] {
   return history
     .filter((m) => m.sender !== 'human')
     .map((m) => ({
@@ -25,23 +30,72 @@ function toAnthropicMessages(history: Message[]) {
     }))
 }
 
+function textOf(response: Anthropic.Message): string {
+  return response.content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('\n')
+    .trim()
+}
+
+/** Cuántas veces puede encadenar herramientas antes de tener que contestar. */
+const MAX_TOOL_ROUNDS = 4
+
 export async function generateAgentReply(
   config: AgentConfig,
   knowledge: KnowledgeEntry[],
   history: Message[],
+  options?: { services?: Service[]; toolContext?: ToolContext },
 ): Promise<string> {
   const anthropic = getClient()
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'
+  const services = options?.services ?? []
+  const toolContext = options?.toolContext
 
-  const response = await anthropic.messages.create({
-    model,
-    max_tokens: 400,
-    system: buildSystemPrompt(config, knowledge),
-    messages: toAnthropicMessages(history),
-  })
+  // Sin agenda configurada no tiene sentido ofrecerle herramientas: que
+  // conteste normal y diga que confirma el horario.
+  const toolsEnabled = Boolean(toolContext) && services.length > 0
 
-  const textBlock = response.content.find((block) => block.type === 'text')
-  return textBlock && textBlock.type === 'text' ? textBlock.text : ''
+  const messages = toAnthropicMessages(history)
+
+  for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+    const response = await anthropic.messages.create({
+      model: model(),
+      max_tokens: 600,
+      system: buildSystemPrompt(config, knowledge, services),
+      ...(toolsEnabled ? { tools: AGENT_TOOLS } : {}),
+      messages,
+    })
+
+    if (response.stop_reason !== 'tool_use' || !toolContext) {
+      return textOf(response)
+    }
+
+    const toolUses = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+    )
+
+    // Última vuelta: se corta el encadenado y se le pide que responda con lo
+    // que ya tiene, para no quedar en un ciclo de herramientas sin respuesta.
+    if (round === MAX_TOOL_ROUNDS) {
+      return textOf(response) || 'Dame un segundo que lo confirmo y te aviso.'
+    }
+
+    messages.push({ role: 'assistant', content: response.content })
+
+    const results: Anthropic.ToolResultBlockParam[] = []
+    for (const toolUse of toolUses) {
+      const output = await runAgentTool(
+        toolContext,
+        toolUse.name,
+        (toolUse.input ?? {}) as Record<string, unknown>,
+      )
+      results.push({ type: 'tool_result', tool_use_id: toolUse.id, content: output })
+    }
+
+    messages.push({ role: 'user', content: results })
+  }
+
+  return ''
 }
 
 const NOTES_SYSTEM_PROMPT = `Analizás una conversación de ventas/atención al cliente y mantenés
@@ -68,10 +122,9 @@ export async function generateContactNotes(
   previousNotes: string,
 ): Promise<string> {
   const anthropic = getClient()
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'
 
   const response = await anthropic.messages.create({
-    model,
+    model: model(),
     max_tokens: 200,
     system: NOTES_SYSTEM_PROMPT,
     messages: [
@@ -83,6 +136,5 @@ export async function generateContactNotes(
     ],
   })
 
-  const textBlock = response.content.find((block) => block.type === 'text')
-  return textBlock && textBlock.type === 'text' ? textBlock.text.trim() : previousNotes
+  return textOf(response) || previousNotes
 }

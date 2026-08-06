@@ -20,6 +20,7 @@ export default async function BusinessLayout({
 
   const navItems = [
     { href: `/panel/${businessId}`, label: 'Conversaciones' },
+    { href: `/panel/${businessId}/agenda`, label: 'Agenda y turnos' },
     { href: `/panel/${businessId}/configurar`, label: 'Configurar agente' },
     { href: `/panel/${businessId}/conocimiento`, label: 'Base de conocimiento' },
     { href: `/panel/${businessId}/conexiones`, label: 'Conexiones' },

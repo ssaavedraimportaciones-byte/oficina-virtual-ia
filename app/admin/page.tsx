@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getAdminAccess } from '@/lib/adminAuth'
+import { getAccess } from '@/lib/adminAuth'
 import { getAdminOverview } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import LoginForm from './LoginForm'
@@ -28,7 +28,7 @@ function formatDate(value: string | null) {
 }
 
 export default async function AdminPage() {
-  const access = await getAdminAccess()
+  const access = await getAccess('admin')
 
   if (!access.configured) {
     return (

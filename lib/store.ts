@@ -3,20 +3,30 @@ import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname } from 'path'
 import type {
   AgentConfig,
+  Appointment,
   Business,
   ChannelCredentials,
   Conversation,
   KnowledgeEntry,
   Message,
+  Service,
   Store,
+  WeekHours,
 } from './types'
+import { DEFAULT_WEEK_HOURS } from './types'
 
 // Prototipo: persistencia en un archivo JSON local. Para producción con más de
 // una instancia en simultáneo, reemplazar por una base de datos real
 // (Firebase/Postgres) manteniendo la misma interfaz de funciones.
 const DB_PATH = process.env.DB_PATH || '.data/store.json'
 
-const EMPTY_STORE: Store = { businesses: [], conversations: [], knowledge: [] }
+const EMPTY_STORE: Store = {
+  businesses: [],
+  conversations: [],
+  knowledge: [],
+  services: [],
+  appointments: [],
+}
 
 export const EMPTY_CREDENTIALS: ChannelCredentials = {
   whatsappPhoneNumberId: null,
@@ -29,7 +39,12 @@ async function readStore(): Promise<Store> {
   try {
     const raw = await readFile(DB_PATH, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<Store>
-    return { ...EMPTY_STORE, ...parsed }
+    const store = { ...EMPTY_STORE, ...parsed }
+    // Compatibilidad con negocios guardados antes de que existiera la agenda.
+    store.businesses = store.businesses.map((b) =>
+      b.hours ? b : { ...b, hours: DEFAULT_WEEK_HOURS },
+    )
+    return store
   } catch {
     return { ...EMPTY_STORE }
   }
@@ -62,6 +77,7 @@ export async function createBusiness(
     templateId,
     config,
     credentials: { ...EMPTY_CREDENTIALS },
+    hours: DEFAULT_WEEK_HOURS,
     createdAt: new Date().toISOString(),
   }
   store.businesses.push(business)
@@ -226,6 +242,73 @@ export async function setConversationStatus(
   conversation.updatedAt = new Date().toISOString()
   await writeStore(store)
   return conversation
+}
+
+// --- Agenda: horarios, servicios y turnos ---
+
+export async function updateBusinessHours(id: string, hours: WeekHours): Promise<Business> {
+  const store = await readStore()
+  const business = store.businesses.find((b) => b.id === id)
+  if (!business) {
+    throw new Error(`Negocio ${id} no encontrado`)
+  }
+  business.hours = hours
+  await writeStore(store)
+  return business
+}
+
+export async function listServices(businessId: string): Promise<Service[]> {
+  const store = await readStore()
+  return store.services.filter((s) => s.businessId === businessId)
+}
+
+export async function addService(
+  input: Pick<Service, 'businessId' | 'name' | 'durationMinutes' | 'price'>,
+): Promise<Service> {
+  const store = await readStore()
+  const service: Service = { id: randomUUID(), ...input }
+  store.services.push(service)
+  await writeStore(store)
+  return service
+}
+
+export async function deleteService(id: string): Promise<void> {
+  const store = await readStore()
+  store.services = store.services.filter((s) => s.id !== id)
+  await writeStore(store)
+}
+
+export async function listAppointments(businessId: string): Promise<Appointment[]> {
+  const store = await readStore()
+  return store.appointments
+    .filter((a) => a.businessId === businessId)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+}
+
+export async function addAppointment(
+  input: Omit<Appointment, 'id' | 'status' | 'createdAt'>,
+): Promise<Appointment> {
+  const store = await readStore()
+  const appointment: Appointment = {
+    id: randomUUID(),
+    ...input,
+    status: 'confirmado',
+    createdAt: new Date().toISOString(),
+  }
+  store.appointments.push(appointment)
+  await writeStore(store)
+  return appointment
+}
+
+export async function cancelAppointment(id: string): Promise<Appointment> {
+  const store = await readStore()
+  const appointment = store.appointments.find((a) => a.id === id)
+  if (!appointment) {
+    throw new Error(`Turno ${id} no encontrado`)
+  }
+  appointment.status = 'cancelado'
+  await writeStore(store)
+  return appointment
 }
 
 export interface BusinessOverview {

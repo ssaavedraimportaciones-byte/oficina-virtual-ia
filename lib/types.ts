@@ -26,11 +26,61 @@ export interface ChannelCredentials {
   instagramAccessToken: string | null
 }
 
+/** Un servicio que se puede reservar: define cuánto dura y cuánto sale. */
+export interface Service {
+  id: string
+  businessId: string
+  name: string
+  durationMinutes: number
+  price: string
+}
+
+/** Horario de atención de un día. `null` = cerrado ese día. */
+export interface DayHours {
+  open: string
+  close: string
+}
+
+/** Índice 0 = domingo, 6 = sábado. */
+export type WeekHours = (DayHours | null)[]
+
+export const DEFAULT_WEEK_HOURS: WeekHours = [
+  null,
+  { open: '09:00', close: '18:00' },
+  { open: '09:00', close: '18:00' },
+  { open: '09:00', close: '18:00' },
+  { open: '09:00', close: '18:00' },
+  { open: '09:00', close: '18:00' },
+  null,
+]
+
+export type AppointmentStatus = 'confirmado' | 'cancelado'
+
+export interface Appointment {
+  id: string
+  businessId: string
+  conversationId: string | null
+  serviceId: string | null
+  serviceName: string
+  contactName: string
+  contactHandle: string
+  /**
+   * Fecha y hora local del negocio, sin zona horaria ("2026-08-07T14:00").
+   * Un negocio atiende en un solo lugar, así que guardar la hora local evita
+   * toda la clase de errores de conversión de zonas.
+   */
+  startsAt: string
+  durationMinutes: number
+  status: AppointmentStatus
+  createdAt: string
+}
+
 export interface Business {
   id: string
   templateId: string
   config: AgentConfig
   credentials: ChannelCredentials
+  hours: WeekHours
   createdAt: string
 }
 
@@ -74,4 +124,6 @@ export interface Store {
   businesses: Business[]
   conversations: Conversation[]
   knowledge: KnowledgeEntry[]
+  services: Service[]
+  appointments: Appointment[]
 }

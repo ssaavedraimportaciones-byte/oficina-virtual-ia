@@ -3,7 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function LoginForm() {
+export default function LoginForm({
+  scope = 'admin',
+  title = 'Panel de administración',
+}: {
+  scope?: 'admin' | 'panel'
+  title?: string
+}) {
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +23,7 @@ export default function LoginForm() {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, scope }),
     })
 
     setBusy(false)
@@ -30,7 +36,7 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
-      <h1 className="text-xl font-bold text-white">Panel de administración</h1>
+      <h1 className="text-xl font-bold text-white">{title}</h1>
       <input
         required
         autoFocus

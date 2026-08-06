@@ -1,4 +1,5 @@
-import type { AgentConfig, KnowledgeEntry, Tone } from './types'
+import type { AgentConfig, KnowledgeEntry, Service, Tone } from './types'
+import { formatDateLabel } from './agenda'
 
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
   cercano:
@@ -28,7 +29,42 @@ con el equipo y seguí la conversación.
 ${entries}`
 }
 
-export function buildSystemPrompt(config: AgentConfig, knowledge: KnowledgeEntry[] = []): string {
+function buildAgendaSection(services: Service[]): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const dateLine = `Hoy es ${formatDateLabel(today)}. En formato de fecha: ${today}. Usalo para interpretar "hoy", "mañana", "el viernes", etc.`
+
+  if (services.length === 0) {
+    return `# Agenda
+${dateLine}
+
+Este negocio todavía no cargó su agenda, así que no podés reservar turnos. Si el cliente quiere
+uno, tomale los datos y decile que le confirmás el horario a la brevedad.`
+  }
+
+  const list = services
+    .map((s) => `- ${s.name} — ${s.durationMinutes} min — ${s.price}`)
+    .join('\n')
+
+  return `# Agenda
+${dateLine}
+
+Servicios que se pueden reservar:
+${list}
+
+Tenés herramientas para manejar la agenda de verdad:
+- Antes de ofrecer horarios, llamá a consultar_disponibilidad. Nunca inventes horarios ni digas
+  que algo está libre sin haberlo consultado.
+- Ofrecé pocas opciones por vez (dos o tres), como haría una persona por chat.
+- Reservá con agendar_turno solo cuando el cliente eligió un horario concreto y ya sabés su
+  nombre. Si no te lo dijo, preguntáselo antes.
+- Después de reservar, confirmale al cliente el día y la hora en tus palabras.`
+}
+
+export function buildSystemPrompt(
+  config: AgentConfig,
+  knowledge: KnowledgeEntry[] = [],
+  services: Service[] = [],
+): string {
   return `Sos ${config.agentName}, la persona que responde los mensajes de ${config.businessName} por chat.
 
 # Sobre la empresa
@@ -50,6 +86,8 @@ ${TONE_INSTRUCTIONS[config.tone]}
 - Solo si te preguntan directamente si sos una IA, respondé con honestidad y de forma natural.
 
 ${buildKnowledgeSection(knowledge)}
+
+${buildAgendaSection(services)}
 
 Respondé siempre en el idioma en el que te escribe el contacto.`
 }

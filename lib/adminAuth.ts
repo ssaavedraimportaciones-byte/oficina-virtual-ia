@@ -1,18 +1,30 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 
-export const ADMIN_COOKIE = 'agentsapp_admin'
+export type Scope = 'admin' | 'panel'
 
-function getPassword(): string | null {
-  return process.env.ADMIN_PASSWORD || null
+const COOKIE: Record<Scope, string> = {
+  admin: 'agentsapp_admin',
+  panel: 'agentsapp_panel',
+}
+
+export function cookieName(scope: Scope): string {
+  return COOKIE[scope]
+}
+
+function getPassword(scope: Scope): string | null {
+  if (scope === 'admin') return process.env.ADMIN_PASSWORD || null
+  // El panel acepta también la contraseña de admin, para que el dueño entre a
+  // todo con una sola credencial.
+  return process.env.PANEL_PASSWORD || process.env.ADMIN_PASSWORD || null
 }
 
 /**
  * Valor de sesión derivado de la contraseña: sin la contraseña correcta no se
  * puede fabricar, y cambiarla invalida las sesiones existentes.
  */
-function sessionValue(password: string): string {
-  return createHmac('sha256', password).update('agentsapp-admin-session').digest('hex')
+function sessionValue(scope: Scope, password: string): string {
+  return createHmac('sha256', password).update(`agentsapp-${scope}-session`).digest('hex')
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -22,24 +34,27 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB)
 }
 
-export function checkPassword(candidate: string): string | null {
-  const password = getPassword()
+export function checkPassword(scope: Scope, candidate: string): string | null {
+  const password = getPassword(scope)
   if (!password) return null
   if (!safeEqual(candidate, password)) return null
-  return sessionValue(password)
+  return sessionValue(scope, password)
 }
 
 /**
- * Estado del acceso al panel de administración. `configured: false` significa
- * que falta ADMIN_PASSWORD: en ese caso el panel se bloquea en vez de quedar
- * abierto, para no exponer todos los negocios por olvidar una variable.
+ * Estado del acceso. `configured: false` significa que falta la contraseña en
+ * las variables de entorno: en ese caso se bloquea el acceso en vez de dejarlo
+ * abierto, para no exponer los datos por una variable olvidada.
  */
-export async function getAdminAccess(): Promise<{ configured: boolean; authorized: boolean }> {
-  const password = getPassword()
+export async function getAccess(scope: Scope): Promise<{
+  configured: boolean
+  authorized: boolean
+}> {
+  const password = getPassword(scope)
   if (!password) return { configured: false, authorized: false }
 
-  const cookie = (await cookies()).get(ADMIN_COOKIE)?.value
+  const cookie = (await cookies()).get(COOKIE[scope])?.value
   if (!cookie) return { configured: true, authorized: false }
 
-  return { configured: true, authorized: safeEqual(cookie, sessionValue(password)) }
+  return { configured: true, authorized: safeEqual(cookie, sessionValue(scope, password)) }
 }

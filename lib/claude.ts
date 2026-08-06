@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { AgentConfig, KnowledgeEntry, Message, Service } from './types'
+import type { AgentConfig, KnowledgeEntry, Message, Product, Service } from './types'
 import { buildSystemPrompt } from './agentPrompt'
-import { AGENT_TOOLS, runAgentTool, type ToolContext } from './agentTools'
+import { AGENDA_TOOLS, PEDIDO_TOOLS, runAgentTool, type ToolContext } from './agentTools'
 
 let client: Anthropic | null = null
 
@@ -45,15 +45,20 @@ export async function generateAgentReply(
   config: AgentConfig,
   knowledge: KnowledgeEntry[],
   history: Message[],
-  options?: { services?: Service[]; toolContext?: ToolContext },
+  options?: { services?: Service[]; products?: Product[]; toolContext?: ToolContext },
 ): Promise<string> {
   const anthropic = getClient()
   const services = options?.services ?? []
+  const products = options?.products ?? []
   const toolContext = options?.toolContext
 
-  // Sin agenda configurada no tiene sentido ofrecerle herramientas: que
-  // conteste normal y diga que confirma el horario.
-  const toolsEnabled = Boolean(toolContext) && services.length > 0
+  // Cada juego de herramientas se habilita solo si el negocio cargó los datos
+  // que necesita. Sin eso el agente contesta normal y dice que confirma después.
+  const tools = [
+    ...(services.length > 0 ? AGENDA_TOOLS : []),
+    ...(products.length > 0 ? PEDIDO_TOOLS : []),
+  ]
+  const toolsEnabled = Boolean(toolContext) && tools.length > 0
 
   const messages = toAnthropicMessages(history)
 
@@ -61,8 +66,8 @@ export async function generateAgentReply(
     const response = await anthropic.messages.create({
       model: model(),
       max_tokens: 600,
-      system: buildSystemPrompt(config, knowledge, services),
-      ...(toolsEnabled ? { tools: AGENT_TOOLS } : {}),
+      system: buildSystemPrompt(config, knowledge, services, products),
+      ...(toolsEnabled ? { tools } : {}),
       messages,
     })
 

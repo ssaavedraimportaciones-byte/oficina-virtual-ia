@@ -130,6 +130,7 @@ export default async function AdminPage() {
                   <th className="px-4 py-3 font-medium">Convs.</th>
                   <th className="px-4 py-3 font-medium">Msjs.</th>
                   <th className="px-4 py-3 font-medium">Datos</th>
+                  <th className="px-4 py-3 font-medium">Alertas</th>
                   <th className="px-4 py-3 font-medium">Última actividad</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -167,6 +168,23 @@ export default async function AdminPage() {
                         >
                           {item.knowledgeCount}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1 text-xs">
+                          {item.soldOutProducts > 0 && (
+                            <span className="text-danger">
+                              {item.soldOutProducts} agotado{item.soldOutProducts === 1 ? '' : 's'}
+                            </span>
+                          )}
+                          {item.pendingOrders > 0 && (
+                            <span className="text-amber-400">
+                              {item.pendingOrders} pedido{item.pendingOrders === 1 ? '' : 's'}
+                            </span>
+                          )}
+                          {item.soldOutProducts === 0 && item.pendingOrders === 0 && (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-500">
                         {formatDate(item.lastActivityAt)}

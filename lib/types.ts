@@ -75,6 +75,39 @@ export interface Appointment {
   createdAt: string
 }
 
+export interface Product {
+  id: string
+  businessId: string
+  name: string
+  price: number
+  /** Unidades disponibles. `null` = sin control de stock (siempre disponible). */
+  stock: number | null
+  /** Permite dar de baja un producto sin borrarlo ni tocar el stock. */
+  active: boolean
+}
+
+export interface OrderItem {
+  productId: string
+  name: string
+  unitPrice: number
+  quantity: number
+}
+
+export type OrderStatus = 'pendiente' | 'entregado' | 'cancelado'
+
+export interface Order {
+  id: string
+  businessId: string
+  conversationId: string | null
+  contactName: string
+  contactHandle: string
+  items: OrderItem[]
+  total: number
+  note: string
+  status: OrderStatus
+  createdAt: string
+}
+
 export interface Business {
   id: string
   templateId: string
@@ -126,4 +159,6 @@ export interface Store {
   knowledge: KnowledgeEntry[]
   services: Service[]
   appointments: Appointment[]
+  products: Product[]
+  orders: Order[]
 }

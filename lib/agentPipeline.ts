@@ -5,6 +5,7 @@ import {
   createConversation,
   findConversationByContact,
   listKnowledge,
+  listProducts,
   listServices,
 } from './store'
 import type { Business, Channel, Conversation } from './types'
@@ -47,12 +48,14 @@ export async function handleIncomingMessage(
     text: input.text,
   })
 
-  const [knowledge, services] = await Promise.all([
+  const [knowledge, services, products] = await Promise.all([
     listKnowledge(business.id),
     listServices(business.id),
+    listProducts(business.id),
   ])
   const reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
     services,
+    products,
     toolContext: { business, conversation },
   })
 

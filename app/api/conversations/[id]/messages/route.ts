@@ -7,6 +7,7 @@ import {
   getBusiness,
   getConversation,
   listKnowledge,
+  listProducts,
   listServices,
 } from '@/lib/store'
 
@@ -47,12 +48,14 @@ export async function POST(
   }
 
   try {
-    const [knowledge, services] = await Promise.all([
+    const [knowledge, services, products] = await Promise.all([
       listKnowledge(business.id),
       listServices(business.id),
+      listProducts(business.id),
     ])
     const reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
       services,
+      products,
       toolContext: { business, conversation },
     })
     conversation = await appendMessage(conversation.id, { sender: 'agent', text: reply })

@@ -9,11 +9,15 @@ import type {
   Conversation,
   KnowledgeEntry,
   Message,
+  Order,
+  OrderItem,
+  Product,
   Service,
   Store,
   WeekHours,
 } from './types'
 import { DEFAULT_WEEK_HOURS } from './types'
+import { checkOrder, type RequestedItem } from './catalog'
 
 // Prototipo: persistencia en un archivo JSON local. Para producción con más de
 // una instancia en simultáneo, reemplazar por una base de datos real
@@ -26,6 +30,8 @@ const EMPTY_STORE: Store = {
   knowledge: [],
   services: [],
   appointments: [],
+  products: [],
+  orders: [],
 }
 
 export const EMPTY_CREDENTIALS: ChannelCredentials = {
@@ -311,11 +317,139 @@ export async function cancelAppointment(id: string): Promise<Appointment> {
   return appointment
 }
 
+// --- Catálogo y pedidos ---
+
+export async function listProducts(businessId: string): Promise<Product[]> {
+  const store = await readStore()
+  return store.products.filter((p) => p.businessId === businessId)
+}
+
+export async function addProduct(
+  input: Pick<Product, 'businessId' | 'name' | 'price' | 'stock'>,
+): Promise<Product> {
+  const store = await readStore()
+  const product: Product = { id: randomUUID(), ...input, active: true }
+  store.products.push(product)
+  await writeStore(store)
+  return product
+}
+
+export async function updateProduct(
+  id: string,
+  update: Partial<Pick<Product, 'name' | 'price' | 'stock' | 'active'>>,
+): Promise<Product> {
+  const store = await readStore()
+  const product = store.products.find((p) => p.id === id)
+  if (!product) {
+    throw new Error(`Producto ${id} no encontrado`)
+  }
+  Object.assign(product, update)
+  await writeStore(store)
+  return product
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  const store = await readStore()
+  store.products = store.products.filter((p) => p.id !== id)
+  await writeStore(store)
+}
+
+export async function listOrders(businessId: string): Promise<Order[]> {
+  const store = await readStore()
+  return store.orders
+    .filter((o) => o.businessId === businessId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+}
+
+export type CreateOrderResult =
+  | { ok: true; order: Order }
+  | { ok: false; reason: string }
+
+/**
+ * Crea el pedido y descuenta el stock en una sola lectura-escritura del store.
+ * La validación se rehace acá adentro — no alcanza con haberla hecho antes —
+ * porque entre que el agente consultó el catálogo y el cliente confirmó, otro
+ * pedido puede haberse llevado las últimas unidades.
+ */
+export async function createOrder(input: {
+  businessId: string
+  conversationId: string | null
+  contactName: string
+  contactHandle: string
+  requested: RequestedItem[]
+  note: string
+}): Promise<CreateOrderResult> {
+  const store = await readStore()
+  const products = store.products.filter((p) => p.businessId === input.businessId)
+
+  const check = checkOrder(products, input.requested)
+  if (!check.ok) return check
+
+  const items: OrderItem[] = check.items.map(({ product, quantity }) => ({
+    productId: product.id,
+    name: product.name,
+    unitPrice: product.price,
+    quantity,
+  }))
+
+  for (const { product, quantity } of check.items) {
+    if (product.stock !== null) product.stock -= quantity
+  }
+
+  const order: Order = {
+    id: randomUUID(),
+    businessId: input.businessId,
+    conversationId: input.conversationId,
+    contactName: input.contactName,
+    contactHandle: input.contactHandle,
+    items,
+    total: check.total,
+    note: input.note,
+    status: 'pendiente',
+    createdAt: new Date().toISOString(),
+  }
+
+  store.orders.push(order)
+  await writeStore(store)
+  return { ok: true, order }
+}
+
+export async function setOrderStatus(
+  id: string,
+  status: Order['status'],
+): Promise<Order> {
+  const store = await readStore()
+  const order = store.orders.find((o) => o.id === id)
+  if (!order) {
+    throw new Error(`Pedido ${id} no encontrado`)
+  }
+
+  // Cancelar devuelve las unidades al stock; volver a activarlo las descuenta
+  // de nuevo, para que el inventario no quede desfasado por un cambio de estado.
+  const wasCancelled = order.status === 'cancelado'
+  const willCancel = status === 'cancelado'
+  if (wasCancelled !== willCancel) {
+    const delta = willCancel ? 1 : -1
+    for (const item of order.items) {
+      const product = store.products.find((p) => p.id === item.productId)
+      if (product && product.stock !== null) {
+        product.stock = Math.max(0, product.stock + item.quantity * delta)
+      }
+    }
+  }
+
+  order.status = status
+  await writeStore(store)
+  return order
+}
+
 export interface BusinessOverview {
   business: Business
   conversationCount: number
   messageCount: number
   knowledgeCount: number
+  pendingOrders: number
+  soldOutProducts: number
   lastActivityAt: string | null
 }
 
@@ -334,6 +468,12 @@ export async function getAdminOverview(): Promise<BusinessOverview[]> {
         conversationCount: conversations.length,
         messageCount: conversations.reduce((sum, c) => sum + c.messages.length, 0),
         knowledgeCount: store.knowledge.filter((k) => k.businessId === business.id).length,
+        pendingOrders: store.orders.filter(
+          (o) => o.businessId === business.id && o.status === 'pendiente',
+        ).length,
+        soldOutProducts: store.products.filter(
+          (p) => p.businessId === business.id && p.active && p.stock !== null && p.stock <= 0,
+        ).length,
         lastActivityAt,
       }
     })

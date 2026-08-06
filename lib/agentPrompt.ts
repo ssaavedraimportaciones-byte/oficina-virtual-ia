@@ -1,5 +1,6 @@
-import type { AgentConfig, KnowledgeEntry, Service, Tone } from './types'
+import type { AgentConfig, KnowledgeEntry, Product, Service, Tone } from './types'
 import { formatDateLabel } from './agenda'
+import { formatPrice, isSoldOut, stockLabel } from './catalog'
 
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
   cercano:
@@ -60,10 +61,41 @@ Tenés herramientas para manejar la agenda de verdad:
 - Después de reservar, confirmale al cliente el día y la hora en tus palabras.`
 }
 
+function buildCatalogSection(products: Product[]): string {
+  const active = products.filter((p) => p.active)
+  if (active.length === 0) return ''
+
+  const list = active
+    .map((p) => `- ${p.name} — ${formatPrice(p.price)} — ${stockLabel(p)}`)
+    .join('\n')
+
+  const soldOut = active.filter(isSoldOut)
+  const soldOutLine = soldOut.length
+    ? `\nAgotados ahora mismo: ${soldOut.map((p) => p.name).join(', ')}. No los ofrezcas.`
+    : ''
+
+  return `
+
+# Pedidos
+Catálogo (el stock cambia, así que confirmalo con consultar_catalogo antes de cerrar):
+${list}${soldOutLine}
+
+Tenés herramientas para tomar pedidos de verdad:
+- Consultá el catálogo con consultar_catalogo antes de confirmar precio o disponibilidad. Nunca
+  digas que hay stock sin haberlo consultado.
+- Si algo está agotado, decilo con naturalidad y ofrecé una alternativa del catálogo.
+- Registrá el pedido con crear_pedido solo cuando el cliente confirmó qué lleva y en qué
+  cantidad, y sabés su nombre. Si no te lo dijo, preguntáselo antes.
+- Si la herramienta te avisa que no alcanza el stock, contale al cliente cuántas unidades quedan
+  en vez de registrar un pedido que no se puede cumplir.
+- Después de registrar, confirmale el detalle y el total.`
+}
+
 export function buildSystemPrompt(
   config: AgentConfig,
   knowledge: KnowledgeEntry[] = [],
   services: Service[] = [],
+  products: Product[] = [],
 ): string {
   return `Sos ${config.agentName}, la persona que responde los mensajes de ${config.businessName} por chat.
 
@@ -87,7 +119,7 @@ ${TONE_INSTRUCTIONS[config.tone]}
 
 ${buildKnowledgeSection(knowledge)}
 
-${buildAgendaSection(services)}
+${buildAgendaSection(services)}${buildCatalogSection(products)}
 
 Respondé siempre en el idioma en el que te escribe el contacto.`
 }

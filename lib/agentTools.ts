@@ -6,10 +6,17 @@ import {
   getAvailableSlots,
   isSlotFree,
 } from './agenda'
-import { addAppointment, listAppointments, listServices } from './store'
+import { formatPrice, isOrderable, isSoldOut, stockLabel } from './catalog'
+import {
+  addAppointment,
+  createOrder,
+  listAppointments,
+  listProducts,
+  listServices,
+} from './store'
 import type { Business, Conversation } from './types'
 
-export const AGENT_TOOLS: Anthropic.Tool[] = [
+export const AGENDA_TOOLS: Anthropic.Tool[] = [
   {
     name: 'consultar_disponibilidad',
     description:
@@ -45,6 +52,55 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['servicio', 'fecha', 'hora', 'nombre_cliente'],
+    },
+  },
+]
+
+export const PEDIDO_TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'consultar_catalogo',
+    description:
+      'Devuelve los productos disponibles con su precio y su stock. Usalo SIEMPRE antes de confirmar precios o disponibilidad: nunca inventes productos ni digas que hay stock sin consultarlo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        busqueda: {
+          type: 'string',
+          description:
+            'Opcional. Palabra para filtrar el catálogo. Si lo omitís devuelve todo el catálogo.',
+        },
+      },
+    },
+  },
+  {
+    name: 'crear_pedido',
+    description:
+      'Registra un pedido y descuenta el stock. Usalo solo cuando el cliente ya confirmó qué quiere llevar y en qué cantidad, y sabés su nombre.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Productos del pedido.',
+          items: {
+            type: 'object',
+            properties: {
+              producto: { type: 'string', description: 'Nombre del producto.' },
+              cantidad: { type: 'number', description: 'Unidades. Entero mayor a cero.' },
+            },
+            required: ['producto', 'cantidad'],
+          },
+        },
+        nombre_cliente: {
+          type: 'string',
+          description: 'Nombre del cliente. Si no lo sabés, preguntáselo antes de registrar.',
+        },
+        nota: {
+          type: 'string',
+          description: 'Opcional: dirección de entrega, forma de pago o aclaraciones.',
+        },
+      },
+      required: ['items', 'nombre_cliente'],
     },
   },
 ]
@@ -139,6 +195,68 @@ async function runAgendarTurno(
   return `Turno confirmado: ${service.name} el ${formatDateLabel(input.fecha)} a las ${input.hora}, a nombre de ${input.nombre_cliente}. Confirmáselo al cliente.`
 }
 
+async function runConsultarCatalogo(
+  ctx: ToolContext,
+  input: { busqueda?: string },
+): Promise<string> {
+  const products = (await listProducts(ctx.business.id)).filter((p) => p.active)
+  if (products.length === 0) {
+    return 'El negocio todavía no cargó su catálogo, así que no puedo confirmar productos ni precios. Tomale el pedido y decile que se lo confirmás a la brevedad.'
+  }
+
+  const term = input.busqueda?.trim().toLowerCase()
+  const matches = term
+    ? products.filter((p) => p.name.toLowerCase().includes(term))
+    : products
+
+  if (matches.length === 0) {
+    const available = products.filter(isOrderable).map((p) => p.name)
+    return `No hay ningún producto que coincida con "${input.busqueda}". Disponibles: ${available.join(', ') || 'ninguno por ahora'}.`
+  }
+
+  const lines = matches.map(
+    (p) => `- ${p.name}: ${formatPrice(p.price)} — ${stockLabel(p)}`,
+  )
+  const soldOut = matches.filter(isSoldOut)
+
+  const warning = soldOut.length
+    ? `\n\nOJO: ${soldOut.map((p) => p.name).join(', ')} ${soldOut.length === 1 ? 'está agotado' : 'están agotados'}. No los ofrezcas ni los agregues a un pedido; si el cliente los pide, avisale y ofrecele una alternativa.`
+    : ''
+
+  return `Catálogo:\n${lines.join('\n')}${warning}`
+}
+
+async function runCrearPedido(
+  ctx: ToolContext,
+  input: { items?: { producto: string; cantidad: number }[]; nombre_cliente?: string; nota?: string },
+): Promise<string> {
+  if (!input.nombre_cliente) {
+    return 'Falta el nombre del cliente. Preguntáselo antes de registrar el pedido.'
+  }
+  if (!Array.isArray(input.items) || input.items.length === 0) {
+    return 'Falta el detalle del pedido: qué productos y en qué cantidad.'
+  }
+
+  const result = await createOrder({
+    businessId: ctx.business.id,
+    conversationId: ctx.conversation.id,
+    contactName: input.nombre_cliente,
+    contactHandle: ctx.conversation.contactHandle,
+    requested: input.items,
+    note: input.nota ?? '',
+  })
+
+  if (!result.ok) {
+    return `No se pudo registrar el pedido: ${result.reason}`
+  }
+
+  const detail = result.order.items
+    .map((i) => `${i.quantity}x ${i.name} (${formatPrice(i.unitPrice * i.quantity)})`)
+    .join(', ')
+
+  return `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}. Confirmáselo al cliente con el total.`
+}
+
 export async function runAgentTool(
   ctx: ToolContext,
   name: string,
@@ -150,6 +268,12 @@ export async function runAgentTool(
     }
     if (name === 'agendar_turno') {
       return await runAgendarTurno(ctx, input as Parameters<typeof runAgendarTurno>[1])
+    }
+    if (name === 'consultar_catalogo') {
+      return await runConsultarCatalogo(ctx, input as { busqueda?: string })
+    }
+    if (name === 'crear_pedido') {
+      return await runCrearPedido(ctx, input as Parameters<typeof runCrearPedido>[1])
     }
     return `Herramienta desconocida: ${name}`
   } catch (error) {

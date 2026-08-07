@@ -1,7 +1,8 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { prisma } from './db'
-import type { SystemRole } from './generated/prisma/enums'
+import { passwordResetEmail, sendEmail, verifyEmailMessage } from './email'
+import type { AuthTokenPurpose, SystemRole } from './generated/prisma/enums'
 
 export const SESSION_COOKIE = 'agentsapp_session'
 const SESSION_DAYS = 30
@@ -72,9 +73,16 @@ export async function destroySession(token: string): Promise<void> {
   await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } })
 }
 
-/** Cierra todas las sesiones del usuario (ej. al cambiar la contraseña). */
+/** Cierra todas las sesiones del usuario (ej. al restablecer la contraseña). */
 export async function destroyAllSessions(userId: string): Promise<void> {
   await prisma.session.deleteMany({ where: { userId } })
+}
+
+/** Cierra todas las sesiones del usuario MENOS la actual (ej. al cambiar la contraseña desde el propio panel). */
+export async function destroyOtherSessions(userId: string, keepToken: string): Promise<void> {
+  await prisma.session.deleteMany({
+    where: { userId, NOT: { tokenHash: hashToken(keepToken) } },
+  })
 }
 
 /**
@@ -110,6 +118,23 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   return getUserByToken(token)
 }
 
+export interface UserProfile {
+  id: string
+  email: string
+  emailVerifiedAt: string | null
+}
+
+/** Perfil para la pantalla de "mi cuenta" (cambiar contraseña, ver estado de verificación). */
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) return null
+  return {
+    id: user.id,
+    email: user.email,
+    emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+  }
+}
+
 export function isPlatformAdmin(user: SessionUser | null): boolean {
   return user?.role === 'PLATFORM_ADMIN'
 }
@@ -126,12 +151,157 @@ export function isBusinessOwner(user: SessionUser | null, businessId: string): b
   return user.businesses.some((b) => b.businessId === businessId && b.role === 'OWNER')
 }
 
+// --- Tokens de un solo uso (recuperar contraseña, verificar email) ---
+// Mismo ciclo de vida para los dos: se emite un token random, se guarda su
+// hash con vencimiento, y consumirlo lo marca usado — un segundo intento con
+// el mismo link falla aunque todavía no haya vencido.
+
+function appUrl(): string {
+  return process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
+}
+
+async function createAuthToken(
+  userId: string,
+  purpose: AuthTokenPurpose,
+  ttlHours: number,
+): Promise<string> {
+  const token = randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000)
+
+  await prisma.authToken.create({
+    data: { tokenHash: hashToken(token), userId, purpose, expiresAt },
+  })
+
+  return token
+}
+
+type ConsumeTokenResult = { ok: true; userId: string } | { ok: false; reason: string }
+
+async function consumeAuthToken(
+  token: string,
+  purpose: AuthTokenPurpose,
+): Promise<ConsumeTokenResult> {
+  const row = await prisma.authToken.findUnique({ where: { tokenHash: hashToken(token) } })
+
+  if (!row || row.purpose !== purpose) return { ok: false, reason: 'El link no es válido.' }
+  if (row.usedAt) return { ok: false, reason: 'Este link ya se usó.' }
+  if (row.expiresAt < new Date()) return { ok: false, reason: 'Este link venció.' }
+
+  await prisma.authToken.update({ where: { tokenHash: row.tokenHash }, data: { usedAt: new Date() } })
+  return { ok: true, userId: row.userId }
+}
+
+// --- Recuperar contraseña ---
+
+/**
+ * No confirma si el email existe (mismo comportamiento tanto si hay usuario
+ * como si no): confirmarlo dejaría enumerar cuentas probando direcciones.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } })
+  if (!user) return
+
+  const token = await createAuthToken(user.id, 'PASSWORD_RESET', 1)
+  const url = `${appUrl()}/restablecer-password?token=${token}`
+  const { subject, html, text } = passwordResetEmail(url)
+  await sendEmail({ to: user.email, subject, html, text })
+}
+
+export type ResetPasswordResult = { ok: true } | { ok: false; reason: string }
+
+/** Al restablecer se cierran TODAS las sesiones: no se sabe desde qué dispositivo se pidió el reset. */
+export async function resetPasswordWithToken(
+  token: string,
+  newPassword: string,
+): Promise<ResetPasswordResult> {
+  const result = await consumeAuthToken(token, 'PASSWORD_RESET')
+  if (!result.ok) return result
+
+  await prisma.user.update({
+    where: { id: result.userId },
+    data: { passwordHash: await hashPassword(newPassword) },
+  })
+  await destroyAllSessions(result.userId)
+  return { ok: true }
+}
+
+// --- Cambiar la propia contraseña (usuario logueado) ---
+
+export type ChangePasswordResult = { ok: true } | { ok: false; reason: string }
+
+export async function changeOwnPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  currentSessionToken: string,
+): Promise<ChangePasswordResult> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    return { ok: false, reason: 'La contraseña actual no es correcta.' }
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: await hashPassword(newPassword) },
+  })
+  // Se mantiene la sesión actual con la que se pidió el cambio; el resto se
+  // cierran, por si el pedido de cambio fue porque otro dispositivo quedó
+  // logueado y ya no debería estarlo.
+  await destroyOtherSessions(userId, currentSessionToken)
+  return { ok: true }
+}
+
+/**
+ * Genera una contraseña nueva al azar y la devuelve UNA vez en texto plano
+ * para que el admin se la pase al dueño del negocio por otro canal (llamada,
+ * WhatsApp). Es el respaldo manual de "recuperar contraseña" para cuando
+ * todavía no hay SMTP configurado, o para destrabar a alguien sin esperar un
+ * mail. Cierra todas las sesiones existentes del usuario.
+ */
+export async function adminResetPassword(userId: string): Promise<string> {
+  const password = randomBytes(9).toString('base64url')
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: await hashPassword(password) },
+  })
+  await destroyAllSessions(userId)
+  return password
+}
+
+// --- Verificación de email ---
+// No bloquea el login (no hay garantía de que todo despliegue tenga SMTP
+// configurado desde el día uno), pero importa antes de confiar en que un
+// mail de recuperación le va a llegar a la persona correcta.
+
+/** Best-effort: si no hay SMTP configurado, no falla, simplemente no manda nada. */
+export async function sendVerificationEmail(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user || user.emailVerifiedAt) return
+
+  const token = await createAuthToken(userId, 'EMAIL_VERIFY', 24)
+  const url = `${appUrl()}/verificar-email?token=${token}`
+  const { subject, html, text } = verifyEmailMessage(url)
+  await sendEmail({ to: user.email, subject, html, text })
+}
+
+export type VerifyEmailResult = { ok: true } | { ok: false; reason: string }
+
+export async function verifyEmailWithToken(token: string): Promise<VerifyEmailResult> {
+  const result = await consumeAuthToken(token, 'EMAIL_VERIFY')
+  if (!result.ok) return result
+
+  await prisma.user.update({ where: { id: result.userId }, data: { emailVerifiedAt: new Date() } })
+  return { ok: true }
+}
+
 // --- Gestión de usuarios (panel de administración) ---
 
 export interface UserSummary {
   id: string
   email: string
   role: SystemRole
+  emailVerifiedAt: string | null
   createdAt: string
   businesses: { businessId: string; businessName: string; role: 'OWNER' | 'STAFF' }[]
 }
@@ -148,6 +318,7 @@ export async function listUsers(): Promise<UserSummary[]> {
     id: row.id,
     email: row.email,
     role: row.role,
+    emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     businesses: row.memberships.map((m) => ({
       businessId: m.businessId,
@@ -172,6 +343,11 @@ export async function createUser(input: {
   const user = await prisma.user.create({
     data: { email, passwordHash: await hashPassword(input.password), role: input.role },
   })
+
+  // Best-effort: si no hay SMTP configurado esto no hace nada, y no debe
+  // impedir que se cree la cuenta.
+  await sendVerificationEmail(user.id).catch(() => {})
+
   return { ok: true, id: user.id }
 }
 

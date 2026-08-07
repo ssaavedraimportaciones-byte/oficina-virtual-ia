@@ -32,6 +32,9 @@ export default async function PanelPage() {
               Administración
             </Link>
           )}
+          <Link href="/account" className="text-sm text-gray-400 hover:text-amber-400">
+            Mi cuenta
+          </Link>
           <Link
             href="/panel/nuevo"
             className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"

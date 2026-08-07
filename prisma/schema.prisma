@@ -17,17 +17,19 @@ enum SystemRole {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  role         SystemRole @default(USER)
-  /// Se incrementa al cambiar la contraseña o cerrar sesión en todos lados:
-  /// invalida de una todas las sesiones existentes sin tener que borrarlas.
-  tokenVersion Int      @default(0)
-  createdAt    DateTime @default(now())
+  id              String     @id @default(uuid())
+  email           String     @unique
+  passwordHash    String
+  role            SystemRole @default(USER)
+  /// null = todavía no confirmó que la casilla es suya. No bloquea el login
+  /// (no hay forma de garantizar que todo despliegue tenga SMTP configurado),
+  /// pero importa antes de confiarle un envío de recuperación de contraseña.
+  emailVerifiedAt DateTime?
+  createdAt       DateTime   @default(now())
 
-  sessions Session[]
+  sessions    Session[]
   memberships BusinessMember[]
+  authTokens  AuthToken[]
 
   @@map("users")
 }
@@ -44,6 +46,43 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+/// Tokens de un solo uso enviados por email: recuperar contraseña o
+/// verificar la casilla. Un mismo modelo para los dos porque el ciclo de
+/// vida es idéntico (crear, mandar por mail, consumir una vez, expira).
+enum AuthTokenPurpose {
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+
+model AuthToken {
+  /// Se guarda el hash del token (va en el link del mail), no el token: un
+  /// volcado de la base no alcanza para generar links de recuperación.
+  tokenHash String           @id
+  userId    String
+  purpose   AuthTokenPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("auth_tokens")
+}
+
+/// Intentos de login fallidos, para el límite de fuerza bruta. Antes vivía en
+/// un Map en memoria: no sobrevivía a un restart ni se compartía entre
+/// instancias. Cada intento fallido es una fila; se cuentan las de la
+/// ventana de tiempo vigente y se podan las viejas al mismo tiempo.
+model RateLimitHit {
+  id        String   @id @default(uuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@map("rate_limit_hits")
 }
 
 enum BusinessRole {

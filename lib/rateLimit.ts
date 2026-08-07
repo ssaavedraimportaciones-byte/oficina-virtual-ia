@@ -1,43 +1,43 @@
-interface Bucket {
-  count: number
-  resetAt: number
-}
-
-const buckets = new Map<string, Bucket>()
+import { prisma } from './db'
 
 /**
- * Límite por ventana de tiempo, en memoria. Alcanza para frenar fuerza bruta
- * contra el login en un despliegue de una sola instancia; con varias instancias
- * hay que moverlo a Redis o al WAF del hosting, porque cada proceso tiene su
- * propio contador.
+ * Límite por ventana de tiempo, respaldado en Postgres: sobrevive a un
+ * restart del servidor y es compartido entre todas las instancias, a
+ * diferencia de la versión anterior (un Map en memoria de proceso). Cada
+ * intento es una fila; se cuentan las de la ventana vigente y se podan las
+ * viejas de esa misma key de paso.
  */
-export function rateLimit(
+export async function rateLimit(
   key: string,
   limit: number,
   windowMs: number,
-): { allowed: boolean; retryAfterSeconds: number } {
-  const now = Date.now()
-  const bucket = buckets.get(key)
+): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+  const now = new Date()
+  const windowStart = new Date(now.getTime() - windowMs)
 
-  if (!bucket || now >= bucket.resetAt) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs })
-    return { allowed: true, retryAfterSeconds: 0 }
-  }
+  await prisma.rateLimitHit.deleteMany({ where: { key, createdAt: { lt: windowStart } } })
 
-  bucket.count += 1
-  if (bucket.count > limit) {
+  const count = await prisma.rateLimitHit.count({ where: { key, createdAt: { gte: windowStart } } })
+
+  if (count >= limit) {
+    const oldest = await prisma.rateLimitHit.findFirst({
+      where: { key },
+      orderBy: { createdAt: 'asc' },
+    })
+    const resetAt = oldest ? oldest.createdAt.getTime() + windowMs : now.getTime() + windowMs
     return {
       allowed: false,
-      retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+      retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now.getTime()) / 1000)),
     }
   }
 
+  await prisma.rateLimitHit.create({ data: { key } })
   return { allowed: true, retryAfterSeconds: 0 }
 }
 
-export function resetRateLimit(key?: string): void {
-  if (key) buckets.delete(key)
-  else buckets.clear()
+/** Se llama después de un login exitoso, para no castigar a quien se equivocó antes de acertar. */
+export async function resetRateLimit(key: string): Promise<void> {
+  await prisma.rateLimitHit.deleteMany({ where: { key } })
 }
 
 /** IP del cliente detrás de un proxy o CDN. */

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const { email, password } = parsed.data
   const key = `login:${clientIp(request.headers)}`
 
-  const limit = rateLimit(key, MAX_ATTEMPTS, WINDOW_MS)
+  const limit = await rateLimit(key, MAX_ATTEMPTS, WINDOW_MS)
   if (!limit.allowed) {
     return NextResponse.json(
       { error: 'Demasiados intentos. Probá de nuevo en unos minutos.' },
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 })
   }
 
-  resetRateLimit(key)
+  await resetRateLimit(key)
 
   const token = await createSession(user.id)
 

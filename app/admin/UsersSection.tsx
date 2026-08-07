@@ -29,6 +29,8 @@ export default function UsersSection({
 
   const [assigning, setAssigning] = useState<string | null>(null)
   const [businessToAssign, setBusinessToAssign] = useState<Record<string, string>>({})
+  const [resetting, setResetting] = useState<string | null>(null)
+  const [tempPassword, setTempPassword] = useState<{ email: string; password: string } | null>(null)
 
   function refresh() {
     router.refresh()
@@ -81,6 +83,19 @@ export default function UsersSection({
   async function handleUnassign(userId: string, businessId: string) {
     await fetch(`/api/admin/users/${userId}/businesses/${businessId}`, { method: 'DELETE' })
     refresh()
+  }
+
+  async function handleResetPassword(u: UserSummary) {
+    if (!window.confirm(`¿Generar una contraseña nueva para ${u.email}? Cierra todas sus sesiones activas.`)) return
+
+    setResetting(u.id)
+    const res = await fetch(`/api/admin/users/${u.id}/reset-password`, { method: 'POST' })
+    const data = await res.json()
+    setResetting(null)
+
+    if (res.ok) {
+      setTempPassword({ email: u.email, password: data.temporaryPassword })
+    }
   }
 
   return (
@@ -142,18 +157,36 @@ export default function UsersSection({
                 <span className="ml-2 rounded-full border border-gray-700 px-2 py-0.5 text-[10px] uppercase text-gray-500">
                   {u.role === 'PLATFORM_ADMIN' ? 'Admin de plataforma' : 'Usuario'}
                 </span>
+                <span
+                  className={`ml-2 rounded-full border px-2 py-0.5 text-[10px] uppercase ${
+                    u.emailVerifiedAt
+                      ? 'border-emerald-800 text-emerald-500'
+                      : 'border-gray-700 text-gray-500'
+                  }`}
+                >
+                  {u.emailVerifiedAt ? 'Email verificado' : 'Email sin verificar'}
+                </span>
                 {u.id === currentUserId && (
                   <span className="ml-2 text-xs text-gray-600">(vos)</span>
                 )}
               </div>
-              {u.id !== currentUserId && (
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => handleDelete(u.id)}
-                  className="text-xs text-gray-500 hover:text-danger"
+                  onClick={() => handleResetPassword(u)}
+                  disabled={resetting === u.id}
+                  className="text-xs text-gray-500 hover:text-amber-400 disabled:opacity-50"
                 >
-                  Eliminar
+                  {resetting === u.id ? 'Generando…' : 'Restablecer contraseña'}
                 </button>
-              )}
+                {u.id !== currentUserId && (
+                  <button
+                    onClick={() => handleDelete(u.id)}
+                    className="text-xs text-gray-500 hover:text-danger"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
             </div>
 
             {u.role !== 'PLATFORM_ADMIN' && (
@@ -211,6 +244,27 @@ export default function UsersSection({
           <p className="px-5 py-4 text-sm text-gray-500">Todavía no hay usuarios.</p>
         )}
       </div>
+
+      {tempPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-gray-800 bg-gray-950 p-6">
+            <h3 className="text-sm font-medium text-white">Contraseña nueva para {tempPassword.email}</h3>
+            <p className="mt-2 text-xs text-gray-500">
+              Se muestra una sola vez. Pasásela por otro canal (llamada, WhatsApp) — no queda
+              guardada en ningún lado en texto plano. Todas sus sesiones activas se cerraron.
+            </p>
+            <code className="mt-4 block select-all rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-amber-400">
+              {tempPassword.password}
+            </code>
+            <button
+              onClick={() => setTempPassword(null)}
+              className="mt-4 w-full rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
+            >
+              Ya la copié
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

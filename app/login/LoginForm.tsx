@@ -62,6 +62,9 @@ export default function LoginForm() {
       >
         {busy ? 'Entrando…' : 'Entrar'}
       </button>
+      <a href="/olvide-password" className="text-center text-sm text-gray-500 hover:text-amber-400">
+        ¿Olvidaste tu contraseña?
+      </a>
     </form>
   )
 }

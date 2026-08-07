@@ -15,8 +15,20 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const SESSION_COOKIE = 'agentsapp_session'
 
-/** Rutas que no piden sesión, porque las llama alguien de afuera (Meta) o son el login. */
-const PUBLIC_API = ['/api/webhooks/', '/api/auth/login']
+/**
+ * Rutas que no piden sesión: las llama alguien de afuera (Meta) o son el
+ * login, o son flujos que por definición ocurren SIN sesión activa
+ * (recuperar contraseña, verificar email). change-password y
+ * resend-verification quedan afuera de esta lista a propósito: requieren
+ * una sesión existente.
+ */
+const PUBLIC_API = [
+  '/api/webhooks/',
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-email',
+]
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

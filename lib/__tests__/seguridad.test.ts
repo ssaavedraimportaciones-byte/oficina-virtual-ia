@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createHmac } from 'crypto'
+import { createHmac, randomUUID } from 'crypto'
 import * as store from '../store'
 import { prisma } from '../db'
 import { decryptSecret, encryptSecret } from '../secrets'
@@ -116,11 +116,21 @@ describe('firma de webhooks', () => {
 })
 
 describe('límite de intentos', () => {
-  it('corta al superar el límite y se reinicia al expirar', () => {
-    resetRateLimit('t')
-    for (let i = 0; i < 3; i++) expect(rateLimit('t', 3, 60000).allowed).toBe(true)
-    expect(rateLimit('t', 3, 60000).allowed).toBe(false)
-    resetRateLimit('t')
-    expect(rateLimit('t', 3, 60000).allowed).toBe(true)
+  it('corta al superar el límite y se reinicia al resetear', async () => {
+    const key = `test-${randomUUID()}`
+    for (let i = 0; i < 3; i++) expect((await rateLimit(key, 3, 60000)).allowed).toBe(true)
+    expect((await rateLimit(key, 3, 60000)).allowed).toBe(false)
+    await resetRateLimit(key)
+    expect((await rateLimit(key, 3, 60000)).allowed).toBe(true)
+  })
+
+  it('sobrevive a un reinicio del proceso porque vive en la base, no en memoria', async () => {
+    const key = `test-${randomUUID()}`
+    await rateLimit(key, 2, 60000)
+    await rateLimit(key, 2, 60000)
+    // Simula un restart: nada en memoria de este proceso se pierde porque no
+    // hay nada en memoria — se vuelve a consultar la fila de Postgres.
+    const stillBlocked = await rateLimit(key, 2, 60000)
+    expect(stillBlocked.allowed).toBe(false)
   })
 })

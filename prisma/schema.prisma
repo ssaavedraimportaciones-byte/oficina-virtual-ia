@@ -16,6 +16,13 @@ enum SystemRole {
   USER
 }
 
+/// FREE: hasta un negocio propio. PRO: sin límite. Un PLATFORM_ADMIN no está
+/// sujeto a esto (ve/gestiona todo independientemente del plan).
+enum Plan {
+  FREE
+  PRO
+}
+
 model User {
   id              String     @id @default(uuid())
   email           String     @unique
@@ -26,6 +33,14 @@ model User {
   /// pero importa antes de confiarle un envío de recuperación de contraseña.
   emailVerifiedAt DateTime?
   createdAt       DateTime   @default(now())
+
+  plan                 Plan    @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  /// Secreto TOTP cifrado (ver lib/secrets.ts). null = 2FA desactivado.
+  totpSecret    String?
+  totpEnabledAt DateTime?
 
   sessions    Session[]
   memberships BusinessMember[]
@@ -41,6 +56,12 @@ model Session {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  /// Solo para mostrarle a la persona "esta sesión es tu celular / esta es
+  /// tu notebook" en /account. No se usa para ninguna decisión de seguridad
+  /// (un IP/user-agent se falsifican fácil).
+  ipAddress String?
+  userAgent String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

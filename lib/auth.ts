@@ -2,7 +2,9 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { cookies } from 'next/headers'
 import { prisma } from './db'
 import { passwordResetEmail, sendEmail, verifyEmailMessage } from './email'
-import type { AuthTokenPurpose, SystemRole } from './generated/prisma/enums'
+import type { AuthTokenPurpose, Plan, SystemRole } from './generated/prisma/enums'
+import { decryptSecret, encryptSecret } from './secrets'
+import { generateTotpSecret, totpAuthUrl, verifyTotpCode } from './totp'
 
 export const SESSION_COOKIE = 'agentsapp_session'
 const SESSION_DAYS = 30
@@ -54,16 +56,26 @@ export interface SessionUser {
   id: string
   email: string
   role: SystemRole
+  plan: Plan
   /** Negocios donde el usuario es miembro, con su rol en cada uno. */
   businesses: { businessId: string; role: 'OWNER' | 'STAFF' }[]
 }
 
-export async function createSession(userId: string): Promise<string> {
+export async function createSession(
+  userId: string,
+  meta?: { ipAddress?: string | null; userAgent?: string | null },
+): Promise<string> {
   const token = randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000)
 
   await prisma.session.create({
-    data: { tokenHash: hashToken(token), userId, expiresAt },
+    data: {
+      tokenHash: hashToken(token),
+      userId,
+      expiresAt,
+      ipAddress: meta?.ipAddress ?? null,
+      userAgent: meta?.userAgent ?? null,
+    },
   })
 
   return token
@@ -85,6 +97,39 @@ export async function destroyOtherSessions(userId: string, keepToken: string): P
   })
 }
 
+export interface SessionSummary {
+  /** El hash del token: no es el secreto (no permite volver al token original), sirve como id estable para revocar una sesión puntual. */
+  id: string
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: string
+  expiresAt: string
+  isCurrent: boolean
+}
+
+/** Para la pantalla de "mi cuenta": qué sesiones siguen activas y desde dónde. */
+export async function listUserSessions(userId: string, currentToken: string): Promise<SessionSummary[]> {
+  const currentHash = hashToken(currentToken)
+  const rows = await prisma.session.findMany({
+    where: { userId, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return rows.map((row) => ({
+    id: row.tokenHash,
+    ipAddress: row.ipAddress,
+    userAgent: row.userAgent,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    isCurrent: row.tokenHash === currentHash,
+  }))
+}
+
+/** Cierra una sesión puntual. Exige que sea del propio usuario: nadie puede revocar una sesión ajena adivinando su id. */
+export async function revokeSession(userId: string, sessionId: string): Promise<void> {
+  await prisma.session.deleteMany({ where: { tokenHash: sessionId, userId } })
+}
+
 /**
  * Resuelve el usuario a partir del token de sesión. Devuelve null si el
  * token no existe, expiró, o el usuario fue borrado (Session tiene
@@ -104,6 +149,7 @@ export async function getUserByToken(token: string): Promise<SessionUser | null>
     id: session.user.id,
     email: session.user.email,
     role: session.user.role,
+    plan: session.user.plan,
     businesses: session.user.memberships.map((m) => ({
       businessId: m.businessId,
       role: m.role,
@@ -122,9 +168,11 @@ export interface UserProfile {
   id: string
   email: string
   emailVerifiedAt: string | null
+  plan: Plan
+  totpEnabled: boolean
 }
 
-/** Perfil para la pantalla de "mi cuenta" (cambiar contraseña, ver estado de verificación). */
+/** Perfil para la pantalla de "mi cuenta" (cambiar contraseña, ver estado de verificación, 2FA, plan). */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   const user = await prisma.user.findUnique({ where: { id: userId } })
   if (!user) return null
@@ -132,6 +180,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     id: user.id,
     email: user.email,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+    plan: user.plan,
+    totpEnabled: Boolean(user.totpEnabledAt),
   }
 }
 
@@ -156,7 +206,7 @@ export function isBusinessOwner(user: SessionUser | null, businessId: string): b
 // hash con vencimiento, y consumirlo lo marca usado — un segundo intento con
 // el mismo link falla aunque todavía no haya vencido.
 
-function appUrl(): string {
+export function appUrl(): string {
   return process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'
 }
 
@@ -293,6 +343,65 @@ export async function verifyEmailWithToken(token: string): Promise<VerifyEmailRe
 
   await prisma.user.update({ where: { id: result.userId }, data: { emailVerifiedAt: new Date() } })
   return { ok: true }
+}
+
+// --- Verificación en dos pasos (TOTP) ---
+// El secreto se guarda cifrado (mismo lib/secrets.ts que los tokens de
+// Meta) desde el momento en que arranca el alta, pero totpEnabledAt queda
+// null hasta que la persona prueba un código real: eso evita que quede
+// "medio activado" por un secreto que nunca llegó a escanearse bien.
+
+export interface TotpEnrollment {
+  secret: string
+  otpauthUrl: string
+}
+
+export async function startTotpEnrollment(userId: string, email: string): Promise<TotpEnrollment> {
+  const secret = generateTotpSecret()
+  await prisma.user.update({
+    where: { id: userId },
+    data: { totpSecret: encryptSecret(secret), totpEnabledAt: null },
+  })
+  return { secret, otpauthUrl: totpAuthUrl(secret, email) }
+}
+
+export type TotpResult = { ok: true } | { ok: false; reason: string }
+
+export async function confirmTotpEnrollment(userId: string, code: string): Promise<TotpResult> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+  if (!user.totpSecret) return { ok: false, reason: 'No hay una verificación en dos pasos en curso.' }
+
+  if (!verifyTotpCode(decryptSecret(user.totpSecret), code)) {
+    return { ok: false, reason: 'Código incorrecto.' }
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { totpEnabledAt: new Date() } })
+  return { ok: true }
+}
+
+/** Pide el código actual (no la contraseña, que ya se probó al entrar a la sesión) para confirmar que sigue en manos de la persona dueña. */
+export async function disableTotp(userId: string, code: string): Promise<TotpResult> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+  if (!user.totpSecret || !user.totpEnabledAt) return { ok: false, reason: 'La verificación en dos pasos no está activada.' }
+
+  if (!verifyTotpCode(decryptSecret(user.totpSecret), code)) {
+    return { ok: false, reason: 'Código incorrecto.' }
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { totpSecret: null, totpEnabledAt: null } })
+  return { ok: true }
+}
+
+/** Para el login: true si el usuario tiene 2FA activado y confirmado. */
+export async function userHasTotpEnabled(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  return Boolean(user?.totpEnabledAt)
+}
+
+export async function verifyUserTotpCode(userId: string, code: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user?.totpSecret || !user.totpEnabledAt) return false
+  return verifyTotpCode(decryptSecret(user.totpSecret), code)
 }
 
 // --- Gestión de usuarios (panel de administración) ---

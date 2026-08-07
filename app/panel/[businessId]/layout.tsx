@@ -26,6 +26,7 @@ export default async function BusinessLayout({
   const template = getIndustryTemplate(business.templateId)
 
   const navItems = [
+    { href: `/panel/${businessId}/resumen`, label: 'Resumen' },
     { href: `/panel/${businessId}`, label: 'Conversaciones' },
     { href: `/panel/${businessId}/agenda`, label: 'Agenda y turnos' },
     { href: `/panel/${businessId}/pedidos`, label: 'Catálogo y pedidos' },

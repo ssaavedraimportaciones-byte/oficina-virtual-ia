@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUser, isPlatformAdmin } from '@/lib/auth'
-import { listBusinessesForUser } from '@/lib/store'
+import { countOpenConversations, listBusinessesForUser } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import LogoutButton from '../LogoutButton'
 
@@ -12,6 +12,7 @@ export default async function PanelPage() {
   if (!user) redirect('/login')
 
   const businesses = await listBusinessesForUser(user)
+  const openCounts = await Promise.all(businesses.map((b) => countOpenConversations(b.id)))
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-12">
@@ -57,17 +58,25 @@ export default async function PanelPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {businesses.map((business) => {
+          {businesses.map((business, i) => {
             const template = getIndustryTemplate(business.templateId)
+            const openCount = openCounts[i]
             return (
               <Link
                 key={business.id}
                 href={`/panel/${business.id}`}
                 className="rounded-lg border border-gray-800 p-5 hover:border-amber-500/50"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{template?.emoji ?? '✨'}</span>
-                  <h2 className="font-medium text-white">{business.config.businessName}</h2>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{template?.emoji ?? '✨'}</span>
+                    <h2 className="font-medium text-white">{business.config.businessName}</h2>
+                  </div>
+                  {openCount > 0 && (
+                    <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-medium text-gray-950">
+                      {openCount}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 truncate text-sm text-gray-500">{business.config.industry}</p>
                 <p className="mt-3 text-xs text-gray-600">

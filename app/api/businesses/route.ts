@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { addBusinessMember } from '@/lib/auth'
 import { requireUser } from '@/lib/authz'
+import { canOwnAnotherBusiness } from '@/lib/billing'
 import { createBusiness, listBusinessesForUser } from '@/lib/store'
 import { toPublicBusiness } from '@/lib/publicBusiness'
 import { agentConfigSchema } from '@/lib/validation'
@@ -22,6 +23,13 @@ const createSchema = z.object({
 export async function POST(request: NextRequest) {
   const user = await requireUser()
   if (user instanceof NextResponse) return user
+
+  if (!(await canOwnAnotherBusiness(user.id, user.role))) {
+    return NextResponse.json(
+      { error: 'El plan gratuito permite un solo negocio propio. Pasate a PRO para crear más.' },
+      { status: 402 },
+    )
+  }
 
   const body = await request.json()
   const parsed = createSchema.safeParse(body)

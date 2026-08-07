@@ -362,6 +362,11 @@ export async function listConversations(businessId: string): Promise<Conversatio
   return rows.map(mapConversation)
 }
 
+/** Para el badge de "atención" en /panel: cuántas conversaciones siguen abiertas. */
+export async function countOpenConversations(businessId: string): Promise<number> {
+  return prisma.conversation.count({ where: { businessId, status: 'abierta' } })
+}
+
 export async function getConversation(id: string): Promise<Conversation | null> {
   const row = await prisma.conversation.findUnique({
     where: { id },
@@ -668,6 +673,62 @@ export async function getAdminOverview(): Promise<BusinessOverview[]> {
   )
 
   return overview.sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
+}
+
+export interface BusinessAnalytics {
+  conversationCount: number
+  openConversations: number
+  messageCount: number
+  appointmentCount: number
+  confirmedAppointments: number
+  orderCount: number
+  pendingOrders: number
+  revenueTotal: number
+  soldOutProducts: number
+  knowledgeCount: number
+}
+
+/** Resumen para la pestaña "Resumen" del dueño de UN negocio (no toda la plataforma). */
+export async function getBusinessAnalytics(businessId: string): Promise<BusinessAnalytics> {
+  const [
+    conversationCount,
+    openConversations,
+    messageCount,
+    appointmentCount,
+    confirmedAppointments,
+    orderCount,
+    pendingOrders,
+    revenueAgg,
+    soldOutProducts,
+    knowledgeCount,
+  ] = await Promise.all([
+    prisma.conversation.count({ where: { businessId } }),
+    prisma.conversation.count({ where: { businessId, status: 'abierta' } }),
+    prisma.message.count({ where: { conversation: { businessId } } }),
+    prisma.appointment.count({ where: { businessId } }),
+    prisma.appointment.count({ where: { businessId, status: 'confirmado' } }),
+    prisma.order.count({ where: { businessId } }),
+    prisma.order.count({ where: { businessId, status: 'pendiente' } }),
+    prisma.order.aggregate({
+      where: { businessId, status: { not: 'cancelado' } },
+      _sum: { total: true },
+    }),
+    prisma.product.count({ where: { businessId, active: true, stock: { lte: 0 } } }),
+    prisma.knowledgeEntry.count({ where: { businessId } }),
+  ])
+
+  return {
+    conversationCount,
+    openConversations,
+    messageCount,
+    appointmentCount,
+    confirmedAppointments,
+    orderCount,
+    pendingOrders,
+    revenueTotal: revenueAgg._sum.total ?? 0,
+    soldOutProducts,
+    knowledgeCount,
+  }
 }
 
 // --- Base de conocimiento ---

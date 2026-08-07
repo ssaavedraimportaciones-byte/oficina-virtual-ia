@@ -100,3 +100,16 @@ export function verifyEmailMessage(verifyUrl: string) {
     text: `Confirmá tu email: ${verifyUrl}\n\nEste link vale por 24 horas.`,
   }
 }
+
+export function newConversationEmail(businessName: string, contactName: string, conversationUrl: string) {
+  return {
+    subject: `Nueva conversación en ${businessName} — AgentsApp`,
+    html: emailShell(
+      'Tenés una conversación nueva',
+      `<strong>${contactName}</strong> te escribió por primera vez en <strong>${businessName}</strong>. El agente ya respondió; revisá que haya quedado bien.`,
+      conversationUrl,
+      'Ver conversación',
+    ),
+    text: `${contactName} te escribió por primera vez en ${businessName}.\n\nVer conversación: ${conversationUrl}`,
+  }
+}

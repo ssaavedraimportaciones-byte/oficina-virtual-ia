@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createSession, ensureBootstrapAdmin, SESSION_COOKIE, verifyPassword } from '@/lib/auth'
+import {
+  createSession,
+  ensureBootstrapAdmin,
+  SESSION_COOKIE,
+  verifyPassword,
+  verifyUserTotpCode,
+} from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { clientIp, rateLimit, resetRateLimit } from '@/lib/rateLimit'
 
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  totpCode: z.string().optional(),
 })
 
 /** Ventana de fuerza bruta: 8 intentos fallidos cada 15 minutos por IP. */
@@ -43,9 +50,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 })
   }
 
+  if (user.totpEnabledAt) {
+    if (!parsed.data.totpCode) {
+      // Contraseña ya validada, falta el segundo factor: el frontend
+      // reenvía el mismo form con el código. Sin sesión todavía.
+      return NextResponse.json({ requiresTotp: true })
+    }
+    if (!(await verifyUserTotpCode(user.id, parsed.data.totpCode))) {
+      return NextResponse.json({ error: 'Código incorrecto', requiresTotp: true }, { status: 401 })
+    }
+  }
+
   await resetRateLimit(key)
 
-  const token = await createSession(user.id)
+  const token = await createSession(user.id, {
+    ipAddress: clientIp(request.headers),
+    userAgent: request.headers.get('user-agent'),
+  })
 
   const response = NextResponse.json({ ok: true })
   response.cookies.set(SESSION_COOKIE, token, {

@@ -232,6 +232,14 @@ function Footer() {
     <footer className="border-t border-gray-800 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-gray-500 md:flex-row">
         <span className="font-mono text-amber-400">AgentsApp</span>
+        <div className="flex items-center gap-4">
+          <a href="/terminos" className="hover:text-gray-300">
+            Términos
+          </a>
+          <a href="/privacidad" className="hover:text-gray-300">
+            Privacidad
+          </a>
+        </div>
         <span>&copy; {new Date().getFullYear()} AgentsApp. Todos los derechos reservados.</span>
       </div>
     </footer>

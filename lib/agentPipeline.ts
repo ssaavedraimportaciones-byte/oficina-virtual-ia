@@ -1,5 +1,6 @@
 import { generateAgentReply } from './agentEngine'
 import { updateContactNotes } from './contactNotes'
+import { notifyNewConversation } from './notifications'
 import {
   appendMessage,
   createConversation,
@@ -34,6 +35,7 @@ export async function handleIncomingMessage(
     input.channel,
     input.contactHandle,
   )
+  const isNewConversation = !conversation
   if (!conversation) {
     conversation = await createConversation({
       businessId: business.id,
@@ -65,6 +67,10 @@ export async function handleIncomingMessage(
   })
 
   conversation = await updateContactNotes(conversation)
+
+  if (isNewConversation) {
+    await notifyNewConversation(business, conversation).catch(() => {})
+  }
 
   return { conversation, reply }
 }

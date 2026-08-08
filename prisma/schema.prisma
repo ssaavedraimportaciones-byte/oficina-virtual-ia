@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Usuarios y sesiones ---
+// Reemplaza la contraseña única compartida por cuentas individuales. Un
+// PLATFORM_ADMIN ve /admin y todos los negocios; un USER normal solo entra a
+// los negocios donde tiene una fila en BusinessMember.
+enum SystemRole {
+  PLATFORM_ADMIN
+  USER
+}
+
+/// FREE: hasta un negocio propio. PRO: sin límite. Un PLATFORM_ADMIN no está
+/// sujeto a esto (ve/gestiona todo independientemente del plan).
+enum Plan {
+  FREE
+  PRO
+}
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  passwordHash    String
+  role            SystemRole @default(USER)
+  /// null = todavía no confirmó que la casilla es suya. No bloquea el login
+  /// (no hay forma de garantizar que todo despliegue tenga SMTP configurado),
+  /// pero importa antes de confiarle un envío de recuperación de contraseña.
+  emailVerifiedAt DateTime?
+  createdAt       DateTime   @default(now())
+
+  plan                 Plan    @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  /// Secreto TOTP cifrado (ver lib/secrets.ts). null = 2FA desactivado.
+  totpSecret    String?
+  totpEnabledAt DateTime?
+
+  sessions    Session[]
+  memberships BusinessMember[]
+  authTokens  AuthToken[]
+
+  @@map("users")
+}
+
+model Session {
+  /// Se guarda el hash del token, no el token: un volcado de la base no
+  /// alcanza para robar sesiones activas.
+  tokenHash String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  /// Solo para mostrarle a la persona "esta sesión es tu celular / esta es
+  /// tu notebook" en /account. No se usa para ninguna decisión de seguridad
+  /// (un IP/user-agent se falsifican fácil).
+  ipAddress String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Tokens de un solo uso enviados por email: recuperar contraseña o
+/// verificar la casilla. Un mismo modelo para los dos porque el ciclo de
+/// vida es idéntico (crear, mandar por mail, consumir una vez, expira).
+enum AuthTokenPurpose {
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+
+model AuthToken {
+  /// Se guarda el hash del token (va en el link del mail), no el token: un
+  /// volcado de la base no alcanza para generar links de recuperación.
+  tokenHash String           @id
+  userId    String
+  purpose   AuthTokenPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("auth_tokens")
+}
+
+/// Intentos de login fallidos, para el límite de fuerza bruta. Antes vivía en
+/// un Map en memoria: no sobrevivía a un restart ni se compartía entre
+/// instancias. Cada intento fallido es una fila; se cuentan las de la
+/// ventana de tiempo vigente y se podan las viejas al mismo tiempo.
+model RateLimitHit {
+  id        String   @id @default(uuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@map("rate_limit_hits")
+}
+
+enum BusinessRole {
+  OWNER
+  STAFF
+}
+
+model BusinessMember {
+  id         String       @id @default(uuid())
+  userId     String
+  businessId String
+  role       BusinessRole @default(OWNER)
+  createdAt  DateTime     @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@index([businessId])
+  @@map("business_members")
+}
+
+// --- Negocios ---
+
+model Business {
+  id         String   @id @default(uuid())
+  templateId String
+
+  // Configuración del agente (antes AgentConfig embebido).
+  agentName    String
+  businessName String
+  industry     String
+  description  String
+  goals        String
+  tone         String
+  channels     String[]
+  configuredAt DateTime @default(now())
+
+  // Credenciales de canal. Los tokens se guardan cifrados (ver lib/secrets.ts)
+  // antes de llegar acá: esta tabla nunca ve el texto plano.
+  whatsappPhoneNumberId String?
+  whatsappAccessToken   String?
+  instagramPageId       String?
+  instagramAccessToken  String?
+
+  /// WeekHours: array de 7 posiciones (dom=0..sáb=6), cada una
+  /// {open,close} o null si ese día está cerrado.
+  hours Json
+
+  createdAt DateTime @default(now())
+
+  members       BusinessMember[]
+  conversations Conversation[]
+  knowledge     KnowledgeEntry[]
+  services      Service[]
+  appointments  Appointment[]
+  products      Product[]
+  orders        Order[]
+
+  @@map("businesses")
+}
+
+// --- Conversaciones ---
+
+model Conversation {
+  id            String   @id @default(uuid())
+  businessId    String
+  channel       String
+  contactName   String
+  contactHandle String
+  status        String   @default("abierta")
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([businessId, channel, contactHandle])
+  @@index([businessId, updatedAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  sender         String
+  text           String
+  timestamp      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, timestamp])
+  @@map("messages")
+}
+
+// --- Base de conocimiento ---
+
+model KnowledgeEntry {
+  id         String   @id @default(uuid())
+  businessId String
+  title      String
+  content    String
+  sourceType String
+  sourceUrl  String?
+  updatedAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("knowledge_entries")
+}
+
+// --- Agenda ---
+
+model Service {
+  id              String @id @default(uuid())
+  businessId      String
+  name            String
+  durationMinutes Int
+  price           String
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([businessId])
+  @@map("services")
+}
+
+model Appointment {
+  id             String   @id @default(uuid())
+  businessId     String
+  conversationId String?
+  serviceId      String?
+  serviceName    String
+  contactName    String
+  contactHandle  String
+  /// Fecha y hora local del negocio sin zona horaria ("2026-08-07T14:00"),
+  /// a propósito: ver la nota en lib/types.ts sobre por qué no es DateTime.
+  startsAt        String
+  durationMinutes Int
+  status          String   @default("confirmado")
+  createdAt       DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service  Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, startsAt])
+  @@map("appointments")
+}
+
+// --- Catálogo y pedidos ---
+
+model Product {
+  id         String  @id @default(uuid())
+  businessId String
+  name       String
+  price      Int
+  /// null = sin control de stock (siempre disponible).
+  stock      Int?
+  active     Boolean @default(true)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("products")
+}
+
+model Order {
+  id             String   @id @default(uuid())
+  businessId     String
+  conversationId String?
+  contactName    String
+  contactHandle  String
+  total          Int
+  note           String   @default("")
+  status         String   @default("pendiente")
+  createdAt      DateTime @default(now())
+
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items    OrderItem[]
+
+  @@index([businessId, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String
+  /// No es una FK a propósito: si el producto se borra, el pedido conserva
+  /// el nombre y precio que tenía en ese momento (ya están en name/unitPrice).
+  productId String
+  name      String
+  unitPrice Int
+  quantity  Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}

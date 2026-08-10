@@ -23,7 +23,7 @@ export default function PrivacidadPage() {
         </li>
         <li>
           <strong>Técnicos:</strong> dirección IP y user-agent del navegador al iniciar sesión
-          (para mostrar "sesiones activas" y para el límite de intentos de login).
+          (para mostrar &quot;sesiones activas&quot; y para el límite de intentos de login).
         </li>
       </ul>
 

@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 const CHANNELS = ['WhatsApp', 'Instagram DM', 'Chat web', 'Email']
 
 const FEATURES = [
@@ -78,14 +80,14 @@ function Nav() {
           <a href="#producto" className="hover:text-white">Producto</a>
           <a href="#funciones" className="hover:text-white">Funciones</a>
           <a href="#rubros" className="hover:text-white">Rubros</a>
-          <a href="/panel" className="hover:text-white">Ingresar</a>
+          <Link href="/panel" className="hover:text-white">Ingresar</Link>
         </nav>
-        <a
+        <Link
           href="/panel/nuevo"
           className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
-        </a>
+        </Link>
       </div>
     </header>
   )
@@ -105,12 +107,12 @@ function Hero() {
         reuniones por vos. Moldeable a cualquier empresa, sin importar el rubro.
       </p>
       <div className="mt-10 flex items-center justify-center gap-4">
-        <a
+        <Link
           href="/panel/nuevo"
           className="rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
-        </a>
+        </Link>
         <a
           href="#funciones"
           className="rounded-md border border-gray-700 px-6 py-3 font-medium text-gray-200 hover:border-gray-500"
@@ -216,12 +218,12 @@ function CTA() {
         <p className="mt-4 text-gray-400">
           Coordiná una demo y te mostramos el agente configurado para tu rubro.
         </p>
-        <a
+        <Link
           href="/panel/nuevo"
           className="mt-8 inline-block rounded-md bg-amber-500 px-8 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
-        </a>
+        </Link>
       </div>
     </section>
   )
@@ -233,12 +235,12 @@ function Footer() {
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-gray-500 md:flex-row">
         <span className="font-mono text-amber-400">AgentsApp</span>
         <div className="flex items-center gap-4">
-          <a href="/terminos" className="hover:text-gray-300">
+          <Link href="/terminos" className="hover:text-gray-300">
             Términos
-          </a>
-          <a href="/privacidad" className="hover:text-gray-300">
+          </Link>
+          <Link href="/privacidad" className="hover:text-gray-300">
             Privacidad
-          </a>
+          </Link>
         </div>
         <span>&copy; {new Date().getFullYear()} AgentsApp. Todos los derechos reservados.</span>
       </div>

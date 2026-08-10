@@ -23,6 +23,7 @@ const SESSION_COOKIE = 'agentsapp_session'
  * una sesión existente.
  */
 const PUBLIC_API = [
+  '/api/health',
   '/api/webhooks/',
   '/api/auth/login',
   '/api/auth/forgot-password',

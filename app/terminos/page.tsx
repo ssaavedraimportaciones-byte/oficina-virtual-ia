@@ -1,4 +1,5 @@
 import LegalLayout from '../LegalLayout'
+import Link from 'next/link'
 
 export const metadata = { title: 'Términos de servicio — AgentsApp' }
 
@@ -38,7 +39,7 @@ export default function TerminosPage() {
       <p>
         El plan gratuito incluye [DETALLAR LÍMITES: p. ej. un negocio, X conversaciones/mes]. El
         plan pago (PRO) se cobra [PERIODICIDAD] a través de Stripe y se puede cancelar en
-        cualquier momento desde la sección "Mi cuenta"; la cancelación aplica [al final del
+        cualquier momento desde la sección &quot;Mi cuenta&quot;; la cancelación aplica [al final del
         período ya pago / de forma inmediata — DEFINIR].
       </p>
 
@@ -54,9 +55,9 @@ export default function TerminosPage() {
       <p>
         Al usar AgentsApp para atender a tus propios clientes, sos vos (el titular del negocio)
         quien decide qué datos de esos clientes se procesan por este medio. Ver la{' '}
-        <a href="/privacidad" className="text-amber-400 hover:underline">
+        <Link href="/privacidad" className="text-amber-400 hover:underline">
           Política de Privacidad
-        </a>{' '}
+        </Link>{' '}
         para el detalle de qué se guarda y con qué terceros se comparte (Anthropic/OpenAI para
         generar respuestas, Meta para WhatsApp/Instagram, [PROVEEDOR SMTP] para el envío de
         mails, Stripe para pagos).

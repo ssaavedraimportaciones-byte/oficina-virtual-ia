@@ -92,6 +92,7 @@ export default function ChannelConnect({
     }
     reset()
     onChanged()
+    if (data.warning) window.alert(`Conectado, pero ojo: ${data.warning}`)
   }
 
   async function handleDisconnect() {

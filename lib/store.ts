@@ -326,6 +326,18 @@ export async function deleteBusiness(id: string): Promise<void> {
   await prisma.business.delete({ where: { id } })
 }
 
+/** Qué negocio tiene conectado ese número/cuenta, si alguno (sin fallback). */
+export async function findChannelOwner(
+  channel: 'whatsapp' | 'instagram',
+  channelId: string,
+): Promise<string | null> {
+  const row = await prisma.business.findFirst({
+    where: channel === 'whatsapp' ? { whatsappPhoneNumberId: channelId } : { instagramPageId: channelId },
+    select: { id: true },
+  })
+  return row?.id ?? null
+}
+
 /**
  * Encuentra a qué negocio pertenece un mensaje entrante, según el número de
  * WhatsApp o la cuenta de Instagram a la que le escribieron. Es lo que permite
@@ -343,8 +355,12 @@ export async function findBusinessByChannelId(
   })
   if (match) return mapBusiness(match)
 
-  // Fallback single-tenant: si hay un único negocio y todavía no cargó el ID
-  // del canal, se le atribuyen los mensajes entrantes igual.
+  // Modo de un solo negocio (instalación propia, no SaaS): si hay un único
+  // negocio y todavía no cargó el ID del canal, se le atribuyen los mensajes.
+  // Apagado por defecto: en multi-empresa, todos los números conectados a la
+  // app de Meta mandan al mismo webhook, y esto le haría contestar a la
+  // empresa equivocada los mensajes de un número que todavía no está cargado.
+  if (process.env.SINGLE_BUSINESS_MODE !== 'true') return null
   const [only, count] = await Promise.all([
     prisma.business.findFirst(),
     prisma.business.count(),

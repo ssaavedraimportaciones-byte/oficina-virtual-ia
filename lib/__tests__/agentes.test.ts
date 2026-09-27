@@ -358,3 +358,46 @@ describe('mails al dueño', () => {
     expect(html).toContain('&lt;a href=')
   })
 })
+
+describe('multi-empresa', () => {
+  it('un mensaje a un número que no es de ninguna empresa no se le asigna a nadie', async () => {
+    const original = process.env.SINGLE_BUSINESS_MODE
+    delete process.env.SINGLE_BUSINESS_MODE
+    await newBusiness()
+    expect(await store.findBusinessByChannelId('whatsapp', `numero-${randomUUID()}`)).toBeNull()
+    process.env.SINGLE_BUSINESS_MODE = original
+  })
+})
+
+describe('conectar canales en multi-empresa', () => {
+  it('un número ya conectado a otra empresa se detecta y la base no deja duplicarlo', async () => {
+    const a = await newBusiness()
+    const b = await newBusiness()
+    const phoneNumberId = `num-${randomUUID()}`
+    const creds = { whatsappPhoneNumberId: phoneNumberId, whatsappAccessToken: 't', instagramPageId: null, instagramAccessToken: null }
+    await store.updateBusinessCredentials(a.id, creds)
+
+    expect(await store.findChannelOwner('whatsapp', phoneNumberId)).toBe(a.id)
+    await expect(store.updateBusinessCredentials(b.id, creds)).rejects.toThrow()
+  })
+
+  it('suscribe la app al WABA dueño del número (propio o compartido por el cliente)', async () => {
+    const { subscribeWhatsAppWebhooks } = await import('../metaConnect')
+    const calls: Array<{ url: string; method: string }> = []
+    vi.spyOn(globalThis, 'fetch').mockImplementation((async (url: string, init?: RequestInit) => {
+      calls.push({ url, method: init?.method ?? 'GET' })
+      if ((init?.method ?? 'GET') === 'GET') {
+        return new Response(JSON.stringify({
+          data: [{ client_whatsapp_business_accounts: { data: [{ id: 'waba-1', phone_numbers: { data: [{ id: 'phone-1' }] } }] } }],
+        }))
+      }
+      return new Response(JSON.stringify({ success: true }))
+    }) as any)
+
+    expect(await subscribeWhatsAppWebhooks('phone-1', 'tok')).toEqual({ subscribed: true })
+    expect(calls.at(-1)).toEqual({ url: expect.stringContaining('/waba-1/subscribed_apps'), method: 'POST' })
+
+    const missing = await subscribeWhatsAppWebhooks('phone-que-no-esta', 'tok')
+    expect(missing.subscribed).toBe(false)
+  })
+})

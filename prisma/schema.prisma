@@ -144,9 +144,12 @@ model Business {
 
   // Credenciales de canal. Los tokens se guardan cifrados (ver lib/secrets.ts)
   // antes de llegar acá: esta tabla nunca ve el texto plano.
-  whatsappPhoneNumberId String?
+  // Únicos: todos los números de todas las empresas llegan al mismo webhook y
+  // se reparten por este ID; si dos empresas tuvieran el mismo, los mensajes
+  // de una le llegarían a la otra.
+  whatsappPhoneNumberId String? @unique
   whatsappAccessToken   String?
-  instagramPageId       String?
+  instagramPageId       String? @unique
   instagramAccessToken  String?
 
   /// WeekHours: array de 7 posiciones (dom=0..sáb=6), cada una

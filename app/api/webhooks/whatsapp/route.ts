@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { handleIncomingMessage } from '@/lib/agentPipeline'
 import { decryptCredentials, findBusinessByChannelId } from '@/lib/store'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
@@ -17,16 +17,97 @@ export async function GET(request: NextRequest) {
   return new NextResponse('Token inválido', { status: 403 })
 }
 
+interface WhatsAppMessage {
+  id?: string
+  from: string
+  type: string
+  text?: { body: string }
+  button?: { text?: string }
+  interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } }
+}
+
 interface WhatsAppWebhookBody {
   entry?: Array<{
     changes?: Array<{
       value?: {
         metadata?: { phone_number_id?: string }
         contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>
-        messages?: Array<{ from: string; text?: { body: string }; type: string }>
+        messages?: WhatsAppMessage[]
       }
     }>
   }>
+}
+
+const MEDIA_LABELS: Record<string, string> = {
+  audio: 'un audio',
+  voice: 'un audio',
+  image: 'una imagen',
+  video: 'un video',
+  sticker: 'un sticker',
+  document: 'un archivo',
+  location: 'una ubicación',
+  contacts: 'un contacto',
+}
+
+/**
+ * Lo que dijo el contacto, en texto. Los botones y listas traen el texto de
+ * la opción elegida. Audios, fotos y demás el agente no los puede ver: se
+ * registran como una nota para que conteste pidiendo que lo escriba, en vez
+ * de dejar al cliente sin respuesta.
+ */
+function messageText(message: WhatsAppMessage): string | null {
+  if (message.type === 'text') return message.text?.body ?? null
+  if (message.type === 'button') return message.button?.text ?? null
+  if (message.type === 'interactive') {
+    return message.interactive?.button_reply?.title ?? message.interactive?.list_reply?.title ?? null
+  }
+  const label = MEDIA_LABELS[message.type]
+  return label ? `[El contacto envió ${label}]` : null
+}
+
+// Da margen al debounce de ráfagas más la respuesta del modelo con herramientas.
+export const maxDuration = 60
+
+async function processWebhook(body: WhatsAppWebhookBody): Promise<void> {
+  for (const entry of body.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      const value = change.value
+      const contact = value?.contacts?.[0]
+      // El número al que le escribieron define de qué negocio es el mensaje.
+      const phoneNumberId = value?.metadata?.phone_number_id
+      if (!phoneNumberId) continue
+
+      const business = await findBusinessByChannelId('whatsapp', phoneNumberId)
+      if (!business) continue
+
+      for (const message of value?.messages ?? []) {
+        const text = messageText(message)
+        if (!text) continue
+
+        // Si falla la generación o el envío, el mensaje del cliente ya quedó
+        // guardado en la conversación: se registra el error y se sigue.
+        try {
+          await handleIncomingMessage(
+            {
+              business,
+              channel: 'whatsapp',
+              contactHandle: message.from,
+              contactName: contact?.profile?.name ?? message.from,
+              text,
+              externalId: message.id,
+            },
+            {
+              send: (reply) =>
+                sendWhatsAppMessage(message.from, reply, decryptCredentials(business.credentials)),
+              defer: after,
+            },
+          )
+        } catch (error) {
+          console.error('[webhook whatsapp] no se pudo responder:', error)
+        }
+      }
+    }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -46,39 +127,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
   }
 
-  for (const entry of body.entry ?? []) {
-    for (const change of entry.changes ?? []) {
-      const value = change.value
-      const contact = value?.contacts?.[0]
-      // El número al que le escribieron define de qué negocio es el mensaje.
-      const phoneNumberId = value?.metadata?.phone_number_id
-      if (!phoneNumberId) continue
-
-      const business = await findBusinessByChannelId('whatsapp', phoneNumberId)
-      if (!business) continue
-
-      for (const message of value?.messages ?? []) {
-        if (message.type !== 'text' || !message.text) continue
-
-        // Si falla la generación o el envío, el mensaje del cliente ya quedó
-        // guardado en la conversación: se registra el error y se sigue, en vez
-        // de devolver un 5xx que haría a Meta reintentar el webhook en loop.
-        try {
-          const { reply } = await handleIncomingMessage({
-            business,
-            channel: 'whatsapp',
-            contactHandle: message.from,
-            contactName: contact?.profile?.name ?? message.from,
-            text: message.text.body,
-          })
-
-          await sendWhatsAppMessage(message.from, reply, decryptCredentials(business.credentials))
-        } catch (error) {
-          console.error('[webhook whatsapp] no se pudo responder:', error)
-        }
-      }
-    }
-  }
-
+  // Se le contesta a Meta enseguida y el trabajo sigue después: si tarda en
+  // recibir el 200, reintenta el webhook. Los reintentos que igual lleguen los
+  // descarta el pipeline por el ID del mensaje.
+  after(() => processWebhook(body))
   return NextResponse.json({ ok: true })
 }

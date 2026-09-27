@@ -1,6 +1,6 @@
 import { appUrl } from './auth'
 import { prisma } from './db'
-import { newConversationEmail, sendEmail } from './email'
+import { handoffEmail, newConversationEmail, sendEmail } from './email'
 import type { Business, Conversation } from './types'
 
 /**
@@ -10,14 +10,39 @@ import type { Business, Conversation } from './types'
  * agente, que ya le respondió al cliente para cuando esto se llama.
  */
 export async function notifyNewConversation(business: Business, conversation: Conversation): Promise<void> {
+  const url = `${appUrl()}/panel/${business.id}/conversaciones/${conversation.id}`
+  await emailOwners(
+    business.id,
+    newConversationEmail(business.config.businessName, conversation.contactName, url),
+  )
+}
+
+/**
+ * Avisa que el agente derivó una conversación. A diferencia de una
+ * conversación nueva, acá el cliente está esperando a una persona: si nadie
+ * se entera, queda sin respuesta.
+ */
+export async function notifyHandoff(
+  business: Business,
+  conversation: Conversation,
+  reason: string,
+): Promise<void> {
+  const url = `${appUrl()}/panel/${business.id}/conversaciones/${conversation.id}`
+  await emailOwners(
+    business.id,
+    handoffEmail(business.config.businessName, conversation.contactName, reason, url),
+  )
+}
+
+async function emailOwners(
+  businessId: string,
+  { subject, html, text }: { subject: string; html: string; text: string },
+): Promise<void> {
   const owners = await prisma.businessMember.findMany({
-    where: { businessId: business.id, role: 'OWNER' },
+    where: { businessId, role: 'OWNER' },
     include: { user: { select: { email: true } } },
   })
   if (owners.length === 0) return
-
-  const url = `${appUrl()}/panel/${business.id}/conversaciones/${conversation.id}`
-  const { subject, html, text } = newConversationEmail(business.config.businessName, conversation.contactName, url)
 
   await Promise.all(
     owners.map((o) =>

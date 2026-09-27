@@ -144,9 +144,12 @@ model Business {
 
   // Credenciales de canal. Los tokens se guardan cifrados (ver lib/secrets.ts)
   // antes de llegar acá: esta tabla nunca ve el texto plano.
-  whatsappPhoneNumberId String?
+  // Únicos: todos los números de todas las empresas llegan al mismo webhook y
+  // se reparten por este ID; si dos empresas tuvieran el mismo, los mensajes
+  // de una le llegarían a la otra.
+  whatsappPhoneNumberId String? @unique
   whatsappAccessToken   String?
-  instagramPageId       String?
+  instagramPageId       String? @unique
   instagramAccessToken  String?
 
   /// WeekHours: array de 7 posiciones (dom=0..sáb=6), cada una
@@ -176,6 +179,11 @@ model Conversation {
   contactHandle String
   status        String   @default("abierta")
   notes         String   @default("")
+  /// Una persona del equipo tomó la conversación (o el agente la derivó): el
+  /// agente no contesta hasta que alguien la vuelva a activar desde el panel.
+  agentPaused   Boolean  @default(false)
+  /// Por qué se derivó, para que quien la toma sepa qué pasó sin leer todo.
+  handoffReason String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
 
@@ -192,6 +200,10 @@ model Message {
   conversationId String
   sender         String
   text           String
+  /// ID del mensaje en WhatsApp/Instagram. Meta reintenta el webhook si tarda
+  /// en recibir el 200: con esto el mismo mensaje no se procesa dos veces
+  /// (dos respuestas, dos pedidos, dos turnos).
+  externalId     String?  @unique
   timestamp      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)

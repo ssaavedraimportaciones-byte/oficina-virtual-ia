@@ -48,10 +48,11 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
     model,
 
     async complete(request: LlmRequest): Promise<LlmCompletion> {
+      const system = request.context ? `${request.system}\n\n${request.context}` : request.system
       const response = await client.chat.completions.create({
         model,
         max_completion_tokens: request.maxTokens,
-        messages: toMessages(request.system, request.messages),
+        messages: toMessages(system, request.messages),
         ...(request.tools?.length
           ? {
               tools: request.tools.map((tool) => ({
@@ -67,6 +68,7 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
       })
 
       const choice = response.choices[0]?.message
+      const finishReason = response.choices[0]?.finish_reason
 
       const toolCalls = (choice?.tool_calls ?? []).flatMap((call) => {
         if (call.type !== 'function') return []
@@ -82,7 +84,11 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
         return [{ id: call.id, name: call.function.name, input }]
       })
 
-      return { text: (choice?.content ?? '').trim(), toolCalls }
+      return {
+        text: (choice?.content ?? '').trim(),
+        toolCalls,
+        incomplete: finishReason === 'length' || finishReason === 'content_filter',
+      }
     },
 
     describeError(error: unknown): string {

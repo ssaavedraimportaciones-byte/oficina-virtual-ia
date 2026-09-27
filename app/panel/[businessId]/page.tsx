@@ -62,6 +62,11 @@ export default async function ConversacionesPage({
                     <span className="rounded-full border border-gray-700 px-2 py-0.5 text-xs text-gray-400">
                       {CHANNEL_LABEL[conversation.channel]}
                     </span>
+                    {conversation.agentPaused && (
+                      <span className="rounded-full border border-amber-700 px-2 py-0.5 text-xs text-amber-400">
+                        Atiende una persona
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 truncate text-sm text-gray-500">
                     {last ? last.text : 'Sin mensajes todavía'}

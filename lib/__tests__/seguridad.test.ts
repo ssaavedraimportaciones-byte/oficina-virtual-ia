@@ -41,8 +41,10 @@ describe('tokens en la base', () => {
         goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },
       'manicura',
     )
+    // Único por test: el ID de número no se puede repetir entre empresas.
+    const phoneNumberId = `num-${business.id}`
     await store.updateBusinessCredentials(business.id, {
-      whatsappPhoneNumberId: '123',
+      whatsappPhoneNumberId: phoneNumberId,
       whatsappAccessToken: 'EAAG-token-supersecreto',
       instagramPageId: null,
       instagramAccessToken: null,
@@ -59,7 +61,7 @@ describe('tokens en la base', () => {
     const usable = store.decryptCredentials(saved!.credentials)
     expect(usable.whatsappAccessToken).toBe('EAAG-token-supersecreto')
     // El ID de cuenta no es secreto y queda legible.
-    expect(usable.whatsappPhoneNumberId).toBe('123')
+    expect(usable.whatsappPhoneNumberId).toBe(phoneNumberId)
   })
 })
 

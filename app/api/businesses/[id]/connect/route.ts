@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireBusinessAccess } from '@/lib/authz'
-import { decryptCredentials, getBusiness, updateBusinessCredentials } from '@/lib/store'
-import { verifyInstagramAccount, verifyWhatsAppNumber } from '@/lib/metaConnect'
+import { decryptCredentials, findChannelOwner, getBusiness, updateBusinessCredentials } from '@/lib/store'
+import { subscribeWhatsAppWebhooks, verifyInstagramAccount, verifyWhatsAppNumber } from '@/lib/metaConnect'
 
 const connectSchema = z.object({
   channel: z.enum(['whatsapp', 'instagram']),
@@ -32,6 +32,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { channel, accountId, token } = parsed.data
+
+  // Todos los números llegan al mismo webhook y se reparten por este ID: si ya
+  // es de otra empresa, conectarlo acá le robaría los mensajes a esa empresa.
+  const owner = await findChannelOwner(channel, accountId)
+  if (owner && owner !== id) {
+    return NextResponse.json(
+      { error: 'Esa cuenta ya está conectada a otra empresa de la plataforma.' },
+      { status: 409 },
+    )
+  }
 
   let label: string
   try {
@@ -65,7 +75,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         }
 
   await updateBusinessCredentials(id, credentials)
-  return NextResponse.json({ ok: true, label })
+
+  // Para que Meta mande los mensajes de este número al webhook. Si no se pudo,
+  // la conexión queda guardada igual (puede estar suscrita desde Meta) pero se
+  // avisa qué falta, en vez de que el agente quede mudo sin explicación.
+  let warning: string | undefined
+  if (channel === 'whatsapp') {
+    const subscription = await subscribeWhatsAppWebhooks(accountId, token)
+    if (!subscription.subscribed) warning = subscription.reason
+  }
+
+  return NextResponse.json({ ok: true, label, warning })
 }
 
 const disconnectSchema = z.object({

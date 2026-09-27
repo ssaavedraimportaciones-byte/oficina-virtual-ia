@@ -60,6 +60,20 @@ export async function sendEmail(input: SendEmailInput): Promise<{ sent: boolean 
   }
 }
 
+/**
+ * El nombre del contacto lo elige quien escribe por WhatsApp/Instagram: sin
+ * escapar, alguien puede meter HTML (un link falso) en el mail que le llega
+ * al dueño del negocio.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function emailShell(title: string, bodyHtml: string, actionUrl: string, actionLabel: string): string {
   return `<!doctype html>
 <html>
@@ -106,10 +120,28 @@ export function newConversationEmail(businessName: string, contactName: string, 
     subject: `Nueva conversación en ${businessName} — AgentsApp`,
     html: emailShell(
       'Tenés una conversación nueva',
-      `<strong>${contactName}</strong> te escribió por primera vez en <strong>${businessName}</strong>. El agente ya respondió; revisá que haya quedado bien.`,
+      `<strong>${escapeHtml(contactName)}</strong> te escribió por primera vez en <strong>${escapeHtml(businessName)}</strong>. El agente ya respondió; revisá que haya quedado bien.`,
       conversationUrl,
       'Ver conversación',
     ),
     text: `${contactName} te escribió por primera vez en ${businessName}.\n\nVer conversación: ${conversationUrl}`,
+  }
+}
+
+export function handoffEmail(
+  businessName: string,
+  contactName: string,
+  reason: string,
+  conversationUrl: string,
+) {
+  return {
+    subject: `${contactName} necesita que le responda una persona — ${businessName}`,
+    html: emailShell(
+      'Una conversación necesita a alguien del equipo',
+      `El agente de <strong>${escapeHtml(businessName)}</strong> le pasó la conversación con <strong>${escapeHtml(contactName)}</strong> al equipo y dejó de responder solo.<br /><br />Motivo: ${escapeHtml(reason)}<br /><br />Respondé desde el panel; cuando termines podés volver a activar al agente.`,
+      conversationUrl,
+      'Responder ahora',
+    ),
+    text: `El agente le pasó la conversación con ${contactName} (${businessName}) al equipo.\n\nMotivo: ${reason}\n\nResponder: ${conversationUrl}`,
   }
 }

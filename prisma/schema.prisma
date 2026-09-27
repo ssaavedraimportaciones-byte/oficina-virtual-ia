@@ -176,6 +176,11 @@ model Conversation {
   contactHandle String
   status        String   @default("abierta")
   notes         String   @default("")
+  /// Una persona del equipo tomó la conversación (o el agente la derivó): el
+  /// agente no contesta hasta que alguien la vuelva a activar desde el panel.
+  agentPaused   Boolean  @default(false)
+  /// Por qué se derivó, para que quien la toma sepa qué pasó sin leer todo.
+  handoffReason String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
 
@@ -192,6 +197,10 @@ model Message {
   conversationId String
   sender         String
   text           String
+  /// ID del mensaje en WhatsApp/Instagram. Meta reintenta el webhook si tarda
+  /// en recibir el 200: con esto el mismo mensaje no se procesa dos veces
+  /// (dos respuestas, dos pedidos, dos turnos).
+  externalId     String?  @unique
   timestamp      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)

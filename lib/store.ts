@@ -102,6 +102,8 @@ function mapConversation(row: {
   contactHandle: string
   status: string
   notes: string
+  agentPaused: boolean
+  handoffReason: string
   createdAt: Date
   updatedAt: Date
   messages: Array<{ id: string; sender: string; text: string; timestamp: Date }>
@@ -115,6 +117,8 @@ function mapConversation(row: {
     status: row.status as ConversationStatus,
     messages: row.messages.map(mapMessage),
     notes: row.notes,
+    agentPaused: row.agentPaused,
+    handoffReason: row.handoffReason,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -397,16 +401,89 @@ export async function createConversation(
   return mapConversation(row)
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: string })?.code === 'P2002'
+}
+
+/**
+ * Busca la conversación del contacto o la crea. Si el contacto manda dos
+ * mensajes seguidos apenas escribe por primera vez, llegan dos webhooks en
+ * paralelo y los dos intentan crearla: el segundo choca con la restricción
+ * única y se queda con la que creó el primero, en vez de fallar sin contestar.
+ */
+export async function findOrCreateConversation(
+  input: Pick<Conversation, 'businessId' | 'channel' | 'contactName' | 'contactHandle'>,
+): Promise<{ conversation: Conversation; created: boolean }> {
+  const existing = await findConversationByContact(input.businessId, input.channel, input.contactHandle)
+  if (existing) return { conversation: existing, created: false }
+  try {
+    return { conversation: await createConversation(input), created: true }
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error
+    const winner = await findConversationByContact(input.businessId, input.channel, input.contactHandle)
+    if (!winner) throw error
+    return { conversation: winner, created: false }
+  }
+}
+
 export async function appendMessage(
   conversationId: string,
-  message: Omit<Message, 'id' | 'timestamp'>,
+  message: Omit<Message, 'id' | 'timestamp'> & { externalId?: string },
 ): Promise<Conversation> {
   const row = await prisma.conversation.update({
     where: { id: conversationId },
     data: {
       updatedAt: new Date(),
-      messages: { create: { sender: message.sender, text: message.text } },
+      messages: {
+        create: { sender: message.sender, text: message.text, externalId: message.externalId },
+      },
     },
+    include: CONVERSATION_INCLUDE,
+  })
+  return mapConversation(row)
+}
+
+/**
+ * Guarda un mensaje entrante de WhatsApp/Instagram solo si no se procesó
+ * antes. Devuelve null si ya existía: Meta reintenta el webhook cuando no
+ * recibe el 200 a tiempo, y sin esto el agente contestaría (y reservaría, o
+ * cargaría un pedido) dos veces por el mismo mensaje.
+ */
+export async function appendIncomingMessage(
+  conversationId: string,
+  text: string,
+  externalId: string | undefined,
+): Promise<{ conversation: Conversation; messageId: string } | null> {
+  try {
+    const [message] = await prisma.$transaction([
+      prisma.message.create({
+        data: { conversationId, sender: 'contact', text, externalId },
+        select: { id: true },
+      }),
+      prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
+    ])
+    const conversation = await getConversation(conversationId)
+    if (!conversation) throw new Error('La conversación desapareció mientras se guardaba el mensaje')
+    return { conversation, messageId: message.id }
+  } catch (error) {
+    if (externalId && isUniqueViolation(error)) return null
+    throw error
+  }
+}
+
+/**
+ * Pausa o reactiva al agente en una conversación. Pausado, los mensajes del
+ * cliente se siguen guardando pero nadie contesta automáticamente: responde
+ * una persona desde el panel.
+ */
+export async function setAgentPaused(
+  conversationId: string,
+  paused: boolean,
+  reason = '',
+): Promise<Conversation> {
+  const row = await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { agentPaused: paused, handoffReason: paused ? reason : '' },
     include: CONVERSATION_INCLUDE,
   })
   return mapConversation(row)

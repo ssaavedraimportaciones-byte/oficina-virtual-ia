@@ -25,19 +25,45 @@ export interface LlmToolResult {
 export type LlmMessage =
   | { role: 'user'; text: string }
   | { role: 'assistant'; text: string }
-  | { role: 'assistant_tools'; text: string; calls: LlmToolCall[] }
+  | {
+      role: 'assistant_tools'
+      text: string
+      calls: LlmToolCall[]
+      /**
+       * Respuesta cruda del proveedor, para devolvérsela tal cual en la
+       * siguiente vuelta del loop de herramientas. Anthropic la necesita: si el
+       * modelo pensó antes de llamar una herramienta, ese bloque de thinking
+       * tiene que volver sin cambios o la API rechaza el pedido.
+       */
+      raw?: unknown
+    }
   | { role: 'tool_results'; results: LlmToolResult[] }
 
 export interface LlmCompletion {
   text: string
   toolCalls: LlmToolCall[]
+  /** Ver `raw` en LlmMessage. */
+  raw?: unknown
+  /** La respuesta se cortó por límite de tokens o el modelo se negó a contestar. */
+  incomplete?: boolean
 }
 
 export interface LlmRequest {
+  /** Parte estable del prompt: se cachea entre pedidos. */
   system: string
+  /**
+   * Parte que cambia en cada conversación (fecha, ficha del contacto). Va
+   * después de `system` para no invalidar la caché de la parte estable.
+   */
+  context?: string
   messages: LlmMessage[]
   tools?: LlmTool[]
   maxTokens: number
+  /**
+   * Cuánto razona el modelo antes de contestar. Baja para tareas simples (la
+   * ficha del contacto), media para chatear con clientes.
+   */
+  effort?: 'low' | 'medium' | 'high'
 }
 
 export interface LlmProvider {

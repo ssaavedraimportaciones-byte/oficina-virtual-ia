@@ -137,6 +137,10 @@ export interface Conversation {
   status: ConversationStatus
   messages: Message[]
   notes: string
+  /** Una persona tomó la conversación: el agente no contesta solo. */
+  agentPaused: boolean
+  /** Motivo de la derivación, si la hizo el agente. */
+  handoffReason: string
   createdAt: string
   updatedAt: string
 }

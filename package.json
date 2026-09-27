@@ -14,7 +14,7 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.128.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "next": "^15.5.23",

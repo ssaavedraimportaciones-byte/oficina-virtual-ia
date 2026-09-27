@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { describeApiError, generateAgentReply } from '@/lib/agentEngine'
 import { requireBusinessAccess } from '@/lib/authz'
 import { updateContactNotes } from '@/lib/contactNotes'
+import { sendHumanReply } from '@/lib/humanReply'
 import {
   appendMessage,
   getBusiness,
@@ -14,13 +15,14 @@ import {
 
 const messageSchema = z.object({
   sender: z.enum(['contact', 'human']),
-  text: z.string().min(1),
+  text: z.string().trim().min(1).max(4000),
 })
 
-// Usado por el simulador del panel: mandás un mensaje "como si fueras el
-// contacto" y, si corresponde, el agente responde de verdad con Claude usando
-// la configuración del negocio dueño de la conversación. Los webhooks de
-// WhatsApp/Instagram usan lib/agentPipeline.ts en lugar de esta ruta.
+// - sender "human": una persona del equipo le responde al contacto. Sale por
+//   WhatsApp/Instagram de verdad y pausa al agente en esta conversación.
+// - sender "contact": solo en el simulador del panel, para probar al agente
+//   escribiendo "como si fueras el cliente". En una conversación real el
+//   contacto escribe por su canal y entra por los webhooks (lib/agentPipeline.ts).
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -40,15 +42,36 @@ export async function POST(
   const user = await requireBusinessAccess(conversation.businessId)
   if (user instanceof NextResponse) return user
 
-  conversation = await appendMessage(conversation.id, parsed.data)
-
-  if (parsed.data.sender === 'human') {
-    return NextResponse.json({ conversation })
-  }
-
   const business = await getBusiness(conversation.businessId)
   if (!business) {
     return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+  }
+
+  if (parsed.data.sender === 'human') {
+    try {
+      conversation = await sendHumanReply(business, conversation, parsed.data.text)
+    } catch (error) {
+      return NextResponse.json(
+        {
+          conversation,
+          error: `No se pudo enviar el mensaje: ${error instanceof Error ? error.message : 'error desconocido'}`,
+        },
+        { status: 502 },
+      )
+    }
+    return NextResponse.json({ conversation })
+  }
+
+  if (conversation.channel !== 'simulador') {
+    return NextResponse.json(
+      { error: 'Solo se puede escribir como el cliente en el simulador.' },
+      { status: 400 },
+    )
+  }
+
+  conversation = await appendMessage(conversation.id, { sender: 'contact', text: parsed.data.text })
+  if (conversation.agentPaused) {
+    return NextResponse.json({ conversation })
   }
 
   try {
@@ -61,6 +84,7 @@ export async function POST(
       services,
       products,
       toolContext: { business, conversation },
+      contactNotes: conversation.notes,
     })
     conversation = await appendMessage(conversation.id, { sender: 'agent', text: reply })
     conversation = await updateContactNotes(conversation)

@@ -52,10 +52,23 @@ function overlaps(
   return startA < endB && startB < endA
 }
 
+/** Fecha y hora local actual del negocio (ver lib/timezone.ts). */
+export interface LocalNow {
+  date: string
+  time: string
+}
+
+/** Si el turno ya empezó (o empieza ahora), no se puede ofrecer ni reservar. */
+function isPast(date: string, startMinutes: number, now?: LocalNow): boolean {
+  if (!now) return false
+  if (date !== now.date) return date < now.date
+  return startMinutes <= minutesOfDay(now.time)
+}
+
 /**
  * Turnos libres para un servicio en un rango de fechas. Recorre día por día
  * el horario de atención y descarta los que se pisan con un turno ya
- * confirmado.
+ * confirmado y, si se pasa `now`, los que ya pasaron.
  */
 export function getAvailableSlots(
   hours: WeekHours,
@@ -64,6 +77,7 @@ export function getAvailableSlots(
   fromDate: string,
   toDate: string,
   limit = 40,
+  now?: LocalNow,
 ): { date: string; time: string }[] {
   const slots: { date: string; time: string }[] = []
   const confirmed = appointments.filter((a) => a.status === 'confirmado')
@@ -90,7 +104,7 @@ export function getAvailableSlots(
     for (let start = open; start + durationMinutes <= close; start += SLOT_STEP) {
       const end = start + durationMinutes
       const busy = taken.some((t) => overlaps(start, end, t.start, t.end))
-      if (!busy) slots.push({ date, time: toTime(start) })
+      if (!busy && !isPast(date, start, now)) slots.push({ date, time: toTime(start) })
       if (slots.length >= limit) break
     }
 
@@ -106,8 +120,12 @@ export function isSlotFree(
   appointments: Appointment[],
   startsAt: string,
   durationMinutes: number,
+  now?: LocalNow,
 ): { ok: true } | { ok: false; reason: string } {
   const { date, time } = splitLocal(startsAt)
+  if (isPast(date, minutesOfDay(time), now)) {
+    return { ok: false, reason: 'Ese horario ya pasó.' }
+  }
   const dayHours = hours[weekdayOf(date)]
   if (!dayHours) {
     return { ok: false, reason: `El ${formatDateLabel(date)} el negocio no atiende.` }

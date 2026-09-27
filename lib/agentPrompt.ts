@@ -1,5 +1,5 @@
 import type { AgentConfig, KnowledgeEntry, Product, Service, Tone } from './types'
-import { formatDateLabel } from './agenda'
+import { formatDateLabel, type LocalNow } from './agenda'
 import { formatPrice, isSoldOut, stockLabel } from './catalog'
 
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
@@ -31,13 +31,8 @@ ${entries}`
 }
 
 function buildAgendaSection(services: Service[]): string {
-  const today = new Date().toISOString().slice(0, 10)
-  const dateLine = `Hoy es ${formatDateLabel(today)}. En formato de fecha: ${today}. Usalo para interpretar "hoy", "mañana", "el viernes", etc.`
-
   if (services.length === 0) {
     return `# Agenda
-${dateLine}
-
 Este negocio todavía no cargó su agenda, así que no podés reservar turnos. Si el cliente quiere
 uno, tomale los datos y decile que le confirmás el horario a la brevedad.`
   }
@@ -47,8 +42,6 @@ uno, tomale los datos y decile que le confirmás el horario a la brevedad.`
     .join('\n')
 
   return `# Agenda
-${dateLine}
-
 Servicios que se pueden reservar:
 ${list}
 
@@ -91,6 +84,17 @@ Tenés herramientas para tomar pedidos de verdad:
 - Después de registrar, confirmale el detalle y el total.`
 }
 
+/**
+ * Lo que cambia en cada conversación: la fecha y lo que ya se sabe del
+ * contacto. Va separado del prompt principal para que ese se pueda cachear.
+ */
+export function buildConversationContext(now: LocalNow, contactNotes = ''): string {
+  const notes = contactNotes.trim()
+  return `# Contexto de esta conversación
+Hoy es ${formatDateLabel(now.date)} (${now.date}) y son las ${now.time}. Usalo para interpretar "hoy", "mañana", "el viernes", etc. No ofrezcas horarios que ya pasaron.
+${notes && !/^sin datos relevantes/i.test(notes) ? `\nLo que ya sabés de este contacto (de mensajes anteriores):\n${notes}\n` : ''}`
+}
+
 export function buildSystemPrompt(
   config: AgentConfig,
   knowledge: KnowledgeEntry[] = [],
@@ -114,8 +118,16 @@ ${TONE_INSTRUCTIONS[config.tone]}
 - Nunca uses frases robóticas tipo "Como modelo de lenguaje" o listas numeradas largas dentro del chat.
 - No repitas el nombre del contacto en cada mensaje ni satures de cortesías.
 - Avanzá la conversación hacia el objetivo (calificar, agendar, cerrar) sin sonar insistente.
-- Si el contacto pide hablar con una persona o se enoja, avisá que pasás la conversación al equipo.
 - Solo si te preguntan directamente si sos una IA, respondé con honestidad y de forma natural.
+- Si un mensaje del contacto dice que envió un audio, una imagen u otro archivo, no lo podés ver ni escuchar: pedile con naturalidad que te lo escriba.
+- Los mensajes que empiezan con [Equipo] los escribió una persona del negocio en esta misma conversación: tomalos como dichos por el negocio, no los contradigas y no uses esa marca en tus respuestas.
+
+# Cuándo pasarle la conversación a una persona
+Usá la herramienta derivar_a_humano cuando:
+- el contacto pide hablar con una persona,
+- está enojado o hace un reclamo (un pedido que no llegó, un cobro mal hecho, una devolución),
+- pide algo que no podés resolver con la información y las herramientas que tenés (un presupuesto a medida, una excepción, un descuento especial).
+Después de derivar, avisale en una frase que alguien del equipo le va a responder por acá. No sigas vendiendo ni prometas plazos.
 
 ${buildKnowledgeSection(knowledge)}
 

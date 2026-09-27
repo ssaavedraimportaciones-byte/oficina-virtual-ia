@@ -145,8 +145,110 @@ describe('traducción de herramientas por proveedor', () => {
     })
 
     expect(captured.tools[0].input_schema).toEqual(tool.parameters)
-    expect(captured.system).toBe('s')
+    expect(captured.system).toEqual([{ type: 'text', text: 's', cache_control: { type: 'ephemeral' } }])
     expect(out.text).toBe('hola')
+  })
+
+  it('Anthropic cachea la parte estable del prompt y deja el contexto de la conversación afuera', async () => {
+    const { createAnthropicProvider } = await import('../llm/anthropic')
+    const provider = createAnthropicProvider('sk-ant-test')
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    let captured: any
+    vi.spyOn(Anthropic.Messages.prototype, 'create').mockImplementation((async (body: any) => {
+      captured = body
+      return { content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' }
+    }) as any)
+
+    await provider.complete({
+      system: 'estable', context: 'hoy es lunes', maxTokens: 10,
+      messages: [{ role: 'user', text: 'hola' }],
+    })
+
+    expect(captured.system).toEqual([
+      { type: 'text', text: 'estable', cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: 'hoy es lunes' },
+    ])
+  })
+
+  it('Anthropic devuelve intacto el turno con thinking en el loop de herramientas', async () => {
+    const { createAnthropicProvider } = await import('../llm/anthropic')
+    const provider = createAnthropicProvider('sk-ant-test')
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const raw = [
+      { type: 'thinking', thinking: '', signature: 'firma' },
+      { type: 'tool_use', id: 't1', name: 'consultar_catalogo', input: {} },
+    ]
+    let captured: any
+    vi.spyOn(Anthropic.Messages.prototype, 'create').mockImplementation((async (body: any) => {
+      captured = body
+      return { content: [{ type: 'text', text: 'listo' }], stop_reason: 'end_turn' }
+    }) as any)
+
+    await provider.complete({
+      system: 's', maxTokens: 10,
+      messages: [
+        { role: 'user', text: 'qué tenés' },
+        { role: 'assistant_tools', text: '', calls: [{ id: 't1', name: 'consultar_catalogo', input: {} }], raw },
+        { role: 'tool_results', results: [{ id: 't1', content: 'tortas' }] },
+      ],
+    })
+
+    expect(captured.messages[1]).toEqual({ role: 'assistant', content: raw })
+  })
+
+  it('Anthropic marca como incompleta una respuesta cortada por max_tokens o rechazada', async () => {
+    const { createAnthropicProvider } = await import('../llm/anthropic')
+    const provider = createAnthropicProvider('sk-ant-test')
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const spy = vi.spyOn(Anthropic.Messages.prototype, 'create')
+
+    spy.mockResolvedValueOnce({ content: [{ type: 'text', text: 'Hola, te cuen' }], stop_reason: 'max_tokens' } as any)
+    expect((await provider.complete({ system: 's', maxTokens: 10, messages: [] })).incomplete).toBe(true)
+
+    spy.mockResolvedValueOnce({ content: [], stop_reason: 'refusal' } as any)
+    expect((await provider.complete({ system: 's', maxTokens: 10, messages: [] })).incomplete).toBe(true)
+
+    spy.mockResolvedValueOnce({ content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' } as any)
+    expect((await provider.complete({ system: 's', maxTokens: 10, messages: [] })).incomplete).toBe(false)
+  })
+
+  it('Anthropic manda effort solo a los modelos que lo soportan', async () => {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const { createAnthropicProvider, supportsEffort } = await import('../llm/anthropic')
+    expect(supportsEffort('claude-sonnet-5')).toBe(true)
+    expect(supportsEffort('claude-opus-4-8')).toBe(true)
+    expect(supportsEffort('claude-haiku-4-5')).toBe(false)
+
+    let captured: any
+    vi.spyOn(Anthropic.Messages.prototype, 'create').mockImplementation((async (body: any) => {
+      captured = body
+      return { content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' }
+    }) as any)
+
+    process.env.ANTHROPIC_MODEL = 'claude-sonnet-5'
+    await createAnthropicProvider('x').complete({ system: 's', maxTokens: 10, effort: 'medium', messages: [] })
+    expect(captured.output_config).toEqual({ effort: 'medium' })
+
+    process.env.ANTHROPIC_MODEL = 'claude-haiku-4-5'
+    await createAnthropicProvider('x').complete({ system: 's', maxTokens: 10, effort: 'medium', messages: [] })
+    expect(captured.output_config).toBeUndefined()
+  })
+
+  it('OpenAI junta el contexto con el prompt y marca respuestas cortadas', async () => {
+    const { createOpenAiProvider } = await import('../llm/openai')
+    const OpenAI = (await import('openai')).default
+    let captured: any
+    vi.spyOn(OpenAI.Chat.Completions.prototype, 'create').mockImplementation((async (body: any) => {
+      captured = body
+      return { choices: [{ message: { content: 'Hola, te cuen' }, finish_reason: 'length' }] }
+    }) as any)
+
+    const out = await createOpenAiProvider('sk-test').complete({
+      system: 'estable', context: 'hoy es lunes', maxTokens: 10, messages: [],
+    })
+
+    expect(captured.messages[0]).toEqual({ role: 'system', content: 'estable\n\nhoy es lunes' })
+    expect(out.incomplete).toBe(true)
   })
 })
 

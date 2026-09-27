@@ -1,5 +1,6 @@
 import type { LlmTool } from './llm'
 import {
+  addDays,
   buildLocal,
   findServiceByName,
   formatDateLabel,
@@ -7,14 +8,38 @@ import {
   isSlotFree,
 } from './agenda'
 import { formatPrice, isOrderable, isSoldOut, stockLabel } from './catalog'
+import { notifyHandoff } from './notifications'
 import {
   addAppointment,
   createOrder,
   listAppointments,
   listProducts,
   listServices,
+  setAgentPaused,
 } from './store'
+import { businessNow } from './timezone'
 import type { Business, Conversation } from './types'
+
+/**
+ * Disponible en todas las conversaciones, tenga o no agenda o catálogo el
+ * negocio: siempre puede aparecer alguien que necesita a una persona.
+ */
+export const HANDOFF_TOOL: LlmTool = {
+  name: 'derivar_a_humano',
+  description:
+    'Pasa la conversación a una persona del equipo y te saca de la conversación: a partir de ahí no respondés más vos. Usalo si el contacto pide hablar con una persona, está enojado, hace un reclamo o pide algo que no podés resolver.',
+  parameters: {
+    type: 'object',
+    properties: {
+      motivo: {
+        type: 'string',
+        description:
+          'En una frase, qué necesita el contacto y por qué lo derivás. Lo lee el equipo para retomar sin releer toda la charla.',
+      },
+    },
+    required: ['motivo'],
+  },
+}
 
 export const AGENDA_TOOLS: LlmTool[] = [
   {
@@ -110,9 +135,8 @@ export interface ToolContext {
   conversation: Conversation
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
 async function runConsultarDisponibilidad(
   ctx: ToolContext,
@@ -128,7 +152,8 @@ async function runConsultarDisponibilidad(
     return `No encontré ese servicio. Los disponibles son: ${services.map((s) => s.name).join(', ')}. Preguntale al cliente cuál quiere.`
   }
 
-  const from = input.desde && input.desde >= today() ? input.desde : today()
+  const now = businessNow()
+  const from = input.desde && DATE_RE.test(input.desde) && input.desde >= now.date ? input.desde : now.date
   const appointments = await listAppointments(ctx.business.id)
   const slots = getAvailableSlots(
     ctx.business.hours,
@@ -136,8 +161,9 @@ async function runConsultarDisponibilidad(
     service.durationMinutes,
     from,
     // Dos semanas alcanzan para ofrecer opciones sin abrumar.
-    new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    addDays(from, 14),
     12,
+    now,
   )
 
   if (slots.length === 0) {
@@ -165,6 +191,12 @@ async function runAgendarTurno(
     return 'Faltan datos para reservar: necesito servicio, fecha, hora y nombre del cliente.'
   }
 
+  // Sin esto, un "3pm" o "15" termina en una hora que no se puede comparar
+  // con la agenda y pasa como libre.
+  if (!DATE_RE.test(input.fecha) || !TIME_RE.test(input.hora)) {
+    return 'La fecha tiene que ir como YYYY-MM-DD y la hora como HH:mm (24 horas). Volvé a intentarlo con ese formato.'
+  }
+
   const services = await listServices(ctx.business.id)
   const service = findServiceByName(services, input.servicio)
   if (!service) {
@@ -176,7 +208,13 @@ async function runAgendarTurno(
 
   // Se revalida acá aunque el horario haya salido de consultar_disponibilidad:
   // entre una cosa y la otra otro cliente puede haber tomado el turno.
-  const check = isSlotFree(ctx.business.hours, appointments, startsAt, service.durationMinutes)
+  const check = isSlotFree(
+    ctx.business.hours,
+    appointments,
+    startsAt,
+    service.durationMinutes,
+    businessNow(),
+  )
   if (!check.ok) {
     return `No se pudo reservar: ${check.reason} Ofrecele otro horario al cliente.`
   }
@@ -257,6 +295,17 @@ async function runCrearPedido(
   return `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}. Confirmáselo al cliente con el total.`
 }
 
+async function runDerivarAHumano(ctx: ToolContext, input: { motivo?: string }): Promise<string> {
+  const reason = input.motivo?.trim() || 'El contacto necesita hablar con una persona.'
+  const conversation = await setAgentPaused(ctx.conversation.id, true, reason)
+  // Best-effort: que falle el mail no puede dejar al cliente sin la respuesta
+  // de "ya te atiende alguien".
+  await notifyHandoff(ctx.business, conversation, reason).catch((error) => {
+    console.error('[derivar_a_humano] no se pudo avisar al equipo:', error)
+  })
+  return 'Listo: la conversación quedó derivada al equipo y ya les avisamos. Decile al contacto, en una frase, que una persona le va a responder por acá. No hagas nada más en esta conversación.'
+}
+
 export async function runAgentTool(
   ctx: ToolContext,
   name: string,
@@ -274,6 +323,9 @@ export async function runAgentTool(
     }
     if (name === 'crear_pedido') {
       return await runCrearPedido(ctx, input as Parameters<typeof runCrearPedido>[1])
+    }
+    if (name === 'derivar_a_humano') {
+      return await runDerivarAHumano(ctx, input as { motivo?: string })
     }
     return `Herramienta desconocida: ${name}`
   } catch (error) {

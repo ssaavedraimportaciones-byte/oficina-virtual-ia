@@ -7,8 +7,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
-import { sweepPendingInbound, type InboundEvent } from "../src/channels/ingest.js";
-import { sendMessage } from "../src/channels/send.js";
+import { sendMessage, sweepPendingInbound, type InboundEvent } from "@pronex/messaging";
 import { MemoryRateLimiter } from "../src/rate-limit.js";
 
 const APP_SECRET = "meta-app-secret";

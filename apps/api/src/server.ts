@@ -3,7 +3,9 @@ import { WhatsAppClient } from "@pronex/channels";
 import { Redis } from "ioredis";
 import pg from "pg";
 import { buildApp } from "./app.js";
-import { sweepPendingInbound, type InboundDispatcher } from "./channels/ingest.js";
+import { sweepPendingInbound, type InboundDispatcher } from "@pronex/messaging";
+import { temporalDispatcher } from "@pronex/worker/dispatcher";
+import { Client, Connection } from "@temporalio/client";
 import { MemoryRateLimiter, RedisRateLimiter } from "./rate-limit.js";
 
 function required(name: string): string {
@@ -19,12 +21,18 @@ const rateLimiter = process.env.REDIS_URL
   : new MemoryRateLimiter();
 if (!process.env.REDIS_URL) console.warn("REDIS_URL no definido: rate limiting en memoria (solo 1 réplica)");
 
-// Hasta el paso 4 (runtime sobre Temporal), el dispatcher solo registra el evento.
-const dispatcher: InboundDispatcher = {
-  async dispatch(event) {
-    app.log.info({ event }, "inbound listo para el agente");
-  },
-};
+// Con Temporal configurado, cada inbound despierta el workflow de su conversación.
+// Sin él (desarrollo), el mensaje solo se registra y queda en la bandeja.
+const dispatcher: InboundDispatcher = process.env.TEMPORAL_ADDRESS
+  ? temporalDispatcher(new Client({
+      connection: await Connection.connect({ address: process.env.TEMPORAL_ADDRESS }),
+      namespace: process.env.TEMPORAL_NAMESPACE ?? "default",
+    }))
+  : {
+      async dispatch(event) {
+        app.log.warn({ event }, "TEMPORAL_ADDRESS no definido: el agente no responderá");
+      },
+    };
 
 const app = buildApp({
   pool,

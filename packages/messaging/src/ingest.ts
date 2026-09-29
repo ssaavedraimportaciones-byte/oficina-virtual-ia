@@ -28,7 +28,7 @@ export type IngestResult =
  * no dispara otra respuesta del agente.
  */
 export async function ingestInbound(pool: Pool, msg: InboundMessage): Promise<IngestResult> {
-  const { rows: [account] } = await pool.query<{ id: string; tenant_id: string; workspace_id: string }>(
+  const { rows: [account] } = await pool.query<{ id: string; tenant_id: string; workspace_id: string; agent_id: string | null }>(
     "select * from app.resolve_channel_account($1, $2)", [msg.channel, msg.accountExternalId],
   );
   if (!account) return { status: "unknown_account" };
@@ -42,12 +42,12 @@ export async function ingestInbound(pool: Pool, msg: InboundMessage): Promise<In
       [account.tenant_id, account.workspace_id, msg.contactName, msg.from],
     );
     const conv = await c.query<{ id: string }>(
-      `insert into conversations (tenant_id, lead_id, channel, channel_account_id, last_inbound_at)
-       values ($1, $2, $3, $4, $5)
+      `insert into conversations (tenant_id, lead_id, channel, channel_account_id, last_inbound_at, agent_id)
+       values ($1, $2, $3, $4, $5, $6)
        on conflict (tenant_id, lead_id, channel_account_id) where status = 'open'
        do update set last_inbound_at = greatest(conversations.last_inbound_at, excluded.last_inbound_at)
        returning id`,
-      [account.tenant_id, lead.rows[0]!.id, msg.channel, account.id, msg.timestamp],
+      [account.tenant_id, lead.rows[0]!.id, msg.channel, account.id, msg.timestamp, account.agent_id],
     );
     const conversationId = conv.rows[0]!.id;
     const inserted = await c.query<{ id: string }>(

@@ -5,8 +5,9 @@ import { withTenant } from "@pronex/db";
 import type { FastifyInstance } from "fastify";
 import type { Pool, PoolClient } from "pg";
 import { HttpError } from "../auth.js";
-import { applyStatus, dispatchInbound, ingestInbound, type InboundDispatcher } from "./ingest.js";
-import { credentialsAad, sendMessage } from "./send.js";
+import {
+  applyStatus, credentialsAad, dispatchInbound, ingestInbound, sendMessage, type InboundDispatcher,
+} from "@pronex/messaging";
 
 export interface ChannelDeps {
   secretBox: SecretBox;

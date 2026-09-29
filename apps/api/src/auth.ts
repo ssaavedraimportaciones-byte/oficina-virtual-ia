@@ -14,12 +14,8 @@ import type { Pool } from "pg";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const TENANT_HEADER = "x-pronex-tenant";
 
-/** Error HTTP con código estable; el mensaje es seguro para el cliente. */
-export class HttpError extends Error {
-  constructor(public status: number, public code: string) {
-    super(code);
-  }
-}
+export { AppError as HttpError } from "@pronex/messaging";
+import { AppError as HttpError } from "@pronex/messaging";
 
 /** Usuario autenticado por OIDC pero aún sin tenant elegido (p. ej. onboarding). */
 export interface Identity {

@@ -14,10 +14,13 @@ Plataforma abierta de agentes de IA omnicanal (WhatsApp, voz, email, SMS, Instag
 ```
 apps/
   api/           API HTTP (Fastify): auth, onboarding, leads, API keys, webhooks y bandeja
+  worker/        Worker de Temporal: un workflow por conversación que ejecuta al agente
 packages/
   db/            Esquema Postgres multi-tenant con RLS, migraciones y tests de aislamiento
   auth/          RBAC, API keys, verificación OIDC y cifrado de secretos (SecretBox)
   channels/      Mensaje canónico y adaptador de WhatsApp Cloud API
+  messaging/     Ingesta idempotente de mensajes, envío con reglas (handoff, ventana 24 h) y outbox
+  agent/         Runtime del agente: bucle con herramientas sobre Claude, presupuestos y reanudación
 docs/            PRD y arquitectura
 ```
 
@@ -28,13 +31,13 @@ docs/            PRD y arquitectura
 | 1 | Esquema + RLS + tests de aislamiento cross-tenant en CI | ✅ |
 | 2 | Gateway de auth (OIDC, API keys con scopes, RBAC) | ✅ |
 | 3 | Canal WhatsApp end-to-end con idempotencia | ✅ |
-| 4 | Runtime del agente sobre Temporal | ⏳ |
+| 4 | Runtime del agente sobre Temporal | ✅ |
 | 5 | Guardrail síncrono con benchmark de latencia | ⏳ |
 | 6 | Versionado de prompts + conversaciones doradas | ⏳ |
 
 ## Desarrollo
 
-Requisitos: Node 22, pnpm 10, Postgres 16, Redis 7.
+Requisitos: Node 22, pnpm 10, Postgres 16, Redis 7 y la CLI de Temporal (los tests la descargan si falta `TEMPORAL_CLI_PATH`).
 
 ```bash
 pnpm install
@@ -42,6 +45,8 @@ cp .env.example .env          # ajusta DATABASE_URL
 pnpm test                     # recrea el esquema en la BD de test y corre los tests
 pnpm db:migrate               # aplica migraciones pendientes
 pnpm --filter @pronex/api dev # levanta la API (requiere APP_DATABASE_URL, OIDC_ISSUER, OIDC_AUDIENCE)
+temporal server start-dev     # Temporal local
+pnpm --filter @pronex/worker start  # worker del agente (requiere ANTHROPIC_API_KEY)
 ```
 
 Los tests **borran y recrean** el esquema de la base indicada en `DATABASE_URL`: úsala solo con una base de pruebas.
@@ -112,3 +117,31 @@ Garantías (cada una con test):
 6. Conéctalo en Pronex: `POST /v1/channels/whatsapp` con `workspaceId`, `phoneNumberId` y `accessToken`.
 
 Limitación conocida: si Meta enviara un estado de entrega antes de que guardemos el `wamid` de la respuesta, ese estado se perdería (en la práctica Meta responde el `wamid` primero).
+
+## Agente (runtime sobre Temporal)
+
+**Flujo:** webhook → mensaje guardado → `signalWithStart` al workflow `conversation-<id>` → espera 3 s por si el cliente sigue escribiendo → actividad `runAgentTurn` → respuesta por WhatsApp.
+
+**Modelo:** Claude Opus 5.5 (`claude-opus-5-5`) por defecto, configurable por versión de agente. Cada petición lleva:
+
+- `output_config.effort` explícito (por defecto `medium`); el razonamiento es adaptativo y siempre activo en este modelo.
+- `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`): si el modelo declina por sus salvaguardas, Anthropic reintenta en el mismo request con el modelo recomendado para esa categoría. Si aun así hay negativa, el agente no responde, avisa y pasa a humano.
+- Caché de prompt: reglas de plataforma + instrucciones del agente (prefijo estable) y caché automático del historial.
+- Herramientas con `strict: true` y `tool_choice` automático (forzar herramientas no está permitido en este modelo).
+
+Garantías (cada una con test, y las principales verificadas inyectando la falla):
+
+| Garantía | Cómo |
+|---|---|
+| Nunca dos respuestas en paralelo en una conversación | Un workflow por conversación (id fijo) |
+| Una ráfaga de mensajes recibe una sola respuesta | Debounce de 3 s (tope 15 s) en el workflow |
+| Un crash o reintento no duplica ni pierde el turno | Cada paso se guarda en `agent_transcripts` antes de seguir; el reintento retoma desde ahí |
+| Historial válido para el razonamiento del modelo | `agent_transcripts` es append-only (trigger) y se reenvía sin editar |
+| Sin bucles caros | Tope de pasos por turno (6), presupuesto por conversación (USD 0,50) y diario por tenant (USD 20) |
+| Costo real por ejecución | Tokens y USD por modelo que respondió (incluido el de respaldo) en `agent_runs` |
+| El agente no pisa a un humano | Si un humano tomó la conversación, el agente no lee ni responde; al liberarla recibe lo que se habló |
+| Fallas no dejan al cliente sin respuesta | Error permanente, reintentos agotados, negativa o límite → aviso al cliente + handoff |
+| Herramientas acotadas | Solo las habilitadas en la versión del agente; entradas validadas (el modelo es fuente no confiable) |
+| Inyección de instrucciones | Las reglas de plataforma declaran los mensajes del cliente como datos, no instrucciones |
+
+Herramientas disponibles: `handoff_to_human`, `update_lead`.

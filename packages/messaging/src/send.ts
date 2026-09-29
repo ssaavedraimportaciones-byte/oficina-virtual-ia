@@ -2,7 +2,7 @@ import type { SecretBox } from "@pronex/auth";
 import { isWithinServiceWindow, WhatsAppApiError, type TemplateMessage, type WhatsAppClient } from "@pronex/channels";
 import { withTenant } from "@pronex/db";
 import type { Pool } from "pg";
-import { HttpError } from "../auth.js";
+import { AppError as HttpError } from "./errors.js";
 
 export interface SendDeps {
   pool: Pool;

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TenantContextError, withTenant } from "../src/tenant.js";
-import { freshDatabase } from "./helpers.js";
+import { freshDatabase } from "../src/testing.js";
 
 let admin: pg.Client;
 let app: pg.Pool;

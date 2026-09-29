@@ -1,5 +1,5 @@
 import pg from "pg";
-import { migrate } from "../src/migrate.js";
+import { migrate } from "./migrate.js";
 
 export const ADMIN_URL =
   process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/pronex_test";

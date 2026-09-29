@@ -1,25 +1,21 @@
 {
-  "name": "@pronex/db",
+  "name": "@pronex/auth",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "migrate": "tsx src/migrate.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "pg": "^8.23.0"
+    "jose": "^6.2.12"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
-    "@types/pg": "^8.23.1",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
-  },
-  "exports": {
-    ".": "./src/index.ts",
-    "./testing": "./src/testing.ts"
   }
 }

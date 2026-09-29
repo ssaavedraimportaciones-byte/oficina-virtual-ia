@@ -1,25 +1,26 @@
 {
-  "name": "@pronex/db",
+  "name": "@pronex/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "migrate": "tsx src/migrate.ts",
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@pronex/auth": "workspace:*",
+    "@pronex/db": "workspace:*",
+    "fastify": "^5.12.5",
     "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
     "@types/pg": "^8.23.1",
+    "jose": "^6.2.12",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
-  },
-  "exports": {
-    ".": "./src/index.ts",
-    "./testing": "./src/testing.ts"
   }
 }

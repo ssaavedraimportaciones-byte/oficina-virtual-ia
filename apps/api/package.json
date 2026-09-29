@@ -13,6 +13,7 @@
     "@pronex/auth": "workspace:*",
     "@pronex/db": "workspace:*",
     "fastify": "^5.12.5",
+    "ioredis": "^6.0.0",
     "pg": "^8.23.0"
   },
   "devDependencies": {

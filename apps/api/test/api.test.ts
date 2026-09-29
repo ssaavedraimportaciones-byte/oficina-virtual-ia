@@ -5,6 +5,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
+import { MemoryRateLimiter } from "../src/rate-limit.js";
 
 const ISSUER = "https://idp.test";
 const AUDIENCE = "pronex-api";
@@ -37,7 +38,7 @@ beforeAll(async () => {
       .setIssuer(ISSUER).setAudience(AUDIENCE).setSubject(sub).setIssuedAt().setExpirationTime("5m")
       .sign(privateKey);
   const verifyOidc = createOidcVerifier({ issuer: ISSUER, audience: AUDIENCE, jwks: createLocalJWKSet({ keys: [jwk] }) });
-  app = buildApp({ pool, verifyOidc });
+  app = buildApp({ pool, verifyOidc, rateLimiter: new MemoryRateLimiter() });
   await app.ready();
 
   ana.token = await signFor("ana", "ana@pyme.cl");

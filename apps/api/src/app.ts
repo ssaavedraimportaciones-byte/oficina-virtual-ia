@@ -3,6 +3,7 @@ import { withTenant } from "@pronex/db";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool, PoolClient } from "pg";
 import { authenticate, HttpError, sendError, type Identity } from "./auth.js";
+import { DEFAULT_RATE_LIMITS, type RateLimiter, type RateLimitPolicy, type RateLimitRule } from "./rate-limit.js";
 
 declare module "fastify" {
   interface FastifyContextConfig {
@@ -20,8 +21,12 @@ declare module "fastify" {
 export interface AppDeps {
   pool: Pool;
   verifyOidc: OidcVerifier;
+  rateLimiter: RateLimiter;
+  rateLimits?: RateLimitPolicy & { perIp: RateLimitRule };
   logger?: boolean;
 }
+
+const DEFAULT_PER_IP: RateLimitRule = { limit: 1_200, windowMs: 60_000 };
 
 function actorOf(p: Principal): string {
   return p.kind === "user" ? `user:${p.userId}` : `api_key:${p.keyId}`;
@@ -34,13 +39,25 @@ async function audit(c: PoolClient, p: Principal, action: string, target: string
   );
 }
 
-export function buildApp({ pool, verifyOidc, logger = false }: AppDeps): FastifyInstance {
+export function buildApp({
+  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, logger = false,
+}: AppDeps): FastifyInstance {
   const app = Fastify({
     logger: logger && { redact: ["req.headers.authorization"] },
     bodyLimit: 256 * 1024,
   });
 
   app.decorateRequest("principal", null);
+
+  async function enforce(reply: import("fastify").FastifyReply, key: string, rule: RateLimitRule) {
+    const r = await rateLimiter.hit(key, rule);
+    const remaining = reply.getHeader("x-ratelimit-remaining");
+    if (remaining === undefined || Number(remaining) > r.remaining) reply.header("x-ratelimit-remaining", r.remaining);
+    if (!r.allowed) {
+      reply.header("retry-after", Math.max(1, Math.ceil(r.resetMs / 1000)));
+      throw new HttpError(429, "rate_limited");
+    }
+  }
   app.decorateRequest("identity", null);
 
   app.setErrorHandler((err, _req, reply) => {
@@ -54,14 +71,22 @@ export function buildApp({ pool, verifyOidc, logger = false }: AppDeps): Fastify
 
   // Deny-by-default: una ruta /v1 sin permiso declarado responde 500 en vez de quedar abierta.
   // onRequest: autentica antes de parsear/validar el body, así un anónimo nunca ve errores de validación.
-  app.addHook("onRequest", async (req) => {
+  app.addHook("onRequest", async (req, reply) => {
     if (!req.url.startsWith("/v1/") || !req.routeOptions.url) return; // rutas inexistentes → 404 normal
     const cfg = req.routeOptions.config;
     if (!cfg.permission && !cfg.identityOnly) throw new Error(`Ruta sin permiso declarado: ${req.routeOptions.url}`);
 
+    // Por IP antes de autenticar: frena fuerza bruta de credenciales.
+    await enforce(reply, `ip:${req.ip}`, rateLimits.perIp);
+
     const result = await authenticate(req, pool, verifyOidc);
     req.principal = result.principal;
     req.identity = result.identity ?? null;
+
+    const p = result.principal;
+    if (p?.kind === "api_key") await enforce(reply, `key:${p.keyId}`, rateLimits.perApiKey);
+    else if (result.identity) await enforce(reply, `user:${result.identity.userId}`, rateLimits.perUser);
+    if (p) await enforce(reply, `tenant:${p.tenantId}`, rateLimits.perTenant);
 
     if (cfg.identityOnly) {
       if (!req.identity) throw new HttpError(403, "user_token_required");

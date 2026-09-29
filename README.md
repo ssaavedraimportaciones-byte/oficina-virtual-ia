@@ -33,7 +33,7 @@ docs/            PRD y arquitectura
 
 ## Desarrollo
 
-Requisitos: Node 22, pnpm 10, Postgres 16.
+Requisitos: Node 22, pnpm 10, Postgres 16, Redis 7.
 
 ```bash
 pnpm install
@@ -67,6 +67,7 @@ Los tests **borran y recrean** el esquema de la base indicada en `DATABASE_URL`:
 - Toda ruta `/v1` debe declarar su permiso; si no, responde 500 (deny-by-default).
 - El token completo de una key solo se muestra al crearla; la app ni siquiera puede leer el hash.
 - MFA y SSO/SAML se delegan al proveedor OIDC (Auth0, Clerk, Keycloak, etc.).
+- Rate limiting en Redis (compartido entre réplicas), por minuto: 1 200 por IP (antes de autenticar, frena fuerza bruta), 600 por API key, 300 por usuario y 3 000 por tenant. Al superarlo: `429` + `Retry-After`.
 
 ### Endpoints
 

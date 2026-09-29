@@ -6,6 +6,7 @@ import {
   generateApiKey,
   InvalidTokenError,
   parseApiKey,
+  SecretBox,
   verifySecret,
   type Principal,
 } from "../src/index.js";
@@ -101,5 +102,38 @@ describe("OIDC", async () => {
     const unsigned = new UnsecuredJWT({}).setIssuer(issuer).setAudience(audience).setSubject("x")
       .setExpirationTime("5m").encode();
     await expect(verify(unsigned)).rejects.toBeInstanceOf(InvalidTokenError);
+  });
+});
+
+describe("SecretBox", () => {
+  const box = new SecretBox(SecretBox.generateKey());
+
+  it("cifra y descifra; cada cifrado es distinto", () => {
+    const a = box.seal("EAAG-token", "tenant:1");
+    expect(a).not.toContain("EAAG");
+    expect(box.seal("EAAG-token", "tenant:1")).not.toBe(a);
+    expect(box.open(a, "tenant:1")).toBe("EAAG-token");
+  });
+
+  it("falla si se mueve a otro tenant, se altera o se usa otra clave", () => {
+    const a = box.seal("secreto", "tenant:1");
+    expect(() => box.open(a, "tenant:2")).toThrow();
+    const parts = a.split(".");
+    parts[3] = Buffer.from("otro").toString("base64url");
+    expect(() => box.open(parts.join("."), "tenant:1")).toThrow();
+    expect(() => new SecretBox(SecretBox.generateKey()).open(a, "tenant:1")).toThrow();
+  });
+
+  it("exige una clave de 32 bytes", () => {
+    expect(() => new SecretBox(Buffer.alloc(16).toString("base64"))).toThrow();
+  });
+});
+
+describe("permiso channels:manage", () => {
+  it("solo owner/admin, nunca una API key", () => {
+    const u = (role: "admin" | "builder"): Principal => ({ kind: "user", userId: "u", tenantId: "t", role });
+    expect(can(u("admin"), "channels:manage")).toBe(true);
+    expect(can(u("builder"), "channels:manage")).toBe(false);
+    expect(can({ kind: "api_key", keyId: "k", tenantId: "t", scopes: new Set(["channels:manage"]) }, "channels:manage")).toBe(false);
   });
 });

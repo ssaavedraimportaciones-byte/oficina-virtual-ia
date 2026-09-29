@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   "agents:publish",
   "analytics:read",
   "api_keys:manage",
+  "channels:manage",
   "members:manage",
   "billing:manage",
 ] as const;
@@ -32,9 +33,9 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   viewer: new Set<Permission>(["leads:read", "conversations:read", "agents:read", "analytics:read"]),
 };
 
-/** Una API key nunca puede administrar keys, miembros ni facturación. */
+/** Una API key nunca puede administrar keys, canales (tokens de terceros), miembros ni facturación. */
 export const API_KEY_FORBIDDEN: ReadonlySet<Permission> = new Set([
-  "api_keys:manage", "members:manage", "billing:manage",
+  "api_keys:manage", "channels:manage", "members:manage", "billing:manage",
 ]);
 
 export type Principal =

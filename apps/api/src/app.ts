@@ -3,6 +3,7 @@ import { withTenant } from "@pronex/db";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool, PoolClient } from "pg";
 import { authenticate, HttpError, sendError, type Identity } from "./auth.js";
+import { registerChannelRoutes, type ChannelDeps } from "./channels/routes.js";
 import { DEFAULT_RATE_LIMITS, type RateLimiter, type RateLimitPolicy, type RateLimitRule } from "./rate-limit.js";
 
 declare module "fastify" {
@@ -23,6 +24,8 @@ export interface AppDeps {
   verifyOidc: OidcVerifier;
   rateLimiter: RateLimiter;
   rateLimits?: RateLimitPolicy & { perIp: RateLimitRule };
+  /** WhatsApp y bandeja. Si falta, esas rutas no se registran. */
+  channels?: ChannelDeps;
   logger?: boolean;
 }
 
@@ -40,7 +43,7 @@ async function audit(c: PoolClient, p: Principal, action: string, target: string
 }
 
 export function buildApp({
-  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, logger = false,
+  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, channels, logger = false,
 }: AppDeps): FastifyInstance {
   const app = Fastify({
     logger: logger && { redact: ["req.headers.authorization"] },
@@ -228,6 +231,8 @@ export function buildApp({
     if (!revoked) throw new HttpError(404, "not_found");
     return reply.status(204).send();
   });
+
+  if (channels) registerChannelRoutes(app, pool, channels, audit);
 
   return app;
 }

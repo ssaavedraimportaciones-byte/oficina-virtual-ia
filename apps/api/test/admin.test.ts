@@ -136,3 +136,18 @@ describe("probar el agente sin WhatsApp", () => {
     expect(inbox.json().data).toEqual([]);
   });
 });
+
+describe("casos dorados del agente de ejemplo", () => {
+  it("se pueden borrar con la API key (para reemplazarlos por los del negocio)", async () => {
+    const auth = { authorization: `Bearer ${tenant.apiKey}` };
+    const list = (await app.inject({ url: `/v1/agents/${tenant.agentId}/golden-cases`, headers: auth })).json().data;
+    for (const gc of list) {
+      expect((await app.inject({ method: "DELETE", url: `/v1/agents/${tenant.agentId}/golden-cases/${gc.id}`, headers: auth })).statusCode).toBe(204);
+    }
+    expect((await app.inject({ url: `/v1/agents/${tenant.agentId}/golden-cases`, headers: auth })).json().data).toEqual([]);
+    expect((await app.inject({ method: "DELETE", url: `/v1/agents/${tenant.agentId}/golden-cases/${list[0].id}`, headers: auth })).statusCode).toBe(404);
+    // Sin casos, una versión nueva se publica sin evaluación previa.
+    const v2 = (await app.inject({ method: "POST", url: `/v1/agents/${tenant.agentId}/versions`, headers: auth, payload: { prompt: "Mi negocio: ..." } })).json().id;
+    expect((await app.inject({ method: "POST", url: `/v1/agents/${tenant.agentId}/publish`, headers: auth, payload: { versionId: v2 } })).statusCode).toBe(200);
+  });
+});

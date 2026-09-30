@@ -96,6 +96,9 @@ Los tests **borran y recrean** el esquema de la base indicada en `DATABASE_URL`:
 | POST / GET | /v1/agents | agents:write / agents:read |
 | GET / POST | /v1/agents/:id/versions | agents:read / agents:write (hereda y reporta cambios) |
 | GET / POST | /v1/agents/:id/golden-cases | agents:read / agents:write |
+| DELETE | /v1/agents/:id/golden-cases/:caseId | agents:write |
+| POST | /v1/agents/:id/versions/:versionId/try | agents:write (probar con Claude sin WhatsApp) |
+| POST | /admin/tenants · /admin/tenants/:id/channels/whatsapp | header `x-admin-token` = PRONEX_ADMIN_TOKEN (operador) |
 | POST | /v1/agents/:id/versions/:versionId/evaluate | agents:write (corre los casos dorados con Claude) |
 | POST | /v1/agents/:id/publish | agents:publish (gate de evaluación; `canaryPercent` opcional; `force` solo owner) |
 | POST | /v1/agents/:id/promote-canary | agents:publish |

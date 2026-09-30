@@ -189,6 +189,19 @@ export function registerAgentRoutes(app: FastifyInstance, pool: Pool, audit: Aud
     return { data: rows };
   });
 
+  app.delete<{ Params: { id: string; caseId: string } }>("/v1/agents/:id/golden-cases/:caseId", {
+    config: { permission: "agents:write" }, schema: { params: uuidParams("id", "caseId") },
+  }, async (req, reply) => {
+    const p = req.principal!;
+    const deleted = await withTenant(pool, p.tenantId, async (c) => {
+      const r = await c.query("delete from golden_cases where id = $1 and agent_id = $2 returning name", [req.params.caseId, req.params.id]);
+      if (r.rowCount) await audit(c, p, "agent.golden_case.delete", req.params.caseId, { name: r.rows[0].name });
+      return r.rowCount;
+    });
+    if (!deleted) throw new HttpError(404, "golden_case_not_found");
+    return reply.status(204).send();
+  });
+
   /** Corre los casos dorados contra una versión (llama al modelo real: tiene costo). */
   app.post<{ Params: { id: string; versionId: string } }>("/v1/agents/:id/versions/:versionId/evaluate", {
     config: { permission: "agents:write" }, schema: { params: uuidParams("id", "versionId") },

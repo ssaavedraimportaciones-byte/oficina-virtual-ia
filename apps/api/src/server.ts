@@ -54,7 +54,7 @@ const app = buildApp({
         secretBox: new SecretBox(required("PRONEX_SECRET_KEY")),
         dispatcher,
         whatsapp: {
-          client: new WhatsAppClient({ graphVersion: process.env.META_GRAPH_VERSION }),
+          client: new WhatsAppClient({ graphVersion: process.env.META_GRAPH_VERSION, baseUrl: process.env.META_GRAPH_BASE_URL || undefined }),
           appSecret: required("META_APP_SECRET"),
           verifyToken: required("WHATSAPP_VERIFY_TOKEN"),
         },

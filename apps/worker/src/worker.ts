@@ -16,7 +16,7 @@ function required(name: string): string {
 
 const pool = new pg.Pool({ connectionString: required("APP_DATABASE_URL"), max: 10 });
 const secretBox = new SecretBox(required("PRONEX_SECRET_KEY"));
-const whatsapp = new WhatsAppClient({ graphVersion: process.env.META_GRAPH_VERSION });
+const whatsapp = new WhatsAppClient({ graphVersion: process.env.META_GRAPH_VERSION, baseUrl: process.env.META_GRAPH_BASE_URL || undefined });
 
 // Credenciales de Anthropic: ANTHROPIC_API_KEY (o un perfil de `ant auth login`).
 activities.configureActivities({

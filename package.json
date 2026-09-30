@@ -5,6 +5,10 @@
   "scripts": {
     "test": "pnpm -r --workspace-concurrency=1 test",
     "typecheck": "pnpm -r typecheck",
-    "db:migrate": "pnpm --filter @pronex/db migrate"
+    "db:migrate": "pnpm --filter @pronex/db migrate",
+    "local:setup": "pnpm --filter @pronex/local run setup",
+    "local:dev": "pnpm --filter @pronex/local run dev",
+    "local:chat": "pnpm --filter @pronex/local run chat",
+    "local:whatsapp": "pnpm --filter @pronex/local run whatsapp"
   }
 }

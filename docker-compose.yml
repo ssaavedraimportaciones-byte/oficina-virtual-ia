@@ -1,0 +1,40 @@
+# Pronex · servicios locales para desarrollo
+#   docker compose up -d        → levanta Postgres, Redis y Temporal
+#   docker compose down         → los detiene (los datos quedan en volúmenes)
+#   docker compose down -v      → los detiene y BORRA los datos
+#
+# Puertos poco comunes a propósito, para no chocar con servicios que ya tengas instalados.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pronex
+    ports: ["55432:5432"]
+    volumes: [pronex-pg:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7
+    ports: ["56379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 20
+
+  # Servidor de desarrollo de Temporal (interfaz web en http://localhost:8233).
+  # Guarda su estado en memoria (suficiente para desarrollo). Si lo reinicias en
+  # medio de una respuesta, esa conversación se retoma con el siguiente mensaje
+  # del cliente; los mensajes que nunca llegaron a Temporal los re-despacha la API.
+  temporal:
+    image: temporalio/temporal:latest
+    command: ["server", "start-dev", "--ip", "0.0.0.0"]
+    ports: ["7233:7233", "8233:8233"]
+
+volumes:
+  pronex-pg:

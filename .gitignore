@@ -3,3 +3,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Entorno local
+.pronex-local.json

@@ -1,0 +1,24 @@
+{
+  "name": "@pronex/local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "tsx src/setup.ts",
+    "dev": "tsx src/dev.ts",
+    "chat": "tsx src/chat.ts",
+    "whatsapp": "tsx src/connect-whatsapp.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pronex/auth": "workspace:*",
+    "@pronex/db": "workspace:*",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

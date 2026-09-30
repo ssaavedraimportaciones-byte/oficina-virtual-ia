@@ -6,6 +6,8 @@ Plataforma abierta de agentes de IA omnicanal (WhatsApp, voz, email, SMS, Instag
 
 ## Documentación
 
+- **[LOCAL.md](LOCAL.md) — cómo levantar Pronex en tu PC y conversar con el agente (empieza aquí).**
+
 - [docs/PRD.md](docs/PRD.md) — producto, requisitos, seguridad, precios, roadmap.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — arquitectura, decisiones, auditoría de 12 capas, orden de construcción.
 
@@ -21,6 +23,8 @@ packages/
   channels/      Mensaje canónico y adaptador de WhatsApp Cloud API
   messaging/     Ingesta idempotente de mensajes, envío con reglas (handoff, ventana 24 h) y outbox
   agent/         Runtime del agente: bucle con herramientas sobre Claude, presupuestos y reanudación
+tools/
+  local/         Kit local: setup con datos de ejemplo, arranque conjunto y simulador de WhatsApp
 docs/            PRD y arquitectura
 ```
 
@@ -32,8 +36,8 @@ docs/            PRD y arquitectura
 | 2 | Gateway de auth (OIDC, API keys con scopes, RBAC) | ✅ |
 | 3 | Canal WhatsApp end-to-end con idempotencia | ✅ |
 | 4 | Runtime del agente sobre Temporal | ✅ |
-| 5 | Guardrail síncrono con benchmark de latencia | ⏳ |
-| 6 | Versionado de prompts + conversaciones doradas | ⏳ |
+| 5 | Guardrail síncrono con benchmark de latencia | ✅ |
+| 6 | Versionado de prompts + conversaciones doradas | ✅ |
 
 ## Desarrollo
 
@@ -89,6 +93,14 @@ Los tests **borran y recrean** el esquema de la base indicada en `DATABASE_URL`:
 | GET | /v1/conversations/:id/messages | conversations:read |
 | POST | /v1/conversations/:id/messages | conversations:write (texto o plantilla; toma la conversación) |
 | POST | /v1/conversations/:id/release | conversations:write (devuelve la conversación al agente) |
+| POST / GET | /v1/agents | agents:write / agents:read |
+| GET / POST | /v1/agents/:id/versions | agents:read / agents:write (hereda y reporta cambios) |
+| GET / POST | /v1/agents/:id/golden-cases | agents:read / agents:write |
+| POST | /v1/agents/:id/versions/:versionId/evaluate | agents:write (corre los casos dorados con Claude) |
+| POST | /v1/agents/:id/publish | agents:publish (gate de evaluación; `canaryPercent` opcional; `force` solo owner) |
+| POST | /v1/agents/:id/promote-canary | agents:publish |
+| POST | /v1/agents/:id/rollback | agents:publish (inmediato) |
+| POST | /v1/channels/:id/agent | channels:manage (qué agente atiende el número) |
 | GET / POST | /webhooks/whatsapp | público, verificado por firma de Meta |
 
 ## WhatsApp
@@ -145,3 +157,26 @@ Garantías (cada una con test, y las principales verificadas inyectando la falla
 | Inyección de instrucciones | Las reglas de plataforma declaran los mensajes del cliente como datos, no instrucciones |
 
 Herramientas disponibles: `handoff_to_human`, `update_lead`.
+
+## Guardrail (revisión antes de enviar)
+
+Cada respuesta escrita por el modelo pasa por reglas deterministas antes de salir por WhatsApp (`packages/agent/src/guardrail.ts`):
+
+| Regla | Acción |
+|---|---|
+| Monto que no está en las instrucciones del negocio | bloquea (si solo lo dijo el cliente: advertencia) |
+| Email, teléfono o RUT que no son del cliente ni del negocio | bloquea |
+| Número de tarjeta válido (Luhn) | bloquea siempre |
+| Fragmentos literales de las reglas internas | bloquea |
+| Respuesta muy larga o con formato markdown | advertencia |
+| Mensaje del cliente con intento de manipulación | advertencia |
+
+Un bloqueo reemplaza la respuesta por un aviso al cliente y pasa la conversación a una persona. Cada hallazgo queda en `guardrail_events`. Medido: 21/21 ataques bloqueados, 0/20 falsos positivos, **p95 = 0,23 ms** con 2.000 respuestas (meta: 150 ms).
+
+## Versiones y conversaciones doradas
+
+- Las versiones de un agente son **inmutables** (trigger en la BD): cambiar algo = versión nueva.
+- Atiende la versión **publicada**; opcionalmente una **canary** para un % de conversaciones. El reparto es estable: una conversación no cambia de versión entre mensajes.
+- **Conversaciones doradas**: casos con mensajes del cliente y expectativas (debe/no debe decir, si debe pasar a una persona, costo máximo). Se ejecutan con el runtime real, incluido el guardrail, en conversaciones de prueba que no aparecen en la bandeja.
+- **Gate de publicación**: si el agente tiene casos dorados, la versión debe haberlos pasado. Solo el owner puede forzar, y queda auditado.
+- **Rollback** inmediato, también para conversaciones en curso. Un turno que ya había empezado termina con la versión con que empezó.

@@ -401,3 +401,25 @@ describe('conectar canales en multi-empresa', () => {
     expect(missing.subscribed).toBe(false)
   })
 })
+
+describe('disponibilidad por franja horaria', () => {
+  it('hora_desde deja ver los horarios de la tarde (antes solo aparecían los primeros 12, de mañana)', async () => {
+    const business = await newBusiness()
+    await store.addService({ businessId: business.id, name: 'Semi', durationMinutes: 60, price: '$1' })
+    const conversation = await store.createConversation({
+      businessId: business.id, channel: 'whatsapp', contactName: 'Ana', contactHandle: randomUUID(),
+    })
+    const ctx = { business, conversation }
+    const monday = '2099-01-05' // lunes
+
+    const sinFiltro = await runAgentTool(ctx, 'consultar_disponibilidad', { servicio: 'Semi', desde: monday })
+    expect(sinFiltro).toContain('09:00')
+    expect(sinFiltro).not.toContain('16:00')
+
+    const tarde = await runAgentTool(ctx, 'consultar_disponibilidad', { servicio: 'Semi', desde: monday, hora_desde: '14:00' })
+    expect(tarde).toContain('14:00')
+    expect(tarde).toContain('16:30')
+    expect(tarde).not.toContain('09:00')
+    expect(tarde).not.toContain('13:30')
+  })
+})

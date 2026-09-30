@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool, PoolClient } from "pg";
 import { authenticate, HttpError, sendError, type Identity } from "./auth.js";
 import type { ModelClient } from "@pronex/agent";
+import { registerAdminRoutes } from "./admin.js";
 import { registerAgentRoutes } from "./agents.js";
 import { registerChannelRoutes, registerInboxRoutes, type ChannelDeps } from "./channels/routes.js";
 import { DEFAULT_RATE_LIMITS, type RateLimiter, type RateLimitPolicy, type RateLimitRule } from "./rate-limit.js";
@@ -30,6 +31,8 @@ export interface AppDeps {
   channels?: ChannelDeps;
   /** Modelo para correr evaluaciones de casos dorados desde la API. */
   agentModel?: ModelClient;
+  /** Token del operador de la plataforma para /admin/*. Sin él, esas rutas no existen. */
+  adminToken?: string;
   logger?: boolean;
 }
 
@@ -47,7 +50,7 @@ async function audit(c: PoolClient, p: Principal, action: string, target: string
 }
 
 export function buildApp({
-  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, channels, agentModel, logger = false,
+  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, channels, agentModel, adminToken, logger = false,
 }: AppDeps): FastifyInstance {
   const app = Fastify({
     logger: logger && { redact: ["req.headers.authorization"] },
@@ -239,6 +242,7 @@ export function buildApp({
   registerInboxRoutes(app, pool, audit);
   if (channels) registerChannelRoutes(app, pool, channels, audit);
   registerAgentRoutes(app, pool, audit, agentModel);
+  if (adminToken) registerAdminRoutes(app, pool, { token: adminToken, secretBox: channels?.secretBox, rateLimiter });
 
   return app;
 }

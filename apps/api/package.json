@@ -19,14 +19,14 @@
     "@temporalio/client": "^1.24.0",
     "fastify": "^5.12.5",
     "ioredis": "^6.0.0",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
     "@types/node": "^26.6.3",
     "@types/pg": "^8.23.1",
     "jose": "^6.2.12",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
   }

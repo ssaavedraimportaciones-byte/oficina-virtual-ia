@@ -5,3 +5,4 @@ export * from "./tools.js";
 export * from "./runtime.js";
 export * from "./guardrail.js";
 export * from "./golden.js";
+export * from "./demo.js";

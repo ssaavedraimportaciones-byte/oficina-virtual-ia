@@ -10,7 +10,7 @@ import { existsSync } from "node:fs";
 import { generateApiKey, SecretBox } from "@pronex/auth";
 import { migrate, withTenant } from "@pronex/db";
 import pg from "pg";
-import { DEMO_AGENT_NAME, DEMO_GOLDEN_CASES, DEMO_PROMPT } from "./demo.js";
+import { DEMO_AGENT_NAME, DEMO_GOLDEN_CASES, DEMO_PROMPT } from "@pronex/agent";
 import { ensureEnvFile, loadEnv, need, readState, STATE_FILE, writeState } from "./env.js";
 
 const API_KEY_SCOPES = [

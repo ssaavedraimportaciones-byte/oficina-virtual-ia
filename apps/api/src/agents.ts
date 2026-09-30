@@ -1,4 +1,4 @@
-import { runGoldenSuite, TOOLS, type ModelClient } from "@pronex/agent";
+import { runGoldenCase, runGoldenSuite, TOOLS, type ModelClient } from "@pronex/agent";
 import type { Principal } from "@pronex/auth";
 import { withTenant } from "@pronex/db";
 import type { FastifyInstance } from "fastify";
@@ -203,6 +203,29 @@ export function registerAgentRoutes(app: FastifyInstance, pool: Pool, audit: Aud
     if (count === 0) throw new HttpError(409, "no_golden_cases");
     if (count > 25) throw new HttpError(409, "too_many_golden_cases");
     return runGoldenSuite({ pool, model }, { tenantId: p.tenantId, agentId: req.params.id, versionId: req.params.versionId });
+  });
+
+  /**
+   * Prueba una versión con Claude sin WhatsApp: simula una conversación con los
+   * mensajes dados y devuelve lo que el agente respondería (con guardrail incluido).
+   * No toca la bandeja ni envía nada; el costo cuenta para el presupuesto diario.
+   */
+  app.post<{ Params: { id: string; versionId: string }; Body: { messages: string[] } }>("/v1/agents/:id/versions/:versionId/try", {
+    config: { permission: "agents:write" },
+    schema: {
+      params: uuidParams("id", "versionId"),
+      body: {
+        type: "object", required: ["messages"], additionalProperties: false,
+        properties: { messages: { type: "array", minItems: 1, maxItems: 10, items: { type: "string", minLength: 1, maxLength: 2000 } } },
+      },
+    },
+  }, async (req) => {
+    if (!model) throw new HttpError(503, "model_not_configured");
+    const p = req.principal!;
+    await withTenant(pool, p.tenantId, (c) => versionOf(c, req.params.id, req.params.versionId));
+    const r = await runGoldenCase({ pool, model }, { tenantId: p.tenantId, agentId: req.params.id, versionId: req.params.versionId },
+      { name: "prueba", turns: req.body.messages, expectations: {} });
+    return { replies: r.replies, statuses: r.statuses, handoff: r.handoff, costUsd: r.costUsd };
   });
 
   // --- Publicación ---------------------------------------------------------------

@@ -40,6 +40,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.129.0
@@ -53,9 +56,6 @@ importers:
       jose:
         specifier: ^6.2.12
         version: 6.2.12
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -98,6 +98,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.129.0
@@ -111,9 +114,6 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -188,6 +188,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
     devDependencies:
       '@types/node':
         specifier: ^26.6.3
@@ -195,9 +198,6 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -232,6 +232,9 @@ importers:
 
   tools/local:
     dependencies:
+      '@pronex/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@pronex/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -241,6 +244,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
     devDependencies:
       '@types/node':
         specifier: ^26.6.3
@@ -248,9 +254,6 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

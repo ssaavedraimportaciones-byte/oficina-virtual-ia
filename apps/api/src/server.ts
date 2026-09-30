@@ -40,6 +40,7 @@ const app = buildApp({
   verifyOidc,
   rateLimiter,
   logger: true,
+  adminToken: process.env.PRONEX_ADMIN_TOKEN || undefined,
   // Evaluaciones de casos dorados (credenciales: ANTHROPIC_API_KEY o `ant auth login`).
   agentModel: (() => {
     try {

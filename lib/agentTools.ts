@@ -57,6 +57,11 @@ export const AGENDA_TOOLS: LlmTool[] = [
           type: 'string',
           description: 'Fecha inicial en formato YYYY-MM-DD. Si no la sabés, usá la fecha de hoy.',
         },
+        hora_desde: {
+          type: 'string',
+          description:
+            'Opcional, HH:mm (24 horas). Devuelve solo horarios desde esa hora. Usalo cuando el cliente pide un momento del día: "a la tarde" = 14:00, "a la noche" = 18:00.',
+        },
       },
       required: ['servicio'],
     },
@@ -140,7 +145,7 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
 async function runConsultarDisponibilidad(
   ctx: ToolContext,
-  input: { servicio?: string; desde?: string },
+  input: { servicio?: string; desde?: string; hora_desde?: string },
 ): Promise<string> {
   const services = await listServices(ctx.business.id)
   if (services.length === 0) {
@@ -155,6 +160,9 @@ async function runConsultarDisponibilidad(
   const now = businessNow()
   const from = input.desde && DATE_RE.test(input.desde) && input.desde >= now.date ? input.desde : now.date
   const appointments = await listAppointments(ctx.business.id)
+  // Sin este filtro el agente solo veía los primeros 12 horarios del día (todos
+  // de mañana) y no podía ofrecerle nada a quien pide "a la tarde".
+  const fromTime = input.hora_desde && TIME_RE.test(input.hora_desde) ? input.hora_desde : null
   const slots = getAvailableSlots(
     ctx.business.hours,
     appointments,
@@ -162,12 +170,14 @@ async function runConsultarDisponibilidad(
     from,
     // Dos semanas alcanzan para ofrecer opciones sin abrumar.
     addDays(from, 14),
-    12,
+    fromTime ? 400 : 12,
     now,
   )
+    .filter((slot) => !fromTime || slot.time >= fromTime)
+    .slice(0, 12)
 
   if (slots.length === 0) {
-    return `No hay horarios libres para "${service.name}" en las próximas dos semanas.`
+    return `No hay horarios libres para "${service.name}"${fromTime ? ` desde las ${fromTime}` : ''} en las próximas dos semanas.`
   }
 
   const grouped = slots.reduce<Record<string, string[]>>((acc, slot) => {
@@ -313,7 +323,10 @@ export async function runAgentTool(
 ): Promise<string> {
   try {
     if (name === 'consultar_disponibilidad') {
-      return await runConsultarDisponibilidad(ctx, input as { servicio?: string; desde?: string })
+      return await runConsultarDisponibilidad(
+        ctx,
+        input as { servicio?: string; desde?: string; hora_desde?: string },
+      )
     }
     if (name === 'agendar_turno') {
       return await runAgendarTurno(ctx, input as Parameters<typeof runAgendarTurno>[1])

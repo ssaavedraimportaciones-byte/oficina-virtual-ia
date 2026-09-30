@@ -2,6 +2,7 @@ import { createOidcVerifier, SecretBox } from "@pronex/auth";
 import { WhatsAppClient } from "@pronex/channels";
 import { Redis } from "ioredis";
 import pg from "pg";
+import { anthropicModelClient } from "@pronex/agent";
 import { buildApp } from "./app.js";
 import { sweepPendingInbound, type InboundDispatcher } from "@pronex/messaging";
 import { temporalDispatcher } from "@pronex/worker/dispatcher";
@@ -39,6 +40,15 @@ const app = buildApp({
   verifyOidc,
   rateLimiter,
   logger: true,
+  // Evaluaciones de casos dorados (credenciales: ANTHROPIC_API_KEY o `ant auth login`).
+  agentModel: (() => {
+    try {
+      return anthropicModelClient();
+    } catch (err) {
+      console.warn(`Sin credenciales de Anthropic: evaluaciones deshabilitadas (${(err as Error).message})`);
+      return undefined;
+    }
+  })(),
   channels: process.env.META_APP_SECRET
     ? {
         secretBox: new SecretBox(required("PRONEX_SECRET_KEY")),

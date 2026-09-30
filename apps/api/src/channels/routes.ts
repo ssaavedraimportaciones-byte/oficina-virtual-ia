@@ -118,34 +118,6 @@ export function registerChannelRoutes(app: FastifyInstance, pool: Pool, deps: Ch
       return reply.status(201).send(row);
     });
 
-  // --- Bandeja de conversaciones ----------------------------------------------
-
-  app.get("/v1/conversations", { config: { permission: "conversations:read" } }, async (req) => {
-    const { rows } = await withTenant(pool, req.principal!.tenantId, (c) =>
-      c.query(
-        `select c.id, c.channel, c.owner, c.status, c.last_inbound_at, c.created_at,
-                l.id as lead_id, l.full_name as lead_name, l.phone as lead_phone
-         from conversations c join leads l on l.tenant_id = c.tenant_id and l.id = c.lead_id
-         order by c.last_inbound_at desc nulls last limit 50`,
-      ),
-    );
-    return { data: rows };
-  });
-
-  app.get<{ Params: { id: string } }>("/v1/conversations/:id/messages", {
-    config: { permission: "conversations:read" },
-    schema: { params: { type: "object", properties: { id: { type: "string", format: "uuid" } } } },
-  }, async (req) => {
-    const { rows } = await withTenant(pool, req.principal!.tenantId, (c) =>
-      c.query(
-        `select id, direction, sender, body, status, created_at from messages
-         where conversation_id = $1 order by created_at, id`,
-        [req.params.id],
-      ),
-    );
-    return { data: rows };
-  });
-
   app.post<{ Params: { id: string }; Body: { text?: string; template?: { name: string; language: string; components?: unknown[] } } }>(
     "/v1/conversations/:id/messages", {
       config: { permission: "conversations:write" },
@@ -165,6 +137,38 @@ export function registerChannelRoutes(app: FastifyInstance, pool: Pool, deps: Ch
       });
       return reply.status(201).send(msg);
     });
+
+}
+
+/** Bandeja: lectura y liberación. No dependen de un canal conectado. */
+export function registerInboxRoutes(app: FastifyInstance, pool: Pool, audit: Audit) {
+
+  app.get("/v1/conversations", { config: { permission: "conversations:read" } }, async (req) => {
+    const { rows } = await withTenant(pool, req.principal!.tenantId, (c) =>
+      c.query(
+        `select c.id, c.channel, c.owner, c.status, c.last_inbound_at, c.created_at,
+                l.id as lead_id, l.full_name as lead_name, l.phone as lead_phone
+         from conversations c join leads l on l.tenant_id = c.tenant_id and l.id = c.lead_id
+         where not c.is_sandbox
+         order by c.last_inbound_at desc nulls last limit 50`,
+      ),
+    );
+    return { data: rows };
+  });
+
+  app.get<{ Params: { id: string } }>("/v1/conversations/:id/messages", {
+    config: { permission: "conversations:read" },
+    schema: { params: { type: "object", properties: { id: { type: "string", format: "uuid" } } } },
+  }, async (req) => {
+    const { rows } = await withTenant(pool, req.principal!.tenantId, (c) =>
+      c.query(
+        `select id, direction, sender, body, status, created_at from messages
+         where conversation_id = $1 order by created_at, id`,
+        [req.params.id],
+      ),
+    );
+    return { data: rows };
+  });
 
   /** Devuelve la conversación al agente (libera el lock de handoff). */
   app.post<{ Params: { id: string } }>("/v1/conversations/:id/release", {

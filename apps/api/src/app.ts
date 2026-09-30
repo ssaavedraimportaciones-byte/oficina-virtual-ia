@@ -3,7 +3,9 @@ import { withTenant } from "@pronex/db";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool, PoolClient } from "pg";
 import { authenticate, HttpError, sendError, type Identity } from "./auth.js";
-import { registerChannelRoutes, type ChannelDeps } from "./channels/routes.js";
+import type { ModelClient } from "@pronex/agent";
+import { registerAgentRoutes } from "./agents.js";
+import { registerChannelRoutes, registerInboxRoutes, type ChannelDeps } from "./channels/routes.js";
 import { DEFAULT_RATE_LIMITS, type RateLimiter, type RateLimitPolicy, type RateLimitRule } from "./rate-limit.js";
 
 declare module "fastify" {
@@ -26,6 +28,8 @@ export interface AppDeps {
   rateLimits?: RateLimitPolicy & { perIp: RateLimitRule };
   /** WhatsApp y bandeja. Si falta, esas rutas no se registran. */
   channels?: ChannelDeps;
+  /** Modelo para correr evaluaciones de casos dorados desde la API. */
+  agentModel?: ModelClient;
   logger?: boolean;
 }
 
@@ -43,7 +47,7 @@ async function audit(c: PoolClient, p: Principal, action: string, target: string
 }
 
 export function buildApp({
-  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, channels, logger = false,
+  pool, verifyOidc, rateLimiter, rateLimits = { ...DEFAULT_RATE_LIMITS, perIp: DEFAULT_PER_IP }, channels, agentModel, logger = false,
 }: AppDeps): FastifyInstance {
   const app = Fastify({
     logger: logger && { redact: ["req.headers.authorization"] },
@@ -232,7 +236,9 @@ export function buildApp({
     return reply.status(204).send();
   });
 
+  registerInboxRoutes(app, pool, audit);
   if (channels) registerChannelRoutes(app, pool, channels, audit);
+  registerAgentRoutes(app, pool, audit, agentModel);
 
   return app;
 }

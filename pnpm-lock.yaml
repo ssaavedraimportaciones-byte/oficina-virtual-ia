@@ -10,6 +10,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@pronex/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@pronex/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -38,6 +41,9 @@ importers:
         specifier: ^8.23.0
         version: 8.23.0
     devDependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.129.0
+        version: 0.129.0
       '@types/node':
         specifier: ^26.6.3
         version: 26.6.3

@@ -70,6 +70,7 @@ async function seed(opts: { tools?: string[]; maxSteps?: number; budget?: number
        values ($1, $2, 1, 'Vendes el plan Pro a USD 49/mes.', 'claude-opus-5-5', $3, $4, $5) returning id`,
       [tenantId, agentId, JSON.stringify(opts.tools ?? ["handoff_to_human", "update_lead"]), opts.maxSteps ?? 6, opts.budget ?? 0.5],
     )).rows[0].id;
+    await c.query("update agents set published_version_id = $2 where id = $1", [agentId, versionId]);
     await c.query(
       `insert into channel_accounts (tenant_id, workspace_id, channel, external_id, credentials_enc, agent_id)
        values ($1, $2, 'whatsapp', $3, $4, $5)`,

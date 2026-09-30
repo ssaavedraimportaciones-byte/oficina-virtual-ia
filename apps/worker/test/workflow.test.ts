@@ -68,10 +68,11 @@ async function seed() {
     await c.query("insert into tenants (id, name) values ($1, 'PyME')", [tenantId]);
     const ws = (await c.query("insert into workspaces (tenant_id, name) values ($1, 'main') returning id", [tenantId])).rows[0].id;
     const agent = (await c.query("insert into agents (tenant_id, workspace_id, name) values ($1, $2, 'Ventas') returning id", [tenantId, ws])).rows[0].id;
-    await c.query(
-      `insert into agent_versions (tenant_id, agent_id, version, prompt, model, tools) values ($1, $2, 1, 'Vendes planes.', 'claude-opus-5-5', '[]')`,
+    const version = (await c.query(
+      `insert into agent_versions (tenant_id, agent_id, version, prompt, model, tools) values ($1, $2, 1, 'Vendes planes.', 'claude-opus-5-5', '[]') returning id`,
       [tenantId, agent],
-    );
+    )).rows[0].id;
+    await c.query("update agents set published_version_id = $2 where id = $1", [agent, version]);
     await c.query(
       `insert into channel_accounts (tenant_id, workspace_id, channel, external_id, credentials_enc, agent_id)
        values ($1, $2, 'whatsapp', $3, $4, $5)`,

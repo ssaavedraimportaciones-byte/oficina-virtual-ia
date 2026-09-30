@@ -52,6 +52,7 @@ interface Run {
 
 interface Conversation {
   id: string;
+  pinned_version_id: string | null;
   status: string;
   owner: "agent" | "human";
   lead_id: string;
@@ -94,7 +95,7 @@ type Begin =
 
 async function beginTurn(c: PoolClient, input: TurnInput): Promise<Begin> {
   const { rows: [conv] } = await c.query<Conversation>(
-    `select c.id, c.status, c.owner, c.lead_id, c.agent_id, l.full_name as lead_name, l.phone as lead_phone
+    `select c.id, c.status, c.owner, c.lead_id, c.agent_id, c.pinned_version_id, l.full_name as lead_name, l.phone as lead_phone
      from conversations c join leads l on l.tenant_id = c.tenant_id and l.id = c.lead_id
      where c.id = $1 for update of c`,
     [input.conversationId],
@@ -102,13 +103,15 @@ async function beginTurn(c: PoolClient, input: TurnInput): Promise<Begin> {
   const nothing = { kind: "done", outcome: { status: "nothing_to_do", runId: null } } as const;
   if (!conv || conv.status !== "open") return nothing;
 
-  const version = conv.agent_id ? await latestVersion(c, conv.agent_id) : null;
-
-  // ¿Hay un turno a medio camino (crash, reintento)? Se retoma tal cual.
-  const { rows: [running] } = await c.query<Run>(
-    "select id, steps, handoff_reason, reply_message_id from agent_runs where conversation_id = $1 and status = 'running'",
+  // ¿Hay un turno a medio camino (crash, reintento)? Se retoma tal cual, con su versión.
+  const { rows: [running] } = await c.query<Run & { agent_version_id: string | null }>(
+    `select id, steps, handoff_reason, reply_message_id, agent_version_id
+     from agent_runs where conversation_id = $1 and status = 'running'`,
     [conv.id],
   );
+  const version = running?.agent_version_id
+    ? await versionById(c, running.agent_version_id)
+    : await resolveVersion(c, conv);
   if (running && version) {
     const { rows: [own] } = await c.query<{ n: number }>(
       "select count(*)::int as n from agent_transcripts where run_id = $1", [running.id],
@@ -187,11 +190,28 @@ async function beginTurn(c: PoolClient, input: TurnInput): Promise<Begin> {
   return { kind: "run", run, version, conversation: conv };
 }
 
-async function latestVersion(c: PoolClient, agentId: string): Promise<Version | null> {
+/**
+ * Versión que atiende la conversación: la fijada (evals), la canary para un % estable
+ * de conversaciones (mismo hash → siempre el mismo lado) o la publicada. Sin versión
+ * publicada, el agente no responde.
+ */
+async function resolveVersion(c: PoolClient, conv: Conversation): Promise<Version | null> {
+  if (conv.pinned_version_id) return versionById(c, conv.pinned_version_id);
+  if (!conv.agent_id) return null;
+  const { rows: [pick] } = await c.query<{ id: string | null }>(
+    `select case
+       when canary_version_id is not null and mod(abs(hashtext($2::text)), 100) < canary_percent then canary_version_id
+       else published_version_id end as id
+     from agents where id = $1`,
+    [conv.agent_id, conv.id],
+  );
+  return pick?.id ? versionById(c, pick.id) : null;
+}
+
+async function versionById(c: PoolClient, id: string): Promise<Version | null> {
   const { rows: [v] } = await c.query<Version>(
-    `select id, prompt, model, tools, effort, max_steps, conversation_budget_usd
-     from agent_versions where agent_id = $1 order by version desc limit 1`,
-    [agentId],
+    `select id, prompt, model, tools, effort, max_steps, conversation_budget_usd from agent_versions where id = $1`,
+    [id],
   );
   if (!v) return null;
   return { ...v, tools: Array.isArray(v.tools) ? v.tools.filter((t): t is string => typeof t === "string") : [] };

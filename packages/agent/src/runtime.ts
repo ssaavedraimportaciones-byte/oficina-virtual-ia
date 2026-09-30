@@ -3,6 +3,7 @@ import { withTenant } from "@pronex/db";
 import { AppError, type SendRequest } from "@pronex/messaging";
 import type { Pool, PoolClient } from "pg";
 import { fallbackParams, isRetryableModelError, type ModelClient } from "./model.js";
+import { checkReply } from "./guardrail.js";
 import { usageCost } from "./pricing.js";
 import { buildSystem, buildUserTurn, finalText, NO_REPLY_MARKER } from "./prompt.js";
 import { executeTool, toolDefinitionsFor, type TurnEffects } from "./tools.js";
@@ -237,7 +238,7 @@ async function driveTurn(
       // El modelo terminó: fase de entrega.
       if (last.stop_reason === "refusal") return finish(deps, input, run, "refused", null, "el modelo declinó responder");
       if (last.stop_reason === "max_tokens") return finish(deps, input, run, "failed", null, "respuesta truncada (max_tokens)");
-      return finish(deps, input, run, "replied", finalText(last.content), effects.handoffReason);
+      return finish(deps, input, run, "replied", finalText(last.content), effects.handoffReason, { businessFacts: version.prompt });
     }
 
     if (pendingTools.length > 0) {
@@ -293,9 +294,40 @@ async function driveTurn(
  */
 async function finish(
   deps: RuntimeDeps, input: TurnInput, run: Run, status: TurnStatus, reply: string | null, handoffReason: string | null,
+  guard?: { businessFacts: string },
 ): Promise<TurnOutcome> {
   const wantsHandoff = handoffReason !== null || status === "refused" || status === "failed" || status === "budget_exceeded";
   let text = reply && reply !== NO_REPLY_MARKER ? reply : null;
+
+  // Guardrail: toda respuesta escrita por el modelo se revisa antes de salir.
+  if (guard && text && !run.reply_message_id) {
+    const verdict = await withTenant(deps.pool, input.tenantId, async (c) => {
+      const { rows: [ctx] } = await c.query<{ customer: string | null; latest: string | null }>(
+        `select
+           (select string_agg(coalesce(body, ''), E'\n' order by created_at) from messages
+             where conversation_id = $1 and direction = 'inbound')
+           || E'\n' || coalesce((select concat_ws(' ', l.phone, l.email) from conversations c
+             join leads l on l.tenant_id = c.tenant_id and l.id = c.lead_id where c.id = $1), '') as customer,
+           (select string_agg(coalesce(body, ''), E'\n' order by created_at) from messages
+             where agent_run_id = $2) as latest`,
+        [input.conversationId, run.id],
+      );
+      const g = checkReply({
+        reply: text!, businessFacts: guard.businessFacts, customerText: ctx?.customer ?? "", latestInbound: ctx?.latest ?? undefined,
+      });
+      for (const f of g.findings) {
+        await c.query(
+          `insert into guardrail_events (tenant_id, conversation_id, rule, verdict, detail) values ($1, $2, $3, $4, $5)`,
+          [input.tenantId, input.conversationId, f.rule, f.verdict, { ...f.detail, runId: run.id, latencyMs: g.latencyMs }],
+        );
+      }
+      return g;
+    });
+    if (verdict.verdict === "block") {
+      text = HANDOFF_NOTICE;
+      handoffReason ??= `guardrail: ${verdict.findings.filter((f) => f.verdict === "block").map((f) => f.rule).join(", ")}`;
+    }
+  }
   // Si el agente se retira sin haber escrito nada propio, el cliente recibe un aviso.
   if (!text && wantsHandoff) text = HANDOFF_NOTICE;
 

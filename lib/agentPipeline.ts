@@ -1,6 +1,7 @@
 import { generateAgentReply } from './agentEngine'
 import { updateContactNotes } from './contactNotes'
 import { notifyNewConversation, notifyQuotaReached } from './notifications'
+import { getMaintenance } from './platform'
 import { rateLimit } from './rateLimit'
 import {
   appendIncomingMessage,
@@ -42,6 +43,8 @@ export type IncomingResult =
   | { status: 'paused'; conversation: Conversation }
   | { status: 'superseded'; conversation: Conversation }
   | { status: 'quota'; conversation: Conversation }
+  | { status: 'maintenance'; conversation: Conversation }
+  | { status: 'degraded'; conversation: Conversation }
   | { status: 'replied'; conversation: Conversation; reply: string }
 
 /**
@@ -100,16 +103,33 @@ export async function handleIncomingMessage(
     }
   }
 
+  /**
+   * Le manda al cliente un texto fijo, sin llamar a la IA, salvo que sea el
+   * mismo que ya recibió como último mensaje nuestro: no se repite en cada
+   * mensaje que escriba mientras tanto.
+   */
+  async function sendCanned(text: string): Promise<void> {
+    const lastFromUs = [...conversation.messages].reverse().find((m) => m.sender !== 'contact')
+    if (lastFromUs?.text === text) return
+    await deps.send(text)
+    conversation = await appendMessage(conversation.id, { sender: 'agent', text })
+  }
+
+  // Modo mantenimiento (lo prende el dueño de la plataforma): el agente no
+  // responde en ninguna empresa. Los mensajes se guardan igual y el cliente no
+  // queda en visto: recibe el aviso de mantenimiento.
+  const maintenance = await getMaintenance()
+  if (maintenance.enabled) {
+    await sendCanned(maintenance.message)
+    return { status: 'maintenance', conversation }
+  }
+
   // Cupo mensual de la empresa: si se agotó, no se llama a la IA (cuesta plata
   // de la plataforma). Al cliente no se lo deja en visto: recibe un aviso de
   // que una persona lo va a contestar, una sola vez, y el dueño recibe un mail.
   const usage = await getAgentUsage(business.id)
   if (usage.exceeded) {
-    const lastFromUs = [...conversation.messages].reverse().find((m) => m.sender !== 'contact')
-    if (lastFromUs?.text !== QUOTA_REPLY) {
-      await deps.send(QUOTA_REPLY)
-      conversation = await appendMessage(conversation.id, { sender: 'agent', text: QUOTA_REPLY })
-    }
+    await sendCanned(QUOTA_REPLY)
     const firstTime = await rateLimit(`quota:${business.id}:${usage.month}`, 1, 32 * 24 * 60 * 60 * 1000)
     if (firstTime.allowed) {
       defer(async () => {
@@ -127,12 +147,22 @@ export async function handleIncomingMessage(
     listServices(business.id),
     listProducts(business.id),
   ])
-  const reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
-    services,
-    products,
-    toolContext: { business, conversation },
-    contactNotes: conversation.notes,
-  })
+  let reply: string
+  try {
+    reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
+      services,
+      products,
+      toolContext: { business, conversation },
+      contactNotes: conversation.notes,
+    })
+  } catch (error) {
+    // La IA falló (caída del proveedor, sin saldo, límite de uso…). Antes el
+    // cliente se quedaba sin respuesta; ahora recibe el mensaje de contingencia
+    // y el error queda en los logs para quien administra la plataforma.
+    console.error('[pipeline] falló la IA, se responde con el mensaje de contingencia:', error)
+    await sendCanned((await getMaintenance()).message)
+    return { status: 'degraded', conversation }
+  }
 
   // Se guarda recién cuando salió: si el envío falla, en el panel no tiene
   // que figurar como contestado.

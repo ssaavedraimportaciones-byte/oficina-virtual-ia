@@ -266,3 +266,46 @@ describe('mensajes de error', () => {
     expect(p.describeError(new Error('credit balance is too low'))).toContain('no tiene saldo')
   })
 })
+
+describe('IA local o gratuita (compatible con OpenAI)', () => {
+  it('con OPENAI_BASE_URL alcanza para estar configurado: no hace falta clave', () => {
+    clearKeys()
+    process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
+    process.env.OPENAI_MODEL = 'qwen2.5:14b'
+    const status = providerStatus()
+    expect(status).toEqual({ configured: true, id: 'openai', model: 'qwen2.5:14b' })
+  })
+
+  it('habla con el servidor indicado y usa max_tokens, que todos entienden', async () => {
+    clearKeys()
+    process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
+    const { createOpenAiProvider } = await import('../llm/openai')
+    const OpenAI = (await import('openai')).default
+    let captured: any
+    vi.spyOn(OpenAI.Chat.Completions.prototype, 'create').mockImplementation((async (body: any) => {
+      captured = body
+      return { choices: [{ message: { content: 'hola' }, finish_reason: 'stop' }] }
+    }) as any)
+
+    const provider = createOpenAiProvider('')
+    await provider.complete({ system: 's', maxTokens: 50, messages: [{ role: 'user', text: 'hola' }] })
+
+    expect(captured.max_tokens).toBe(50)
+    expect(captured.max_completion_tokens).toBeUndefined()
+    expect(provider.describeError(new Error('fetch failed'))).toContain('localhost:11434')
+  })
+
+  it('sin OPENAI_BASE_URL sigue usando la API de OpenAI como antes', async () => {
+    clearKeys()
+    const { createOpenAiProvider } = await import('../llm/openai')
+    const OpenAI = (await import('openai')).default
+    let captured: any
+    vi.spyOn(OpenAI.Chat.Completions.prototype, 'create').mockImplementation((async (body: any) => {
+      captured = body
+      return { choices: [{ message: { content: 'hola' }, finish_reason: 'stop' }] }
+    }) as any)
+    await createOpenAiProvider('sk-test').complete({ system: 's', maxTokens: 50, messages: [] })
+    expect(captured.max_completion_tokens).toBe(50)
+    expect(captured.max_tokens).toBeUndefined()
+  })
+})

@@ -39,9 +39,20 @@ function toMessages(system: string, messages: LlmMessage[]): ChatMessage[] {
   return result
 }
 
+/**
+ * Con OPENAI_BASE_URL este proveedor habla con cualquier servidor compatible
+ * con la API de OpenAI: un modelo local (Ollama, LM Studio, vLLM) o un servicio
+ * en la nube con capa gratuita (Groq, Gemini, OpenRouter, Mistral…). La clave
+ * puede ser cualquier texto si el servidor no la pide.
+ */
 export function createOpenAiProvider(apiKey: string): LlmProvider {
-  const client = new OpenAI({ apiKey })
+  const baseURL = process.env.OPENAI_BASE_URL || undefined
+  const client = new OpenAI({ apiKey: apiKey || 'sin-clave', baseURL })
   const model = process.env.OPENAI_MODEL || DEFAULT_MODEL
+  // Los servidores compatibles entienden `max_tokens`; `max_completion_tokens`
+  // es más nuevo y no todos lo aceptan.
+  const limitParam = baseURL ? 'max_tokens' : 'max_completion_tokens'
+  const host = baseURL ? new URL(baseURL).host : 'api.openai.com'
 
   return {
     id: 'openai',
@@ -51,7 +62,7 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
       const system = request.context ? `${request.system}\n\n${request.context}` : request.system
       const response = await client.chat.completions.create({
         model,
-        max_completion_tokens: request.maxTokens,
+        [limitParam]: request.maxTokens,
         messages: toMessages(system, request.messages),
         ...(request.tools?.length
           ? {
@@ -96,7 +107,7 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
       const raw = error instanceof Error ? error.message : String(error)
 
       if (/not in allowlist|ENOTFOUND|ECONNREFUSED|fetch failed/i.test(raw)) {
-        return 'El servidor no puede conectarse a api.openai.com. Revisa la salida a internet o la política de red del hosting.'
+        return `El servidor no puede conectarse a ${host}. Revisa que esté encendido y accesible desde el hosting.`
       }
       if (status === 401) {
         return 'La API key de OpenAI es inválida. Revisa OPENAI_API_KEY.'

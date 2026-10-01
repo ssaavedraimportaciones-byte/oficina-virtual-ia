@@ -147,6 +147,13 @@ model Business {
 
   // Credenciales de canal. Los tokens se guardan cifrados (ver lib/secrets.ts)
   // antes de llegar acá: esta tabla nunca ve el texto plano.
+  /// Notas internas del dueño de la plataforma sobre esta empresa. Nunca se
+  /// muestran ni se envían al panel de la empresa (ver lib/platform.ts).
+  adminNotes String @default("")
+  /// Límite mensual de respuestas del agente fijado a mano para esta empresa.
+  /// null = vale el del plan.
+  replyLimitOverride Int?
+
   // Únicos: todos los números de todas las empresas llegan al mismo webhook y
   // se reparten por este ID; si dos empresas tuvieran el mismo, los mensajes
   // de una le llegarían a la otra.
@@ -318,4 +325,27 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
+}
+
+/// Aviso del dueño de la plataforma a sus clientes (mantenimiento, reparaciones,
+/// novedades). Se muestra como un banner en el panel mientras esté activo.
+model Announcement {
+  id        String   @id @default(uuid())
+  message   String
+  /// info | warning | maintenance
+  level     String   @default("info")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([active, createdAt])
+  @@map("announcements")
+}
+
+/// Ajustes globales de la plataforma (clave -> valor), p. ej. el modo mantenimiento.
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
 }

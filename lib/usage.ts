@@ -59,8 +59,10 @@ export interface AgentUsage {
 }
 
 export async function getAgentUsage(businessId: string, now: Date = new Date()): Promise<AgentUsage> {
-  const [plan, used] = await Promise.all([
+  const [plan, override, used] = await Promise.all([
     businessPlan(businessId),
+    // Límite fijado a mano por el dueño de la plataforma para esta empresa.
+    prisma.business.findUnique({ where: { id: businessId }, select: { replyLimitOverride: true } }),
     // Cuenta toda respuesta del agente, también las del simulador del panel:
     // las dos llaman a la IA y cuestan lo mismo.
     prisma.message.count({
@@ -71,7 +73,7 @@ export async function getAgentUsage(businessId: string, now: Date = new Date()):
       },
     }),
   ])
-  const limit = monthlyLimit(plan)
+  const limit = override?.replyLimitOverride ?? monthlyLimit(plan)
   return {
     plan,
     used,

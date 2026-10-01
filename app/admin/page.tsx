@@ -6,6 +6,7 @@ import { getIndustryTemplate } from '@/lib/industries'
 import { providerStatus } from '@/lib/llm'
 import { encryptionConfigured } from '@/lib/secrets'
 import LogoutButton from '../LogoutButton'
+import AdminNav from './AdminNav'
 import DeleteBusinessButton from './DeleteBusinessButton'
 import UsersSection from './UsersSection'
 
@@ -76,6 +77,8 @@ export default async function AdminPage() {
           <LogoutButton className="text-sm text-gray-500 hover:text-gray-300" />
         </div>
       </div>
+
+      <AdminNav active="/admin" />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-4">
         <Stat label="Negocios" value={overview.length} />

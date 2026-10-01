@@ -14,7 +14,8 @@ export function providerStatus(): {
 } {
   const preferred = process.env.LLM_PROVIDER
   const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY)
-  const hasOpenAi = Boolean(process.env.OPENAI_API_KEY)
+  // Con OPENAI_BASE_URL (modelo local o servicio compatible) no hace falta clave.
+  const hasOpenAi = Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.OPENAI_BASE_URL)
 
   if (preferred === 'openai' && hasOpenAi) {
     return { configured: true, id: 'openai', model: process.env.OPENAI_MODEL || 'gpt-4o' }
@@ -55,7 +56,7 @@ export function getProvider(): LlmProvider {
 
   cached =
     status.id === 'openai'
-      ? createOpenAiProvider(process.env.OPENAI_API_KEY as string)
+      ? createOpenAiProvider(process.env.OPENAI_API_KEY ?? '')
       : createAnthropicProvider(process.env.ANTHROPIC_API_KEY as string)
 
   return cached

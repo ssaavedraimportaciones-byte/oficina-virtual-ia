@@ -1,5 +1,6 @@
 import { getBusinessAnalytics } from '@/lib/store'
 import { formatPrice } from '@/lib/catalog'
+import { getAgentUsage } from '@/lib/usage'
 
 function Stat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
@@ -16,7 +17,7 @@ export default async function ResumenPage({
   params: Promise<{ businessId: string }>
 }) {
   const { businessId } = await params
-  const stats = await getBusinessAnalytics(businessId)
+  const [stats, usage] = await Promise.all([getBusinessAnalytics(businessId), getAgentUsage(businessId)])
 
   return (
     <div className="px-8 py-10">
@@ -28,6 +29,15 @@ export default async function ResumenPage({
         <Stat label="Abiertas ahora" value={stats.openConversations} accent={stats.openConversations > 0} />
         <Stat label="Mensajes totales" value={stats.messageCount} />
         <Stat label="Base de conocimiento" value={stats.knowledgeCount} />
+      </div>
+
+      <h2 className="mt-10 text-sm font-medium uppercase tracking-wide text-gray-500">Plan</h2>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat
+          label={`Respuestas del agente este mes (plan ${usage.plan === 'PRO' ? 'PRO' : 'gratis'})`}
+          value={usage.limit === null ? usage.used : `${usage.used} / ${usage.limit}`}
+          accent={usage.limit !== null && usage.used >= usage.limit * 0.8}
+        />
       </div>
 
       <h2 className="mt-10 text-sm font-medium uppercase tracking-wide text-gray-500">Agenda</h2>

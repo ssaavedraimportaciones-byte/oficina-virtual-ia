@@ -1,6 +1,9 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  // Igual que tsconfig: las rutas de la API importan '@/lib/...'.
+  resolve: { alias: { '@': fileURLToPath(new URL('.', import.meta.url)) } },
   test: {
     setupFiles: ['./lib/__tests__/setup.ts'],
     exclude: ['**/node_modules/**', '**/lib/generated/**'],

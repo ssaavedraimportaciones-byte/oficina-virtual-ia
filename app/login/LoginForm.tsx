@@ -4,7 +4,7 @@ import { BRAND } from '@/lib/brand'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function LoginForm() {
+export default function LoginForm({ signupOpen = false }: { signupOpen?: boolean }) {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -105,6 +105,11 @@ export default function LoginForm() {
       <a href="/olvide-password" className="text-center text-sm text-gray-500 hover:text-amber-400">
         ¿Olvidaste tu contraseña?
       </a>
+      {signupOpen && (
+        <a href="/registro" className="text-center text-sm text-gray-500 hover:text-amber-400">
+          ¿No tienes cuenta? Crea una
+        </a>
+      )}
     </form>
   )
 }

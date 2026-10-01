@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
+import { signupOpen } from '@/lib/signup'
 import LoginForm from './LoginForm'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +11,7 @@ export default async function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-8">
-      <LoginForm />
+      <LoginForm signupOpen={signupOpen()} />
     </div>
   )
 }

@@ -1,58 +1,61 @@
-const CHANNELS = ['WhatsApp', 'Instagram DM', 'Chat web', 'Email']
+import { BRAND } from '@/lib/brand'
+
+const CHANNELS = ['WhatsApp', 'Instagram DM', 'Agenda de turnos', 'Pedidos y stock']
 
 const FEATURES = [
   {
-    title: 'Responde en segundos, 24/7',
+    title: 'Responde al tiro, 24/7',
     description:
-      'El agente de IA contesta cada chat entrante al instante, sin horarios ni turnos, así el prospecto nunca se enfría esperando.',
+      'Contesta cada mensaje en segundos, de día, de noche y en feriados. El cliente que te escribe a las 11 de la noche no se enfría esperando.',
   },
   {
-    title: 'WhatsApp e Instagram unificados',
+    title: 'WhatsApp e Instagram en un solo lugar',
     description:
-      'Todos los canales donde ya te escriben tus clientes llegan a una sola bandeja. Sin mantener integraciones por separado.',
+      'Todas las conversaciones llegan a un mismo panel, con el historial de cada cliente. Cada negocio conecta su propio número o su propia cuenta.',
   },
   {
-    title: 'Calificación automática de leads',
+    title: 'Agenda turnos de verdad',
     description:
-      'El agente pregunta lo justo y necesario para saber si el prospecto sirve, y prioriza los que están listos para comprar.',
+      'Mira tu disponibilidad real, ofrece horarios y reserva sin pisar otros turnos. Se acabó el ir y venir por mensajes.',
   },
   {
-    title: 'Agenda reuniones solo',
+    title: 'Toma pedidos y cuida tu stock',
     description:
-      'Revisa la disponibilidad de tu equipo y coordina la reunión directamente en el chat, sin ida y vuelta manual.',
+      'Consulta el catálogo, confirma precio y disponibilidad, registra el pedido y descuenta el stock automáticamente.',
   },
   {
-    title: 'Reabre conversaciones frías',
+    title: 'Se acuerda de cada cliente',
     description:
-      'Detecta leads e hilos abandonados y vuelve a escribirles automáticamente para retomar la venta.',
+      'Arma una ficha con lo que cada persona va contando: qué busca, presupuesto, urgencia. Tu equipo la ve al tiro, sin releer la conversación.',
   },
   {
-    title: 'Entrega el lead tibio a tu equipo',
+    title: 'Te pasa el caso cuando hace falta',
     description:
-      'Cuando el prospecto está listo para cerrar, el agente pasa la conversación a un humano con todo el contexto, sin handoff manual.',
+      'Si el cliente se molesta o pide hablar con una persona, el agente se pausa y te avisa por mail. Tú respondes desde el panel y le devuelves la conversación cuando quieras.',
   },
 ]
 
 const STEPS = [
   {
     step: '01',
-    title: 'Conectá tus canales',
-    description: 'WhatsApp Business, Instagram, chat web o email, desde una misma configuración.',
+    title: 'Elige tu rubro',
+    description:
+      'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.',
   },
   {
     step: '02',
-    title: 'Definí tu agente',
-    description: 'Le contás a qué se dedica tu empresa, qué preguntar y cuándo escalar a un humano.',
+    title: 'Cárgale tu información',
+    description: 'Precios, horarios, servicios y productos. Es lo único que el agente puede afirmar, así que no inventa.',
   },
   {
     step: '03',
-    title: 'El agente conversa y califica',
-    description: 'Responde, pregunta y prioriza leads en tiempo real dentro del CRM.',
+    title: 'Conecta tus canales',
+    description: 'Tu WhatsApp Business o tu Instagram. Antes puedes probar al agente en el simulador.',
   },
   {
     step: '04',
-    title: 'Vos cerrás la venta',
-    description: 'Recibís el lead calificado y agendado, listo para que tu equipo lo cierre.',
+    title: 'Tú te dedicas a tu negocio',
+    description: 'El agente atiende. Tú recibes los turnos y pedidos ya registrados, y los casos que necesitan a una persona.',
   },
 ]
 
@@ -73,7 +76,7 @@ function Nav() {
   return (
     <header className="border-b border-gray-800">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <nav className="hidden items-center gap-8 text-sm text-gray-300 md:flex">
           <a href="#producto" className="hover:text-white">Producto</a>
           <a href="#funciones" className="hover:text-white">Funciones</a>
@@ -95,14 +98,15 @@ function Hero() {
   return (
     <section id="producto" className="mx-auto max-w-6xl px-6 py-24 text-center">
       <p className="mb-4 font-mono text-sm uppercase tracking-widest text-amber-400">
-        CRM con agentes de IA
+        {BRAND.tagline}
       </p>
       <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-tight text-white md:text-6xl">
-        Convertí cada chat en una venta
+        Tu cliente escribe. {BRAND.name} responde.
       </h1>
       <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
-        Un agente de IA que responde WhatsApp e Instagram al instante, califica a tus leads y agenda
-        reuniones por vos. Moldeable a cualquier empresa, sin importar el rubro.
+        Un agente de IA que atiende tu WhatsApp e Instagram al tiro, a cualquier hora: responde
+        dudas, agenda turnos, toma pedidos y te pasa el caso cuando hace falta una persona. Se
+        adapta a cualquier rubro.
       </p>
       <div className="mt-10 flex items-center justify-center gap-4">
         <a
@@ -138,11 +142,11 @@ function Features() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-14 text-center">
           <h2 className="text-3xl font-bold text-white md:text-4xl">
-            Un vendedor de IA que nunca duerme
+            Un vendedor que nunca deja a nadie en visto
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-            Deja de perder leads por demoras en responder. El agente hace el trabajo repetitivo,
-            tu equipo se queda con las conversaciones que ya están listas para cerrar.
+            Deja de perder clientes por demorarte en contestar. El agente se encarga de lo
+            repetitivo y tu equipo se queda con lo que de verdad necesita a una persona.
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -186,10 +190,10 @@ function Industries() {
   return (
     <section id="rubros" className="border-t border-gray-800 bg-gray-900/40 py-24">
       <div className="mx-auto max-w-6xl px-6 text-center">
-        <h2 className="text-3xl font-bold text-white md:text-4xl">Moldeable a toda empresa</h2>
+        <h2 className="text-3xl font-bold text-white md:text-4xl">Se adapta a tu negocio</h2>
         <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-          Elegís tu rubro y el agente arranca preconfigurado con el tono, las preguntas y el
-          proceso de venta que corresponde. Un mismo sistema para todos tus negocios.
+          Elige tu rubro y el agente parte con el tono, las preguntas y el proceso de venta que
+          corresponde. Un mismo sistema para todos tus negocios.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           {INDUSTRIES.map((industry) => (
@@ -211,10 +215,10 @@ function CTA() {
     <section id="demo" className="border-t border-gray-800 py-24">
       <div className="mx-auto max-w-3xl px-6 text-center">
         <h2 className="text-3xl font-bold text-white md:text-4xl">
-          Dejá de perder leads por no responder a tiempo
+          Que ningún cliente más quede en visto
         </h2>
         <p className="mt-4 text-gray-400">
-          Coordiná una demo y te mostramos el agente configurado para tu rubro.
+          Crea tu agente en minutos y pruébalo en el simulador antes de conectar tus canales.
         </p>
         <a
           href="/panel/nuevo"
@@ -231,7 +235,7 @@ function Footer() {
   return (
     <footer className="border-t border-gray-800 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-gray-500 md:flex-row">
-        <span className="font-mono text-amber-400">AgentsApp</span>
+        <span className="font-mono text-amber-400">{BRAND.name}</span>
         <div className="flex items-center gap-4">
           <a href="/terminos" className="hover:text-gray-300">
             Términos
@@ -240,7 +244,7 @@ function Footer() {
             Privacidad
           </a>
         </div>
-        <span>&copy; {new Date().getFullYear()} AgentsApp. Todos los derechos reservados.</span>
+        <span>&copy; {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.</span>
       </div>
     </footer>
   )

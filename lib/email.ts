@@ -1,3 +1,4 @@
+import { BRAND } from './brand'
 import nodemailer, { type Transporter } from 'nodemailer'
 
 /**
@@ -47,7 +48,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ sent: boolean 
   const transport = getTransporter()
   if (!transport) return { sent: false }
 
-  const from = process.env.EMAIL_FROM || 'AgentsApp <no-responder@agentsapp.local>'
+  const from = process.env.EMAIL_FROM || `${BRAND.name} <no-responder@zerovisto.local>`
 
   try {
     await transport.sendMail({ from, ...input })
@@ -79,7 +80,7 @@ function emailShell(title: string, bodyHtml: string, actionUrl: string, actionLa
 <html>
   <body style="margin:0;padding:32px;background:#030712;font-family:ui-sans-serif,system-ui,sans-serif;color:#e5e7eb;">
     <div style="max-width:480px;margin:0 auto;">
-      <p style="color:#f59e0b;font-weight:600;font-family:monospace;font-size:18px;margin:0 0 24px;">AgentsApp</p>
+      <p style="color:#f59e0b;font-weight:600;font-family:monospace;font-size:18px;margin:0 0 24px;">${BRAND.name}</p>
       <h1 style="font-size:20px;margin:0 0 16px;color:#fff;">${title}</h1>
       <div style="font-size:14px;line-height:1.6;color:#d1d5db;">${bodyHtml}</div>
       <a href="${actionUrl}" style="display:inline-block;margin-top:24px;background:#f59e0b;color:#030712;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:6px;font-size:14px;">${actionLabel}</a>
@@ -91,7 +92,7 @@ function emailShell(title: string, bodyHtml: string, actionUrl: string, actionLa
 
 export function passwordResetEmail(resetUrl: string) {
   return {
-    subject: 'Restablecer tu contraseña — AgentsApp',
+    subject: `Restablecer tu contraseña — ${BRAND.name}`,
     html: emailShell(
       'Restablecer tu contraseña',
       'Pediste restablecer tu contraseña. Este link vale por 1 hora y se puede usar una sola vez. Si no fuiste vos, ignorá este mail: tu contraseña actual sigue funcionando.',
@@ -104,7 +105,7 @@ export function passwordResetEmail(resetUrl: string) {
 
 export function verifyEmailMessage(verifyUrl: string) {
   return {
-    subject: 'Confirmá tu email — AgentsApp',
+    subject: `Confirmá tu email — ${BRAND.name}`,
     html: emailShell(
       'Confirmá tu email',
       'Para terminar de activar tu cuenta, confirmá que esta es tu casilla. El link vale por 24 horas.',
@@ -117,7 +118,7 @@ export function verifyEmailMessage(verifyUrl: string) {
 
 export function newConversationEmail(businessName: string, contactName: string, conversationUrl: string) {
   return {
-    subject: `Nueva conversación en ${businessName} — AgentsApp`,
+    subject: `Nueva conversación en ${businessName} — ${BRAND.name}`,
     html: emailShell(
       'Tenés una conversación nueva',
       `<strong>${escapeHtml(contactName)}</strong> te escribió por primera vez en <strong>${escapeHtml(businessName)}</strong>. El agente ya respondió; revisá que haya quedado bien.`,

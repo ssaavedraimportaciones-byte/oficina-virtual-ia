@@ -1,6 +1,7 @@
+import { BRAND } from '@/lib/brand'
 import LegalLayout from '../LegalLayout'
 
-export const metadata = { title: 'Política de privacidad — AgentsApp' }
+export const metadata = { title: `Política de privacidad — ${BRAND.name}` }
 
 export default function PrivacidadPage() {
   return (

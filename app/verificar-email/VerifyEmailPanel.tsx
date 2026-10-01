@@ -1,5 +1,6 @@
 'use client'
 
+import { BRAND } from '@/lib/brand'
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -17,7 +18,7 @@ export default function VerifyEmailPanel({ token }: { token: string | null }) {
   if (!token) {
     return (
       <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <p className="text-sm text-danger">Este link no es válido.</p>
       </div>
     )
@@ -26,7 +27,7 @@ export default function VerifyEmailPanel({ token }: { token: string | null }) {
   if (result === 'ok') {
     return (
       <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <p className="text-sm text-gray-300">Email verificado correctamente.</p>
         <Link href="/panel" className="text-sm text-amber-400 hover:underline">
           Ir al panel
@@ -57,7 +58,7 @@ export default function VerifyEmailPanel({ token }: { token: string | null }) {
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-      <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+      <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
       <h1 className="text-xl font-bold text-white">Verificar email</h1>
       {error && <p className="text-sm text-danger">{error}</p>}
       <button

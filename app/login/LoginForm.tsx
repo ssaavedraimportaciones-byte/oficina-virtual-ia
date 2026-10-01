@@ -1,5 +1,6 @@
 'use client'
 
+import { BRAND } from '@/lib/brand'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -43,7 +44,7 @@ export default function LoginForm() {
     return (
       <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
         <div>
-          <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+          <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
           <h1 className="mt-1 text-xl font-bold text-white">Código de verificación</h1>
           <p className="mt-1 text-sm text-gray-500">Ingresá el código de tu app de autenticación.</p>
         </div>
@@ -73,7 +74,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
       <div>
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <h1 className="mt-1 text-xl font-bold text-white">Ingresar</h1>
       </div>
       <input

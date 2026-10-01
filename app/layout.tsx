@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
+import { BRAND } from '@/lib/brand'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AgentsApp — Agentes de IA que convierten chats en ventas',
+  title: `${BRAND.name} — ${BRAND.tagline}. Agentes de IA para WhatsApp e Instagram`,
   description:
-    'CRM con agentes de IA que responde WhatsApp e Instagram, califica leads y agenda reuniones. Moldeable a cualquier rubro.',
+    'Un agente de IA que atiende tu WhatsApp e Instagram al tiro: responde, agenda turnos, toma pedidos y te pasa el caso cuando hace falta una persona. Para cualquier rubro.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

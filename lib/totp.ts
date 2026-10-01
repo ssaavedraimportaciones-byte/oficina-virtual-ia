@@ -1,3 +1,4 @@
+import { BRAND } from './brand'
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto'
 
 /**
@@ -90,7 +91,7 @@ export function verifyTotpCode(secretBase32: string, token: string, at: number =
 }
 
 /** URI estándar que entienden las apps de autenticación al escanear un QR o pegarlo a mano. */
-export function totpAuthUrl(secretBase32: string, email: string, issuer = 'AgentsApp'): string {
+export function totpAuthUrl(secretBase32: string, email: string, issuer: string = BRAND.name): string {
   const label = encodeURIComponent(`${issuer}:${email}`)
   const params = new URLSearchParams({ secret: secretBase32, issuer, algorithm: 'SHA1', digits: '6', period: '30' })
   return `otpauth://totp/${label}?${params.toString()}`

@@ -1,5 +1,6 @@
 'use client'
 
+import { BRAND } from '@/lib/brand'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -13,7 +14,7 @@ export default function ResetPasswordForm({ token }: { token: string | null }) {
   if (!token) {
     return (
       <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <p className="text-sm text-danger">Este link no es válido. Pedí uno nuevo.</p>
         <a href="/olvide-password" className="text-sm text-amber-400 hover:underline">
           Pedir un link nuevo
@@ -25,7 +26,7 @@ export default function ResetPasswordForm({ token }: { token: string | null }) {
   if (done) {
     return (
       <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <p className="text-sm text-gray-300">Contraseña actualizada. Ya podés ingresar.</p>
         <a href="/login" className="text-sm text-amber-400 hover:underline">
           Ir a ingresar
@@ -58,7 +59,7 @@ export default function ResetPasswordForm({ token }: { token: string | null }) {
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
       <div>
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <h1 className="mt-1 text-xl font-bold text-white">Elegí una contraseña nueva</h1>
       </div>
       <input

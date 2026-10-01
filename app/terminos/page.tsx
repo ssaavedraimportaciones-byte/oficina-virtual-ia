@@ -1,21 +1,22 @@
+import { BRAND } from '@/lib/brand'
 import LegalLayout from '../LegalLayout'
 import Link from 'next/link'
 
-export const metadata = { title: 'Términos de servicio — AgentsApp' }
+export const metadata = { title: `Términos de servicio — ${BRAND.name}` }
 
 export default function TerminosPage() {
   return (
     <LegalLayout title="Términos de servicio" updated="[completar fecha de publicación]">
       <h2>1. Quiénes somos</h2>
       <p>
-        AgentsApp es operado por [RAZÓN SOCIAL / NOMBRE DEL TITULAR], [CUIT/NIF/identificación
+        {BRAND.name} es operado por [RAZÓN SOCIAL / NOMBRE DEL TITULAR], [CUIT/NIF/identificación
         fiscal], con domicilio en [DOMICILIO]. Para cualquier consulta sobre estos términos,
         escribinos a [EMAIL DE CONTACTO].
       </p>
 
       <h2>2. Qué es el servicio</h2>
       <p>
-        AgentsApp es una plataforma que permite crear un agente de atención automatizado
+        {BRAND.name} es una plataforma que permite crear un agente de atención automatizado
         (impulsado por modelos de lenguaje de terceros, como Anthropic u OpenAI) para responder
         mensajes de WhatsApp, Instagram y otros canales en nombre de un negocio, además de
         gestionar conversaciones, turnos, catálogo y pedidos.
@@ -53,7 +54,7 @@ export default function TerminosPage() {
 
       <h2>6. Datos de tus clientes</h2>
       <p>
-        Al usar AgentsApp para atender a tus propios clientes, sos vos (el titular del negocio)
+        Al usar {BRAND.name} para atender a tus propios clientes, sos vos (el titular del negocio)
         quien decide qué datos de esos clientes se procesan por este medio. Ver la{' '}
         <Link href="/privacidad" className="text-amber-400 hover:underline">
           Política de Privacidad

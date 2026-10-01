@@ -79,6 +79,6 @@ describe('totpAuthUrl', () => {
     const url = totpAuthUrl('ABCDEFGHIJKLMNOP', 'dueño@negocio.com')
     expect(url).toMatch(/^otpauth:\/\/totp\//)
     expect(url).toContain('secret=ABCDEFGHIJKLMNOP')
-    expect(url).toContain('issuer=AgentsApp')
+    expect(url).toContain('issuer=ZeroVisto')
   })
 })

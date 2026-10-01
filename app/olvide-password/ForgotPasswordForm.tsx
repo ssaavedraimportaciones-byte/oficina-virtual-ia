@@ -1,5 +1,6 @@
 'use client'
 
+import { BRAND } from '@/lib/brand'
 import { useState } from 'react'
 
 export default function ForgotPasswordForm() {
@@ -31,7 +32,7 @@ export default function ForgotPasswordForm() {
   if (sent) {
     return (
       <div className="flex w-full max-w-sm flex-col gap-4 text-center">
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <p className="text-sm text-gray-300">
           Si <strong className="text-white">{email}</strong> tiene una cuenta, te llegó un mail con
           instrucciones para restablecer la contraseña.
@@ -46,7 +47,7 @@ export default function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
       <div>
-        <span className="font-mono text-lg font-semibold text-amber-400">AgentsApp</span>
+        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <h1 className="mt-1 text-xl font-bold text-white">Recuperar contraseña</h1>
         <p className="mt-1 text-sm text-gray-500">
           Te mandamos un link para elegir una contraseña nueva.

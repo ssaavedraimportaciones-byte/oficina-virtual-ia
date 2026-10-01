@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { canAccessBusiness, getCurrentUser } from '@/lib/auth'
@@ -39,7 +40,7 @@ export default async function BusinessLayout({
     <div className="flex min-h-screen">
       <aside className="w-60 shrink-0 border-r border-gray-800 bg-gray-900/40 p-6">
         <Link href="/" className="font-mono text-lg font-semibold text-amber-400">
-          AgentsApp
+          {BRAND.name}
         </Link>
 
         <Link

@@ -1,3 +1,4 @@
+import { BRAND } from './brand'
 import { assertPublicUrl } from './ssrf'
 
 const MAX_CHARS = 12000
@@ -50,7 +51,7 @@ export async function importPageText(url: string): Promise<{ title: string; text
     if (!check.ok) throw new Error(check.reason)
 
     const response = await fetch(check.url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AgentsAppBot/1.0)' },
+      headers: { 'User-Agent': `Mozilla/5.0 (compatible; ${BRAND.name}Bot/1.0)` },
       redirect: 'manual',
       signal: AbortSignal.timeout(15000),
     })

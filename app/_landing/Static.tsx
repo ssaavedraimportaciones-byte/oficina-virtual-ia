@@ -1,4 +1,4 @@
-import { CHAPTERS, DEMO_NOTE, HANDOFF_REASON, HANDOFF_SUBJECT, MESSAGES } from './data'
+import { CHAPTERS, DEMO_NOTE, HANDOFF_REASON, HANDOFF_SUBJECT, MESSAGES, SUMMARY_SHOT } from './data'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -41,17 +41,19 @@ export default function StaticStory() {
                 <p className="zv-toast-b">Motivo: {HANDOFF_REASON}</p>
               </aside>
             )}
-            {c.shot && (
-              <figure className="zv-shot zv-shot--static">
-                <div className="zv-shot-img">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.shot.src} alt={c.shot.alt} width={c.shot.width} height={c.shot.height} loading="lazy" decoding="async" />
-                </div>
-                <figcaption>
-                  <span>{c.shot.caption}</span>
-                  <span>datos de demostración</span>
-                </figcaption>
-              </figure>
+            {[c.shot, i === CHAPTERS.length - 1 ? SUMMARY_SHOT : undefined].map((shot) =>
+              shot ? (
+                <figure key={shot.src} className="zv-shot zv-shot--static">
+                  <div className="zv-shot-img">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={shot.src} alt={shot.alt} width={shot.width} height={shot.height} loading="lazy" decoding="async" />
+                  </div>
+                  <figcaption>
+                    <span>{shot.caption}</span>
+                    <span>panel real · datos de demostración</span>
+                  </figcaption>
+                </figure>
+              ) : null,
             )}
           </div>
         </article>

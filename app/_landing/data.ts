@@ -79,9 +79,9 @@ export const CHAPTERS: Chapter[] = [
     id: 'llega',
     minutes: 23 * 60 + 47,
     time: '23:47',
-    kicker: 'Cierras el local',
-    title: 'Alguien te escribe justo cuando ya no estás.',
-    body: 'El local está cerrado y tú, descansando. Antes ese mensaje esperaba hasta mañana. Ahora ZeroVisto responde en el momento, con lo que tú le cargaste.',
+    kicker: 'Tu local ya cerró',
+    title: 'Tu local cerró. Ana te escribe igual.',
+    body: 'Antes ese mensaje esperaba hasta mañana. Ahora ZeroVisto le responde al tiro, con lo que tú le cargaste.',
     vertical: 'Llega',
   },
   {
@@ -89,13 +89,13 @@ export const CHAPTERS: Chapter[] = [
     minutes: 23 * 60 + 52,
     time: '23:52',
     kicker: 'Una hora, agendada',
-    title: 'Mira tu agenda de verdad y deja la hora reservada.',
-    body: 'Consulta tus horarios y la duración de cada servicio, ofrece solo las horas libres y agenda sin pisar otra. La hora queda en tu panel, no en una libreta.',
+    title: 'Le agenda la hora. Sin pisar otra.',
+    body: 'Mira tus horarios reales, ofrece solo horas libres y deja la reserva en tu agenda, no en una libreta.',
     vertical: 'Agenda',
     shot: {
       src: '/landing/agenda-recorte.webp',
       alt: 'Panel de Agenda de ZeroVisto con una hora reservada: Ana, semipermanente, martes 6/10/2026 a las 15:00, 60 minutos.',
-      caption: 'Agenda · tu panel',
+      caption: 'Así queda en tu agenda',
       width: 1100,
       height: 506,
       ring: { left: 2.2, top: 66.5, width: 91.8, height: 23.5 },
@@ -106,13 +106,13 @@ export const CHAPTERS: Chapter[] = [
     minutes: 24 * 60 + 6,
     time: '00:06',
     kicker: 'Una venta, registrada',
-    title: 'Vende lo que tienes y descuenta el stock.',
-    body: 'Consulta tu catálogo, confirma precio y disponibilidad, registra el pedido a nombre del cliente y baja el stock. Solo afirma lo que tú cargaste.',
+    title: 'Vende. Y descuenta el stock.',
+    body: 'Confirma precio y disponibilidad, registra el pedido a nombre de Ana y baja el stock. Solo afirma lo que tú cargaste.',
     vertical: 'Vende',
     shot: {
       src: '/landing/pedidos-recorte.webp',
       alt: 'Panel de Catálogo y pedidos: esmalte semipermanente a $4.500 con stock 10 y el pedido de Ana, 2 unidades, total $9.000.',
-      caption: 'Catálogo y pedidos · tu panel',
+      caption: 'Así queda en tus pedidos',
       width: 1100,
       height: 740,
       ring: { left: 1.4, top: 62, width: 96.4, height: 30 },
@@ -122,36 +122,66 @@ export const CHAPTERS: Chapter[] = [
     id: 'persona',
     minutes: 26 * 60 + 31,
     time: '02:31',
-    kicker: 'Una persona, por favor',
-    title: 'Cuando el cliente se molesta, el agente no insiste: te avisa.',
-    body: 'Si reclama o pide hablar con alguien, el agente se pausa, le cuenta que una persona lo va a atender y te manda un mail con el motivo. La conversación sigue con tu equipo, desde el panel.',
+    kicker: 'Un reclamo',
+    title: 'Un reclamo. El agente para y te avisa.',
+    body: 'Se pausa, le dice a Ana que una persona la va a atender y te manda un correo con el motivo.',
     vertical: 'Avisa',
-    shot: {
-      src: '/landing/conversacion.webp',
-      alt: 'Conversación de Ana en el panel: agente pausado con la etiqueta «Atiende una persona», el motivo de la derivación y la ficha del cliente.',
-      caption: 'Conversaciones · tu panel',
-      width: 1600,
-      height: 1000,
-      ring: { left: 16.6, top: 8, width: 63.6, height: 3.8 },
-    },
   },
   {
     id: 'amanece',
     minutes: 32 * 60 + 5,
     time: '08:05',
-    kicker: 'Amaneces',
-    title: 'Te despiertas con todo hecho. Y el caso difícil, en tus manos.',
-    body: 'Abres el resumen: la hora agendada, el pedido registrado, los mensajes de la noche. Respondes el reclamo desde el panel y, cuando quieras, le devuelves la conversación al agente.',
+    kicker: 'Amanece',
+    title: 'Amaneces con todo hecho. Tú solo respondes lo difícil.',
+    body: 'Contestas el reclamo desde el panel. La hora y el pedido ya estaban listos.',
     vertical: 'Amanece',
     shot: {
-      src: '/landing/resumen.webp',
-      alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 de 300 respuestas del agente este mes en el plan gratis, 1 hora agendada y 1 pedido por $9.000.',
-      caption: 'Resumen · tu panel',
+      src: '/landing/conversacion.webp',
+      alt: 'Conversación de Ana en el panel: agente pausado con la etiqueta «Atiende una persona», el motivo de la derivación, la respuesta de Caro y la ficha del cliente.',
+      caption: 'Caro responde desde el panel',
       width: 1600,
       height: 1000,
-      ring: { left: 18.8, top: 32.5, width: 19.1, height: 12.6 },
+      ring: { left: 16.6, top: 8, width: 63.6, height: 3.8 },
     },
   },
+]
+
+/** El resumen del panel, que se ve al final de la noche. */
+export const SUMMARY_SHOT = {
+  src: '/landing/resumen.webp',
+  alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 de 300 respuestas del agente este mes en el plan gratis, 1 hora agendada y 1 pedido por $9.000.',
+  caption: 'Tu resumen de la mañana',
+  width: 1600,
+  height: 1000,
+  ring: { left: 18.8, top: 32.5, width: 19.1, height: 12.6 },
+}
+
+export type Place = 'ana' | 'shop' | 'owner'
+
+export interface Flight {
+  id: string
+  from: Place
+  to: Place
+  kind: Who | 'mail'
+  /** Quién firma la burbuja. */
+  label: string
+  text: string
+}
+
+const msg = (id: string) => MESSAGES.find((m) => m.id === id)!.text
+
+/** Los mensajes que viajan entre las ventanas de la cuadra, en orden. */
+export const FLIGHTS: Flight[] = [
+  { id: 'f1', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m03') },
+  { id: 'f2', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m04') },
+  { id: 'f3', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m05') },
+  { id: 'f4', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m06') },
+  { id: 'f5', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m09') },
+  { id: 'f6', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m10') },
+  { id: 'f7', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m11') },
+  { id: 'f8', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m12') },
+  { id: 'f9', from: 'shop', to: 'owner', kind: 'mail', label: 'Correo para Caro', text: '' },
+  { id: 'f10', from: 'owner', to: 'ana', kind: 'human', label: 'Caro, la dueña', text: msg('m13') },
 ]
 
 export const DEMO_NOTE = 'Capturas del panel con datos de demostración · negocio ficticio «Uñas Bella»'

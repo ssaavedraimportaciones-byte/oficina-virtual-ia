@@ -321,7 +321,7 @@ export async function updateBusinessHours(id: string, hours: WeekHours): Promise
 }
 
 export async function deleteBusiness(id: string): Promise<void> {
-  // Conversaciones, conocimiento, servicios, citas, productos y pedidos
+  // Conversaciones, conocimiento, servicios, horas agendadas, productos y pedidos
   // cuelgan de Business con onDelete: Cascade en el schema.
   await prisma.business.delete({ where: { id } })
 }
@@ -529,7 +529,7 @@ export async function setConversationStatus(
   return mapConversation(row)
 }
 
-// --- Agenda: servicios y citas ---
+// --- Agenda: servicios y horas agendadas ---
 
 export async function listServices(businessId: string): Promise<Service[]> {
   const rows = await prisma.service.findMany({ where: { businessId } })

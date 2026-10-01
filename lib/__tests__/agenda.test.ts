@@ -39,19 +39,19 @@ describe('getAvailableSlots', () => {
     expect(slots).toEqual([])
   })
 
-  it('descarta los horarios que se pisan con una cita existente', () => {
+  it('descarta los horarios que se pisan con una hora existente', () => {
     const slots = getAvailableSlots(HOURS, [appointment('2026-08-10T10:00', 60)], 60, '2026-08-10', '2026-08-10')
     // 09:30 se pisa (09:30-10:30), 10:00 y 10:30 también.
     expect(slots.map((s) => s.time)).toEqual(['09:00', '11:00'])
   })
 
-  it('ignora las citas canceladas', () => {
+  it('ignora las horas canceladas', () => {
     const cancelled = { ...appointment('2026-08-10T10:00', 60), status: 'cancelado' as const }
     const slots = getAvailableSlots(HOURS, [cancelled], 60, '2026-08-10', '2026-08-10')
     expect(slots).toHaveLength(5)
   })
 
-  it('no ofrece una cita que no entra antes del cierre', () => {
+  it('no ofrece una hora que no entra antes del cierre', () => {
     const slots = getAvailableSlots(HOURS, [], 180, '2026-08-10', '2026-08-10')
     expect(slots.map((s) => s.time)).toEqual(['09:00'])
   })

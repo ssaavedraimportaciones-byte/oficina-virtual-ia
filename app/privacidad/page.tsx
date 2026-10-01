@@ -30,7 +30,7 @@ export default function PrivacidadPage() {
 
       <h2>2. Para qué se usan</h2>
       <ul>
-        <li>Operar el servicio: autenticar cuentas, generar respuestas del agente, agendar citas, procesar pedidos.</li>
+        <li>Operar el servicio: autenticar cuentas, generar respuestas del agente, agendar horas, procesar pedidos.</li>
         <li>Enviar mails operativos: verificación de cuenta, recuperación de contraseña, aviso de conversación nueva.</li>
         <li>Facturación del plan pago, a través de Stripe.</li>
         <li>Seguridad: detectar intentos de fuerza bruta, prevenir abuso.</li>
@@ -66,15 +66,19 @@ export default function PrivacidadPage() {
       <h2>4. Cuánto tiempo se guardan los datos</h2>
       <p>
         Mientras la cuenta esté activa. Al eliminar un negocio o una cuenta, se borran sus
-        conversaciones, mensajes, citas y pedidos asociados. [DEFINIR si hay un período de
+        conversaciones, mensajes, horas agendadas y pedidos asociados. [DEFINIR si hay un período de
         retención de backups y cuánto dura.]
       </p>
 
       <h2>5. Derechos de las personas titulares de los datos</h2>
       <p>
         Cualquier persona (dueño de cuenta o cliente final atendido por un agente) puede pedir
-        acceder, corregir o eliminar sus datos escribiendo a [EMAIL DE CONTACTO]. Un dueño de
-        negocio puede eliminar una conversación o un contacto directamente desde el panel.
+        acceder a sus datos, rectificarlos, suprimirlos, oponerse a su tratamiento o pedir su
+        portabilidad, escribiendo a [EMAIL DE CONTACTO]. Un dueño de negocio puede eliminar una
+        conversación o un contacto directamente desde el panel. [VALIDAR CON ABOGADO: alinear
+        esta sección con la Ley N° 19.628 y la Ley N° 21.719 sobre protección de datos
+        personales, incluyendo los plazos de respuesta y la transferencia internacional de
+        datos a los proveedores indicados arriba.]
       </p>
 
       <h2>6. Seguridad</h2>
@@ -87,7 +91,10 @@ export default function PrivacidadPage() {
       </p>
 
       <h2>7. Menores de edad</h2>
-      <p>El servicio no está dirigido a menores de [EDAD A DEFINIR según jurisdicción].</p>
+      <p>
+        El servicio no está dirigido a menores de [EDAD A DEFINIR: validar con la Ley N° 21.719,
+        que regula el tratamiento de datos de niños, niñas y adolescentes].
+      </p>
 
       <h2>8. Contacto</h2>
       <p>Consultas sobre esta política: [EMAIL DE CONTACTO].</p>

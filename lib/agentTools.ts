@@ -69,7 +69,7 @@ export const AGENDA_TOOLS: LlmTool[] = [
   {
     name: 'agendar_turno',
     description:
-      'Reserva una cita en la agenda del negocio. Úsalo solo cuando el cliente ya confirmó un horario concreto que salió de consultar_disponibilidad.',
+      'Reserva una hora en la agenda del negocio. Úsalo solo cuando el cliente ya confirmó un horario concreto que salió de consultar_disponibilidad.',
     parameters: {
       type: 'object',
       properties: {
@@ -217,7 +217,7 @@ async function runAgendarTurno(
   const appointments = await listAppointments(ctx.business.id)
 
   // Se revalida acá aunque el horario haya salido de consultar_disponibilidad:
-  // entre una cosa y la otra otro cliente puede haber tomado la cita.
+  // entre una cosa y la otra otro cliente puede haber tomado la hora.
   const check = isSlotFree(
     ctx.business.hours,
     appointments,
@@ -240,7 +240,7 @@ async function runAgendarTurno(
     durationMinutes: service.durationMinutes,
   })
 
-  return `Cita confirmada: ${service.name} el ${formatDateLabel(input.fecha)} a las ${input.hora}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente.`
+  return `Hora agendada: ${service.name} el ${formatDateLabel(input.fecha)} a las ${input.hora}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente.`
 }
 
 async function runConsultarCatalogo(

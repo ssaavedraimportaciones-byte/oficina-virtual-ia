@@ -315,7 +315,7 @@ describe('horarios que ya pasaron', () => {
   // 2026-08-10 es lunes.
   const now = { date: '2026-08-10', time: '11:15' }
 
-  it('no se ofrecen citas de hoy que ya empezaron', () => {
+  it('no se ofrecen horas de hoy que ya empezaron', () => {
     const slots = getAvailableSlots(HOURS, [], 60, '2026-08-10', '2026-08-10', 40, now)
     expect(slots[0]).toEqual({ date: '2026-08-10', time: '11:30' })
   })

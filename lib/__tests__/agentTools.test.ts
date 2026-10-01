@@ -49,11 +49,11 @@ describe('herramientas del agente', () => {
     expect(out).toContain('Semipermanente')
   })
 
-  it('reserva una cita de verdad', async () => {
+  it('reserva una hora de verdad', async () => {
     const out = await runAgentTool({ business, conversation }, 'agendar_turno', {
       servicio: 'Semipermanente', fecha: MONDAY, hora: '10:00', nombre_cliente: 'Ana',
     })
-    expect(out).toContain('Cita confirmada')
+    expect(out).toContain('Hora agendada')
 
     const appointments = await store.listAppointments(business.id)
     expect(appointments).toHaveLength(1)

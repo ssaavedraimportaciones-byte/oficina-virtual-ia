@@ -45,10 +45,10 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     description:
       'Consultorio dental. Atendemos consultas generales, limpieza, arreglos, ortodoncia y urgencias, con hora previa.',
     goals:
-      'Entender qué necesita (control, dolor, urgencia, estética, ortodoncia), si tiene obra social o es particular, y agendar la hora. Si es una urgencia con dolor, priorizarla y avisar al equipo.',
+      'Entender qué necesita (control, dolor, urgencia, estética, ortodoncia), si se atiende por Isapre, Fonasa o es particular, y agendar la hora. Si es una urgencia con dolor, priorizarla y avisar al equipo.',
     tone: 'formal',
     knowledgeHints: [
-      'Obras sociales y prepagas que se aceptan',
+      'Isapres y convenios que se aceptan',
       'Precios de consulta y tratamientos particulares',
       'Horarios de atención y profesionales',
       'Dirección del consultorio',
@@ -59,14 +59,14 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     id: 'taller',
     label: 'Taller mecánico',
     emoji: '🔧',
-    industry: 'Taller mecánico y service de automóviles',
+    industry: 'Taller mecánico y mantención de vehículos',
     description:
-      'Taller mecánico. Hacemos service, diagnóstico, reparaciones y mantenimiento general de vehículos.',
+      'Taller mecánico. Hacemos mantenciones, diagnóstico, reparaciones y revisión general de vehículos.',
     goals:
-      'Averiguar marca, modelo y año del vehículo, y qué problema tiene o qué service necesita. Dar una idea de precio si el trabajo está en la lista, y coordinar día para que lo traiga al taller.',
+      'Averiguar marca, modelo y año del vehículo, y qué problema tiene o qué mantención necesita. Dar una idea de precio si el trabajo está en la lista, y coordinar día para que lo traiga al taller.',
     tone: 'directo',
     knowledgeHints: [
-      'Precios de service por tipo de vehículo',
+      'Precios de mantención por tipo de vehículo',
       'Trabajos que se hacen y cuáles no',
       'Días y horarios, y cuánto demora cada trabajo',
       'Dirección del taller',
@@ -94,15 +94,15 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     id: 'inmobiliaria',
     label: 'Inmobiliaria',
     emoji: '🏠',
-    industry: 'Inmobiliaria, venta y alquiler de propiedades',
+    industry: 'Inmobiliaria, venta y arriendo de propiedades',
     description:
-      'Inmobiliaria. Vendemos y alquilamos propiedades, atendemos particulares e inversores.',
+      'Inmobiliaria. Vendemos y arrendamos propiedades, atendemos particulares e inversionistas.',
     goals:
-      'Calificar si busca comprar o alquilar, en qué zona, qué tipo de propiedad y con qué presupuesto. Con eso, coordinar una visita con el equipo.',
+      'Calificar si busca comprar o arrendar, en qué zona, qué tipo de propiedad y con qué presupuesto. Con eso, coordinar una visita con el equipo.',
     tone: 'formal',
     knowledgeHints: [
       'Propiedades disponibles con precio y zona',
-      'Requisitos para alquilar (garantía, recibos)',
+      'Requisitos para arrendar (liquidaciones de sueldo, aval o codeudor, mes de garantía)',
       'Comisiones y gastos',
       'Zonas en las que se opera',
     ],
@@ -121,7 +121,7 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
       'Carta con precios',
       'Horarios y días que abre',
       'Dirección y si hay estacionamiento',
-      'Opciones sin TACC / vegetarianas / veganas',
+      'Opciones sin gluten / vegetarianas / veganas',
       'Cómo se manejan reservas y eventos',
     ],
   },

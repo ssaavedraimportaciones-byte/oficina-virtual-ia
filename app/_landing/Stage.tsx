@@ -47,8 +47,10 @@ const INSERTS: { id: string; in: number; out?: number }[] = [
   { id: 'agenda', in: 16.6, out: 19.4 },
   { id: 'venta', in: 26.9, out: 29.4 },
   { id: 'amanece', in: 41.8, out: 44.2 },
-  { id: 'resumen', in: 47.8 },
+  { id: 'resumen', in: 47.4 },
 ]
+/** Cuando se apaga todo lo de la escena, antes de soltar el escenario. */
+const NIGHT_CLEAR = 49.2
 export const CHAPTER_UNITS = 10
 /** Largo del escenario fijo, en altos de pantalla. */
 export const NIGHT_SCREENS = 10
@@ -176,22 +178,30 @@ export function buildNight(gsap: typeof Gsap, stage: HTMLElement, lite: boolean)
     tl.to(el, { autoAlpha: 0, duration: 0.4 }, cue.out)
   })
 
-  // Insertos: las capturas reales del panel, como un corte de cámara
+  // Insertos: las capturas reales del panel, como un corte de cámara. El corte se lleva
+  // el rótulo de la escena (número, hora, lugar): la captura trae el suyo.
   const veil = one('[data-veil]')
+  const header = one<HTMLElement>('.zv-scenes')
   INSERTS.forEach(({ id, in: at, out }) => {
     const shot = one<HTMLElement>(`[data-shot="${id}"]`)
     if (!shot) return
     const ring = shot.querySelector('[data-ring]')
     tl.fromTo(shot, { autoAlpha: 0, y: 40, scale: 0.96 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: 'power3.out' }, at)
     if (veil) tl.to(veil, { autoAlpha: 1, duration: 0.6 }, at)
+    if (header) tl.to(header, { autoAlpha: 0, duration: 0.4 }, at)
     if (ring) tl.fromTo(ring, { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' }, at + 0.8)
     if (out !== undefined) {
       tl.to(shot, { autoAlpha: 0, y: -20, ...(lite ? {} : { filter: 'blur(8px)' }), duration: 0.6, ease: 'power1.in' }, out)
       if (veil) tl.to(veil, { autoAlpha: 0, duration: 0.6 }, out)
+      if (header) tl.to(header, { autoAlpha: 1, duration: 0.5 }, out + 0.3)
     }
   })
-  // Al final de la noche se abre el telón para el día
-  tl.to(q('[data-bar]'), { scaleY: 0, duration: 0.8, ease: 'power2.in' }, 49.2)
+  // Al final de la noche se apaga la escena (resumen, velo, subtítulo) y se abre el telón para el día:
+  // el escenario se va vacío y la calle de día queda limpia para lo que sigue.
+  const copies = q<HTMLElement>('[data-copy]')
+  const ending = [one('[data-shot="resumen"]'), veil, copies[copies.length - 1]].filter(Boolean)
+  tl.to(ending, { autoAlpha: 0, y: -16, duration: 0.6, ease: 'power1.in' }, NIGHT_CLEAR)
+  tl.to(q('[data-bar]'), { scaleY: 0, duration: 0.8, ease: 'power2.in' }, NIGHT_CLEAR)
 
   renderClock()
   renderStock()
@@ -204,7 +214,6 @@ export default function Stage() {
 
   return (
     <section className="zv-stage" data-stage aria-label="Una noche con ZeroVisto, en cinco escenas">
-      <div className="zv-scrim" />
       <div className="zv-veil" data-veil />
 
       {/* Rótulos que siguen a las ventanas del mundo 3D */}

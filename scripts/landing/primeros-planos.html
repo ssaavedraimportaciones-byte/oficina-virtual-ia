@@ -471,17 +471,48 @@
         g.fill()
         g.fillStyle = '#1d2024'
         for (const x of [440, 650]) g.fillRect(x, top - 70, 14, 70)
-        // Parabólica
-        g.fillStyle = '#c9cbcf'
+        // Parabólica: vista de espaldas, en la misma familia de siluetas oscuras que el resto
+        const dx = 1250
+        const dy = top - 125
+        g.fillStyle = '#1d2024'
+        g.fillRect(1292, top - 96, 12, 96) // mástil
+        g.strokeStyle = '#1d2024'
+        g.lineWidth = 9
         g.beginPath()
-        g.ellipse(1250, top - 120, 70, 90, -0.5, 0, TAU)
-        g.fill()
-        g.strokeStyle = '#7d8187'
-        g.lineWidth = 6
-        g.beginPath()
-        g.moveTo(1250, top - 120)
-        g.lineTo(1300, top)
+        g.moveTo(dx + 14, dy + 22)
+        g.lineTo(1298, top - 84) // soporte
         g.stroke()
+        const dish = g.createLinearGradient(dx - 70, dy - 90, dx + 60, dy + 80)
+        dish.addColorStop(0, '#454a51')
+        dish.addColorStop(0.55, '#30343a')
+        dish.addColorStop(1, '#212428')
+        g.fillStyle = dish
+        g.beginPath()
+        g.ellipse(dx, dy, 66, 88, -0.45, 0, TAU)
+        g.fill()
+        // Concavidad: una media luna más oscura y un borde apenas iluminado
+        g.fillStyle = 'rgba(0,0,0,0.28)'
+        g.beginPath()
+        g.ellipse(dx + 12, dy + 6, 46, 70, -0.45, 0, TAU)
+        g.fill()
+        g.strokeStyle = 'rgba(255,255,255,0.13)'
+        g.lineWidth = 3
+        g.beginPath()
+        g.ellipse(dx, dy, 66, 88, -0.45, Math.PI * 0.95, Math.PI * 1.7)
+        g.stroke()
+        // Brazo y LNB
+        g.strokeStyle = '#1d2024'
+        g.lineWidth = 5
+        g.beginPath()
+        g.moveTo(dx - 4, dy + 10)
+        g.lineTo(dx - 92, dy - 52)
+        g.stroke()
+        g.save()
+        g.translate(dx - 96, dy - 56)
+        g.rotate(-0.6)
+        g.fillStyle = '#2a2d31'
+        g.fillRect(-14, -8, 28, 16)
+        g.restore()
         // Ductos
         for (const x of [900, 960, 2200]) {
           g.fillStyle = '#3a3e44'

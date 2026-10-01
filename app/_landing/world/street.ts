@@ -253,8 +253,11 @@ export function createStreet(scene: THREE.Scene) {
         uniform vec3 uColor; uniform float uLevel;
         varying vec2 vUv; varying vec3 vN; varying vec3 vView;
         void main() {
-          float edge = 1.0 - abs(dot(vN, vView));
-          float a = (0.16 + edge * 0.5) * pow(1.0 - vUv.y, 1.3) * uLevel;
+          // Haz volumétrico: denso al centro, bordes que se deshacen, se apaga hacia arriba
+          float soft = pow(abs(dot(vN, vView)), 1.4);
+          float rise = pow(1.0 - vUv.y, 2.0);
+          float foot = smoothstep(0.0, 0.06, vUv.y);
+          float a = (0.05 + 0.3 * soft) * rise * foot * uLevel;
           gl_FragColor = vec4(uColor * a, a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -347,9 +350,10 @@ export function createStreet(scene: THREE.Scene) {
       pole.position.set(cx - W / 2 + 0.45, 2.4, zf + 0.25)
       scene.add(pole)
     }
-    // Haz de luz para la vista aérea
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(W - 0.4, 30, D - 0.4, 1, 1, 1), beamMat(shop.glow))
-    beam.position.set(cx, H + 15, z0 + D / 2)
+    // Haz de luz para la vista aérea: columna abierta (sin tapas), apenas más ancha abajo
+    const R = Math.min(W, D) / 2 - 0.3
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.82, R, 26, 28, 1, true), beamMat(shop.glow))
+    beam.position.set(cx, H + 13, z0 + D / 2)
     beam.visible = false
     scene.add(beam)
 
@@ -364,7 +368,7 @@ export function createStreet(scene: THREE.Scene) {
     emitters.push({ pos: new THREE.Vector3(cx, 2.1, zf), color: new THREE.Color(shop.glow), size: 3.2, level: () => shops[i]?.level ?? 0 })
     // Letreros claros (caja de luz blanca) se ven bien con menos brillo: no encandilan
     const bgLum = new THREE.Color(shop.sign.kind === 'lightbox' || shop.sign.kind === 'painted' ? shop.sign.bg : '#000').getHSL({ h: 0, s: 0, l: 0 }).l
-    shops.push({ mats: { sign: signMat, inside: insideMat }, on, off, beam, level: 0, pole, glare: bgLum > 0.6 ? 0.72 : 1 })
+    shops.push({ mats: { sign: signMat, inside: insideMat }, on, off, beam, level: 0, pole, glare: bgLum > 0.6 ? 0.64 : 1 })
   })
 
   const shells = new THREE.Mesh(mergeGeometries(shellGeos), new THREE.MeshStandardMaterial({ map: facade, vertexColors: true, roughness: 0.9 }))

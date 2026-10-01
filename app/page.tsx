@@ -93,7 +93,8 @@ function Rubros() {
             intro="Cada negocio parte con una plantilla: el tono, lo que el agente pregunta y lo que conviene cargarle. Todo se edita después."
           />
           <ol className="zv-index" data-reveal>
-            <li className="zv-index-row" data-reveal-item>
+            {/* El local de esta noche: queda activo hasta que la calle empieza a encenderse */}
+            <li className="zv-index-row" data-reveal-item data-rubro={-1}>
               <span className="zv-index-n">00</span>
               <span className="zv-index-e" aria-hidden="true">
                 💅
@@ -116,7 +117,7 @@ function Rubros() {
         {/* Rótulos que siguen a cada letrero de la calle */}
         <div className="zv-tags" aria-hidden="true">
           {STREET.map((s, i) => (
-            <div key={s.id} className="zv-tag" data-anchor={`rubro-${s.id}`} data-tag={i}>
+            <div key={s.id} className="zv-tag" data-anchor={`rubro-${s.id}`} data-tag={i} data-keepout="left">
               <span className="zv-tag-l">
                 {s.emoji} {s.label}
               </span>
@@ -149,7 +150,7 @@ function Negocios() {
         </div>
         <div className="zv-roofs" aria-hidden="true">
           {STREET.map((s) => (
-            <span key={s.id} className="zv-roof" data-anchor={`roof-${s.id}`}>
+            <span key={s.id} className="zv-roof" data-anchor={`roof-${s.id}`} data-keepout="right">
               <i /> {s.label}
             </span>
           ))}
@@ -269,6 +270,12 @@ export default function Home() {
         </span>
       </p>
       <Foreground />
+      {/* Sombras de legibilidad pegadas a la pantalla: se funden con el scroll, sin bordes que entren deslizándose */}
+      <div className="zv-shades" aria-hidden="true">
+        <div className="zv-shade zv-shade--stage" data-shade="noche" />
+        <div className="zv-shade zv-shade--left" data-shade="rubros" />
+        <div className="zv-shade zv-shade--right" data-shade="negocios" />
+      </div>
       <Nav />
       <Rail />
       <main id="contenido">

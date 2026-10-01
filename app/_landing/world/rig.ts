@@ -21,9 +21,12 @@ const WIDE: Shot[] = [
   { u: 3, pos: [1.2, 2.15, 1.6], tgt: [0, 2.2, -6], fov: 34 },
   { u: 4, pos: [-3.2, 1.7, 16], tgt: [2.2, 6.4, -9], fov: 40 },
   { u: 5, pos: [2, 19, 40], tgt: [10, 26, -220], fov: 40 },
-  { u: 6, pos: [12.8, 2.5, 7.4], tgt: [19.5, 3.5, -5.5], fov: 44 },
-  { u: 6.9, pos: [64.5, 2.5, 7.4], tgt: [71.2, 3.5, -5.5], fov: 44 },
-  { u: 7, pos: [64, 40, 22], tgt: [61, 0, -6], fov: 42 },
+  // Calle de rubros: la cámara va ~12 m detrás del local que se enciende, así el letrero activo
+  // cae en el tercio derecho (la columna de texto está a la izquierda). Ver `bus.signs` en motion.ts.
+  { u: 6, pos: [-2, 2.5, 7.4], tgt: [4.7, 3.5, -5.5], fov: 44 },
+  { u: 6.9, pos: [64.1, 2.5, 7.4], tgt: [70.8, 3.5, -5.5], fov: 44 },
+  // Vista aérea: la calle queda en la mitad izquierda; la derecha es de la columna de texto
+  { u: 7, pos: [80.3, 52, 30.4], tgt: [76.4, 0, -6], fov: 42 },
   { u: 8, pos: [36, 14, 32], tgt: [10, 34, -320], fov: 42 },
   { u: 9, pos: [-9, 9, 30], tgt: [2, 5.5, -9], fov: 40 },
   { u: 10, pos: [0, 3.4, 19.5], tgt: [0, 5.4, -9], fov: 38 },
@@ -36,9 +39,10 @@ const TALL: Shot[] = [
   { u: 3, pos: [0.4, 2.3, 4.4], tgt: [0, 2.25, -6], fov: 50 },
   { u: 4, pos: [3.2, 3.4, 28], tgt: [3.2, 6.6, -9], fov: 50 },
   { u: 5, pos: [0, 22, 44], tgt: [6, 25, -220], fov: 52 },
-  { u: 6, pos: [15.6, 3, 8.6], tgt: [15.6, 3.8, -5.5], fov: 62 },
-  { u: 6.9, pos: [71.6, 3, 8.6], tgt: [71.6, 3.8, -5.5], fov: 62 },
-  { u: 7, pos: [43, 52, 46], tgt: [43, 0, -6], fov: 52 },
+  { u: 6, pos: [9.6, 3, 8.6], tgt: [9.6, 3.8, -5.5], fov: 62 },
+  { u: 6.9, pos: [76.8, 3, 8.6], tgt: [76.8, 3.8, -5.5], fov: 62 },
+  // En el celular las tarjetas ocupan el centro: la cámara levanta la vista y la calle queda abajo
+  { u: 7, pos: [43, 52, 46], tgt: [43, 26.6, -8.4], fov: 52 },
   { u: 8, pos: [30, 14, 36], tgt: [10, 34, -320], fov: 52 },
   { u: 9, pos: [-4, 10, 36], tgt: [1, 5.5, -9], fov: 52 },
   { u: 10, pos: [-1.5, 4.6, 27], tgt: [-1.5, 5.6, -9], fov: 50 },

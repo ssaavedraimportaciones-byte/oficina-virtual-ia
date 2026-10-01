@@ -34,6 +34,8 @@ export async function initMotion(): Promise<() => void> {
   const fgLayers = $$<HTMLElement>('[data-fg]')
   const indexRows = $$<HTMLElement>('[data-rubro]')
   const tags = $$<HTMLElement>('[data-tag]')
+  const shades = $$<HTMLElement>('[data-shade]')
+  const shadeLast = shades.map(() => -1)
 
   let ctx: ReturnType<typeof gsap.context> | undefined
   let night: ReturnType<typeof buildNight> | undefined
@@ -86,11 +88,28 @@ export async function initMotion(): Promise<() => void> {
     return 10
   }
 
+  // Peso de cada sombra de legibilidad: entra mientras la sección llega y se va con ella
+  const ramp = (y: number, a: number, b: number) => Math.min(1, Math.max(0, (y - a) / Math.max(1, b - a)))
+  const band = (y: number, from: number, to: number, fade: number) => Math.min(ramp(y, from - fade, from), 1 - ramp(y, to, to + fade))
+  const shadeWeight = (id: string, y: number) => {
+    if (id === 'noche') return band(y, M.stageStart, M.stageEnd, M.vh * 0.5)
+    if (M.top[id] === undefined) return 0
+    return band(y, M.top[id], M.top[id] + Math.max(0, M.h[id] - M.vh), M.vh * 0.6)
+  }
+
   let lastSection = ''
   let lastChapter = ''
   const conduct = () => {
     const y = window.scrollY
     bus.post = postFor(y)
+
+    shades.forEach((el, i) => {
+      const w = Math.round(shadeWeight(el.dataset.shade ?? '', y) * 1000) / 1000
+      if (w === shadeLast[i]) return
+      shadeLast[i] = w
+      el.style.opacity = String(w)
+      el.style.visibility = w > 0 ? 'visible' : 'hidden'
+    })
 
     // Sección activa: la que ocupa el centro de la pantalla
     const mid = y + M.vh * 0.5
@@ -147,9 +166,14 @@ export async function initMotion(): Promise<() => void> {
         if (heroContent) {
           // Se anima cada bloque por separado: así la palabra gigante queda bajo los primeros planos y el texto encima.
           const blocks = heroContent.querySelectorAll('.zv-hero-grid, .zv-facts, .zv-cue')
-          gsap.to(blocks, { opacity: 0, y: -80, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: '60% top', scrub: true } })
+          // El texto se retira antes de que la cámara toque la calle: el aterrizaje queda limpio
+          gsap.to(blocks, { opacity: 0, y: -80, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: '40% top', scrub: true } })
           const giant = document.querySelector('[data-giant]')
-          if (giant) gsap.fromTo(giant, { yPercent: 0, autoAlpha: 1 }, { yPercent: 40, autoAlpha: 0, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } })
+          if (giant) {
+            // Sube con parallax durante toda la portada, pero ya se apagó cuando llega la noche
+            gsap.fromTo(giant, { yPercent: 0 }, { yPercent: 40, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } })
+            gsap.fromTo(giant, { autoAlpha: 1 }, { autoAlpha: 0, ease: 'power1.in', scrollTrigger: { trigger: hero, start: 'top top', end: '46% top', scrub: true } })
+          }
         }
       }
 
@@ -163,7 +187,9 @@ export async function initMotion(): Promise<() => void> {
           start: 'top top',
           end: 'bottom bottom',
           onUpdate: (self) => {
-            bus.signs = self.progress * (STREET.length + 0.6)
+            // Misma curva que la cámara entre los planos 6 y 6.9 (rig.ts): el letrero activo no se le escapa
+            const p = self.progress
+            bus.signs = p * p * (3 - 2 * p) * (STREET.length + 0.6)
             const active = Math.min(STREET.length - 1, Math.floor(bus.signs - 0.35))
             indexRows.forEach((r) => {
               const i = Number(r.dataset.rubro)
@@ -204,6 +230,13 @@ export async function initMotion(): Promise<() => void> {
             root.dataset.roofs = 'off'
           },
         })
+      }
+
+      // Al soltarse una sección fija, su bloque se va fundiendo mientras sube: no se mete bajo la navegación
+      for (const id of ['rubros', 'negocios']) {
+        const sec = sections[id]
+        const col = sec?.querySelector('.zv-sticky > .zv-col')
+        if (sec && col) gsap.to(col, { autoAlpha: 0, y: -48, ease: 'power1.out', scrollTrigger: { trigger: sec, start: 'bottom bottom', end: 'bottom 70%', scrub: true } })
       }
 
       // Revelado de textos: palabra por palabra el título, y después cada pieza

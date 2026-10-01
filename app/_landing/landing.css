@@ -830,12 +830,37 @@
 .js-motion .zv-static {
   display: none;
 }
-.zv-scrim {
+/* Sombras de legibilidad: fijas a la pantalla y fundidas por el director de scroll
+   (motion.ts), así ningún borde de degradado cruza la imagen con la sección. */
+.zv-shades {
+  display: none;
+}
+.js-motion .zv-shades {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.zv-shade {
   position: absolute;
   inset: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+.zv-shade--stage {
   background:
     linear-gradient(0deg, rgba(3, 5, 12, 0.86) 0%, rgba(3, 5, 12, 0.5) 18%, rgba(3, 5, 12, 0) 36%),
     linear-gradient(180deg, rgba(3, 5, 12, 0.55) 0%, rgba(3, 5, 12, 0) 26%);
+}
+.zv-shade--left,
+.zv-shade--right {
+  width: min(64vw, 1020px);
+  background: linear-gradient(90deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
+}
+.zv-shade--right {
+  left: auto;
+  background: linear-gradient(270deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
 }
 .zv-veil {
   position: absolute;
@@ -928,7 +953,7 @@
 .zv-sub-h {
   font-size: clamp(1.45rem, 2.7vw, 2.75rem);
   line-height: 1.02;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.65);
+  filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.62));
 }
 .zv-sub-b {
   margin: 0.85rem auto 0;
@@ -1244,6 +1269,15 @@
 .zv-final .zv-col {
   text-shadow: 0 2px 28px rgba(3, 5, 12, 0.75);
 }
+/* En los títulos partidos por palabra, la máscara de cada palabra recortaría la sombra del texto
+   en un rectángulo: ahí la sombra se calcula sobre el título entero. */
+.zv-wm {
+  text-shadow: none;
+}
+.zv-sec .zv-head .zv-h2,
+.zv-final .zv-col .zv-h2 {
+  filter: drop-shadow(0 2px 16px rgba(3, 5, 12, 0.6));
+}
 .zv-sticky::before {
   content: '';
   position: absolute;
@@ -1253,6 +1287,10 @@
   width: min(64vw, 1020px);
   background: linear-gradient(90deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
   pointer-events: none;
+}
+/* Con movimiento, la sombra la pone la capa fija (.zv-shade); esta queda para la versión estática */
+.js-motion .zv-sticky::before {
+  display: none;
 }
 .zv-negocios .zv-sticky {
   justify-content: flex-end;
@@ -1280,12 +1318,52 @@
   min-height: 100svh;
   display: flex;
   align-items: center;
+  /* Si el bloque no cabe, se alinea arriba (bajo la navegación) en vez de desbordar por ambos lados */
+  align-items: safe center;
   padding: calc(var(--zv-nav-h) + 1rem) 0 2rem;
 }
 .js-motion .zv-sticky {
   position: sticky;
   top: 0;
   height: 100svh;
+}
+/* Pantallas bajas de escritorio: el índice de rubros se compacta para caber entero */
+@media (min-width: 900px) and (max-height: 880px) {
+  .zv-rubros .zv-h2 {
+    font-size: min(clamp(2rem, 4.3vw, 4.7rem), 6.1vh);
+  }
+  .zv-rubros .zv-head .zv-label {
+    margin-bottom: 0.9rem;
+  }
+  .zv-rubros .zv-intro {
+    margin-top: 0.9rem;
+  }
+  .zv-rubros .zv-index {
+    margin-top: 1.1rem;
+  }
+  .zv-rubros .zv-index-row {
+    padding: 0.24rem 0;
+  }
+  .zv-negocios .zv-h2 {
+    font-size: min(clamp(2rem, 4.3vw, 4.7rem), 6.1vh);
+  }
+  .zv-negocios .zv-head .zv-label {
+    margin-bottom: 0.9rem;
+  }
+  .zv-negocios .zv-cols {
+    margin-top: 1.1rem;
+    gap: 0.55rem;
+  }
+  .zv-negocios .zv-card .zv-tilt {
+    padding: 0.75rem 1.1rem 0.85rem;
+  }
+  .zv-negocios .zv-card h3 {
+    margin-top: 0.3rem;
+  }
+  .zv-negocios .zv-card p:not(.zv-card-n) {
+    margin-top: 0.3rem;
+    line-height: 1.5;
+  }
 }
 .js-motion .zv-rubros {
   height: 360svh;
@@ -1386,7 +1464,8 @@
   border-left: 3px solid var(--zv-amber);
   border-radius: 8px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  transform: translate(clamp(12px, calc(var(--ax, 70vw) - 50%), calc(100vw - 100% - 12px)), calc(var(--ay, 30svh) - 100% - 16px));
+  /* Nunca entra a la mitad izquierda, que es de la columna de texto (solo se muestra en pantallas anchas) */
+  transform: translate(clamp(calc(50vw + 8px), calc(var(--ax, 70vw) - 50%), calc(100vw - 100% - 12px)), calc(var(--ay, 30svh) - 100% - 16px));
   opacity: 0;
   visibility: hidden;
   transition:
@@ -1560,6 +1639,14 @@
     bottom: 30%;
     background: linear-gradient(180deg, rgba(3, 5, 12, 0.88) 0%, rgba(3, 5, 12, 0.66) 58%, rgba(3, 5, 12, 0) 100%);
   }
+  .zv-shade--left,
+  .zv-shade--right {
+    left: 0;
+    right: 0;
+    width: auto;
+    bottom: 30%;
+    background: linear-gradient(180deg, rgba(3, 5, 12, 0.88) 0%, rgba(3, 5, 12, 0.66) 58%, rgba(3, 5, 12, 0) 100%);
+  }
   .zv-negocios .zv-cols {
     gap: 0.5rem;
     margin-top: 1.2rem;
@@ -1615,7 +1702,8 @@
   font-family: var(--zv-sans);
   font-weight: 760;
   font-stretch: 125%;
-  font-size: 15.4vw;
+  /* «ZEROVISTO» mide ~7.4 em con este ancho de fuente: ocupa justo el ancho útil, sin cortarse */
+  font-size: calc((100vw - 2 * var(--zv-gut)) / 7.5);
   line-height: 0.82;
   letter-spacing: -0.02em;
   text-align: center;

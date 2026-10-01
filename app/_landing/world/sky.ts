@@ -187,7 +187,10 @@ export function createSky(scene: THREE.Scene, opts: { lite: boolean }) {
 
       moon.visible = L.moon > 0.01
       moon.position.set(lerp(-110, -200, smooth(0, 5, u)), lerp(200, 70, smooth(0, 5, u)), -440)
-      moonHalo.material.opacity = 0.4 * L.moon
+      // A nivel de calle la luna queda al borde del cuadro: el halo se recoge para no lavar la parte de arriba.
+      const street = smooth(0.5, 1.4, u) * (1 - smooth(4.4, 5, u))
+      moonHalo.material.opacity = 0.4 * L.moon * (1 - 0.65 * street)
+      moonHalo.scale.setScalar(380 - 150 * street)
       moonDisc.material.opacity = L.moon
       ridges.forEach((r, i) => (r.material as THREE.MeshBasicMaterial).color.copy(L.ridge).multiplyScalar(1 - i * 0.05))
       dome.position.copy(camera.position)

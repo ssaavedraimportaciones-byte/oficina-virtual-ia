@@ -244,7 +244,11 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
     el.style.setProperty('--ax', `${x.toFixed(1)}px`)
     el.style.setProperty('--ay', `${y.toFixed(1)}px`)
     if (hideOff) {
-      const off = proj.z > 1 || Math.abs(proj.x) > 0.98 || Math.abs(proj.y) > 0.92
+      const keep = el.dataset.keepout
+      // Los rótulos con zona prohibida tampoco se dejan cortar contra el borde
+      let off = proj.z > 1 || Math.abs(proj.x) > (keep ? 0.84 : 0.98) || Math.abs(proj.y) > 0.92
+      // …ni pisan la columna de texto (diagramación ancha, ver landing.css)
+      if (!off && keep && width >= 900 && (keep === 'right' ? x > width * 0.5 : x < width * 0.5)) off = true
       const state = off ? 'true' : 'false'
       if (el.dataset.off !== state) el.dataset.off = state
     }

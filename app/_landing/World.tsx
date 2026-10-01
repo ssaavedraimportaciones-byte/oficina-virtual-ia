@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react'
 import { bus } from './bus'
 
 /**
- * Capa de ambiente: un lienzo WebGL fijo detrás de todo. Mientras carga (o si
- * el equipo no soporta WebGL, o prefiere menos movimiento) queda el póster en
- * CSS, que ya es una buena primera imagen.
+ * Capa de ambiente: un lienzo WebGL fijo detrás de toda la página. Mientras
+ * carga (o si el equipo no soporta WebGL, o prefiere menos movimiento) queda
+ * el póster en CSS.
  */
 export default function World() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -18,19 +18,19 @@ export default function World() {
     let dispose: (() => void) | undefined
     const start = async () => {
       try {
-        const { createWorld } = await import('./world3d')
+        const { createWorld } = await import('./world')
         if (cancelled || !canvasRef.current) return
-        dispose = createWorld(canvasRef.current, bus)
+        const d = await createWorld(canvasRef.current, bus)
+        if (cancelled) d()
+        else dispose = d
       } catch (error) {
         console.warn('[landing] no se pudo iniciar el mundo 3D, queda el fondo estático:', error)
+        bus.load = 1
       }
     }
-    // Primero lo que se ve (texto, póster); el 3D entra cuando el navegador respira.
-    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback
-    const handle = idle ? idle(() => void start(), { timeout: 1200 }) : window.setTimeout(() => void start(), 200)
+    void start()
     return () => {
       cancelled = true
-      if (!idle) window.clearTimeout(handle)
       dispose?.()
     }
   }, [])

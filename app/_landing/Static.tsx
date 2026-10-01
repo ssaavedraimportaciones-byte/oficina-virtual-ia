@@ -13,7 +13,7 @@ export default function StaticStory() {
         Una noche con ZeroVisto, en cinco momentos
       </h2>
       {CHAPTERS.map((c, i) => (
-        <article key={c.id} className="zv-sc" data-tone={i === CHAPTERS.length - 1 ? 'dawn' : 'night'}>
+        <article key={c.id} id={c.id} className="zv-sc" data-tone={i === CHAPTERS.length - 1 ? 'dawn' : 'night'}>
           <div className="zv-sc-copy">
             <p className="zv-k">
               <span>{pad(i + 1)}</span> {c.time} · {c.kicker}

@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>ZeroVisto · primeros planos de la landing</title>
+    <style>
+      body { margin: 0; padding: 24px; background: repeating-conic-gradient(#222 0 25%, #2a2a2a 0 50%) 0 0 / 24px 24px; color: #eee; font: 14px system-ui, sans-serif; }
+      figure { margin: 0 0 32px; }
+      canvas { max-width: 100%; height: auto; display: block; outline: 1px dashed #555; }
+      button { margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <p>
+      Pinta los recortes con transparencia que usa la landing (<code>public/landing/fg/*.webp</code>). Todo es código:
+      no hay fotos ni imágenes generadas. Para regenerarlos, abre este archivo en un navegador, descarga cada PNG y
+      conviértelo a WebP con alfa (por ejemplo <code>ffmpeg -i x.png -c:v libwebp -pix_fmt yuva420p -quality 82 x.webp</code>).
+    </p>
+    <main id="out"></main>
+    <script type="module">
+      const TAU = Math.PI * 2
+
+      function rng(seed) {
+        let a = seed
+        return () => {
+          a = (a + 0x6d2b79f5) | 0
+          let t = Math.imul(a ^ (a >>> 15), 1 | a)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      function sheet(id, w, h, paint) {
+        const c = document.createElement('canvas')
+        c.width = w
+        c.height = h
+        c.id = id
+        const g = c.getContext('2d')
+        paint(g, w, h)
+        const fig = document.createElement('figure')
+        const cap = document.createElement('figcaption')
+        cap.textContent = `${id} · ${w}×${h}`
+        const btn = document.createElement('button')
+        btn.textContent = `Descargar ${id}.png`
+        btn.onclick = () => {
+          const a = document.createElement('a')
+          a.download = `${id}.png`
+          a.href = c.toDataURL('image/png')
+          a.click()
+        }
+        fig.append(cap, c, btn)
+        document.getElementById('out').append(fig)
+      }
+
+      /** Trazo con grosor que se afina: para ramas y tallos. */
+      function taper(g, pts, w0, w1, color) {
+        const n = pts.length
+        for (let i = 0; i < n - 1; i += 1) {
+          const t = i / (n - 1)
+          g.strokeStyle = color
+          g.lineWidth = w0 + (w1 - w0) * t
+          g.lineCap = 'round'
+          g.beginPath()
+          g.moveTo(pts[i][0], pts[i][1])
+          g.lineTo(pts[i + 1][0], pts[i + 1][1])
+          g.stroke()
+        }
+      }
+      function bez(p0, p1, p2, p3, n = 40) {
+        const out = []
+        for (let i = 0; i <= n; i += 1) {
+          const t = i / n
+          const u = 1 - t
+          out.push([
+            u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+            u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1],
+          ])
+        }
+        return out
+      }
+
+      /** Hoja de plátano oriental: palmeada, de 3 a 5 lóbulos anchos y puntudos, con dientes gruesos. */
+      function leafPath(r, rand) {
+        const path = new Path2D()
+        const lobes = rand() < 0.3 ? 3 : 5
+        const depth = 0.28 + rand() * 0.1
+        const N = 220
+        for (let k = 0; k <= N; k += 1) {
+          const a = (k / N) * TAU
+          // Ángulo medido desde arriba; la base de la hoja (abajo) es más corta y recta
+          const lobe = Math.pow(Math.abs(Math.cos((a * lobes) / 2)), 1.25)
+          const teeth = 0.035 * Math.max(0, Math.sin(a * 46)) + 0.02 * Math.sin(a * 17)
+          const base = 1 - 0.38 * Math.pow(Math.max(0, Math.cos(a - Math.PI)), 6)
+          const rr = r * (1 - depth + depth * lobe + teeth) * base * (a > Math.PI * 0.8 && a < Math.PI * 1.2 ? 0.86 : 1)
+          const px = Math.sin(a) * rr
+          const py = -Math.cos(a) * rr
+          if (k === 0) path.moveTo(px, py)
+          else path.lineTo(px, py)
+        }
+        path.closePath()
+        return path
+      }
+      function platanoLeaf(g, x, y, r, rot, squash, tone, rand, blur) {
+        g.save()
+        g.translate(x, y)
+        g.rotate(rot)
+        g.scale(squash, 1)
+        if (blur) g.filter = `blur(${blur}px)`
+        const path = leafPath(r, rand)
+        const grad = g.createLinearGradient(-r, r, r, -r)
+        grad.addColorStop(0, tone.lit)
+        grad.addColorStop(0.45, tone.mid)
+        grad.addColorStop(1, tone.dark)
+        g.fillStyle = grad
+        g.fill(path)
+        // Borde iluminado solo del lado del farol (abajo a la izquierda)
+        const rimGrad = g.createLinearGradient(-r, r, r * 0.2, -r * 0.2)
+        rimGrad.addColorStop(0, tone.rim)
+        rimGrad.addColorStop(0.5, 'rgba(0,0,0,0)')
+        g.strokeStyle = rimGrad
+        g.lineWidth = Math.max(1.2, r * 0.035)
+        g.stroke(path)
+        // Nervaduras apenas visibles
+        g.strokeStyle = tone.vein
+        g.lineWidth = Math.max(0.8, r * 0.022)
+        for (const a of [-1.15, -0.55, 0, 0.55, 1.15]) {
+          g.beginPath()
+          g.moveTo(0, r * 0.18)
+          g.quadraticCurveTo(Math.sin(a) * r * 0.3, -Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.78, -Math.cos(a) * r * 0.78)
+          g.stroke()
+        }
+        g.restore()
+      }
+
+      /** Bolita de semillas del plátano: la que cuelga todo el invierno. */
+      function seedBall(g, x, y, r, rand, color, rim) {
+        g.fillStyle = color
+        g.beginPath()
+        g.arc(x, y, r, 0, TAU)
+        g.fill()
+        g.strokeStyle = color
+        g.lineWidth = 1.2
+        for (let i = 0; i < 90; i += 1) {
+          const a = rand() * TAU
+          g.beginPath()
+          g.moveTo(x + Math.cos(a) * r * 0.85, y + Math.sin(a) * r * 0.85)
+          g.lineTo(x + Math.cos(a) * r * 1.16, y + Math.sin(a) * r * 1.16)
+          g.stroke()
+        }
+        g.strokeStyle = rim
+        g.lineWidth = 1.6
+        g.beginPath()
+        g.arc(x, y, r * 0.95, Math.PI * 0.55, Math.PI * 1.05)
+        g.stroke()
+      }
+
+      // ---------------------------------------------------------------------------
+      // 1) Cables del alumbrado y de telecomunicaciones: convergen a una cruceta fuera de cuadro
+      sheet('cables', 1600, 900, (g, w, h) => {
+        const rand = rng(11)
+        const ink = '#05070a'
+        const draw = (pts, width, rim, blur = 0) => {
+          g.save()
+          if (blur) g.filter = `blur(${blur}px)`
+          g.strokeStyle = ink
+          g.lineWidth = width
+          g.lineCap = 'round'
+          g.lineJoin = 'round'
+          g.beginPath()
+          pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])))
+          g.stroke()
+          if (rim) {
+            g.strokeStyle = rim
+            g.lineWidth = Math.max(0.8, width * 0.22)
+            g.beginPath()
+            pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1] - width * 0.32) : g.moveTo(p[0], p[1] - width * 0.32)))
+            g.stroke()
+          }
+          g.restore()
+        }
+        const catenary = (a, b, sag, n = 80) => {
+          const out = []
+          for (let i = 0; i <= n; i += 1) {
+            const t = i / n
+            out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + sag * 4 * t * (1 - t)])
+          }
+          return out
+        }
+        // Los cables salen de una cruceta justo a la izquierda del cuadro
+        const anchors = [
+          [-60, 70], [-60, 92], [-60, 118], [-60, 140],
+          [-40, 230], [-40, 250], [-40, 268],
+        ]
+        const ends = [
+          [1700, 40], [1700, 110], [1700, 190], [1700, 260],
+          [1700, 360], [1700, 420], [1260, -40],
+        ]
+        const widths = [5, 4.5, 6, 4, 10, 7, 3.5]
+        const sags = [150, 170, 185, 205, 160, 175, 230]
+        const paths = anchors.map((a, i) => catenary(a, ends[i], sags[i]))
+        paths.forEach((pts, i) => draw(pts, widths[i], 'rgba(255,186,120,0.22)', widths[i] > 8 ? 2.2 : 0))
+        // Cable trenzado de baja tensión (más grueso, con textura)
+        const twisted = catenary([-40, 300], [1700, 500], 150)
+        draw(twisted, 13, 'rgba(255,186,120,0.18)', 2.5)
+        g.save()
+        g.filter = 'blur(2px)'
+        g.strokeStyle = 'rgba(255,255,255,0.05)'
+        g.lineWidth = 2
+        for (let i = 0; i < twisted.length - 1; i += 2) {
+          const [x, y] = twisted[i]
+          g.beginPath()
+          g.moveTo(x - 4, y - 5)
+          g.lineTo(x + 4, y + 5)
+          g.stroke()
+        }
+        g.restore()
+        // Caja de empalme colgando de la fibra
+        const p = paths[4][34]
+        g.save()
+        g.translate(p[0], p[1] + 6)
+        g.rotate(0.12)
+        g.fillStyle = ink
+        g.beginPath()
+        g.roundRect(-70, -18, 140, 36, 16)
+        g.fill()
+        g.fillStyle = 'rgba(255,186,120,0.2)'
+        g.fillRect(-60, -16, 120, 3)
+        for (const x of [-48, 48]) {
+          g.fillStyle = '#0c0f13'
+          g.fillRect(x - 5, -22, 10, 44)
+        }
+        g.restore()
+        // Rollo de reserva de fibra: varias vueltas y una amarra
+        g.save()
+        g.translate(330, 500)
+        g.rotate(-0.16)
+        for (let i = 0; i < 7; i += 1) {
+          g.strokeStyle = ink
+          g.lineWidth = 3.4
+          g.beginPath()
+          g.ellipse(i * 2.4, i * 1.4, 96 - i * 1.5, 40 - i * 0.6, 0, 0, TAU)
+          g.stroke()
+        }
+        g.strokeStyle = 'rgba(255,186,120,0.26)'
+        g.lineWidth = 1.5
+        g.beginPath()
+        g.ellipse(0, -1, 97, 41, 0, Math.PI * 1.05, Math.PI * 1.9)
+        g.stroke()
+        g.fillStyle = ink
+        g.fillRect(-8, -48, 12, 30)
+        g.restore()
+        draw(catenary([330, 455], [520, paths[4][24][1]], -20, 30), 4, null)
+        // Zapatillas colgando del cable por los cordones
+        const shoesAt = paths[5][52]
+        for (const [dx, len, rot] of [
+          [-14, 120, 0.12],
+          [18, 150, -0.1],
+        ]) {
+          const top = [shoesAt[0] + dx * 0.3, shoesAt[1]]
+          const bottom = [shoesAt[0] + dx, shoesAt[1] + len]
+          draw([top, [(top[0] + bottom[0]) / 2 + 6, (top[1] + bottom[1]) / 2], bottom], 2, null)
+          g.save()
+          g.translate(bottom[0], bottom[1])
+          g.rotate(rot)
+          g.fillStyle = ink
+          g.beginPath()
+          g.moveTo(-18, -6)
+          g.quadraticCurveTo(-14, -34, 6, -30)
+          g.quadraticCurveTo(14, -10, 46, -2)
+          g.quadraticCurveTo(58, 4, 52, 16)
+          g.lineTo(-20, 16)
+          g.closePath()
+          g.fill()
+          g.fillStyle = 'rgba(239,231,216,0.14)'
+          g.fillRect(-20, 10, 72, 6)
+          g.restore()
+        }
+      })
+
+      // ---------------------------------------------------------------------------
+      // 2) Rama de plátano oriental, de noche: siluetas con luz de farol en el borde
+      sheet('platano', 1400, 1100, (g, w, h) => {
+        const rand = rng(23)
+        const bark = '#07090b'
+        const main = bez([1480, -80], [1200, 120], [960, 230], [620, 470], 60)
+        taper(g, main, 52, 12, bark)
+        const branches = [
+          bez(main[22], [1040, 360], [1000, 560], [950, 740], 40),
+          bez(main[36], [820, 420], [720, 560], [650, 700], 40),
+          bez(main[12], [1260, 260], [1290, 420], [1330, 600], 40),
+          bez(main[48], [560, 560], [500, 720], [450, 880], 40),
+          bez(main[28], [900, 210], [760, 150], [610, 120], 40),
+          bez(main[42], [700, 380], [560, 360], [420, 400], 40),
+        ]
+        branches.forEach((b, i) => taper(g, b, 18 - i * 1.6, 3, bark))
+        const twigs = []
+        for (const b of [main, ...branches]) {
+          for (let k = 0; k < 7; k += 1) {
+            const p = b[Math.floor(b.length * (0.3 + rand() * 0.68))]
+            const a = Math.PI * (0.25 + rand() * 0.9)
+            const len = 50 + rand() * 90
+            const tip = [p[0] + Math.cos(a) * len, p[1] + Math.sin(a) * len]
+            taper(g, bez(p, [p[0] + Math.cos(a) * len * 0.4, p[1] + Math.sin(a) * len * 0.2], [tip[0], tip[1] - 10], tip, 10), 4, 1.5, bark)
+            twigs.push(tip)
+          }
+        }
+        const tones = [
+          { lit: '#1d2a20', mid: '#0b110d', dark: '#040605', rim: 'rgba(255,170,90,0.6)', vein: 'rgba(255,200,140,0.08)' },
+          { lit: '#16211a', mid: '#090e0b', dark: '#030504', rim: 'rgba(255,170,90,0.45)', vein: 'rgba(255,200,140,0.06)' },
+          { lit: '#121a1c', mid: '#080c0d', dark: '#030405', rim: 'rgba(150,180,255,0.28)', vein: 'rgba(200,220,255,0.05)' },
+        ]
+        // Primero las hojas más lejanas (chicas), al final las cercanas y desenfocadas
+        const leaves = []
+        for (let i = 0; i < 120; i += 1) {
+          const tip = twigs[Math.floor(rand() * twigs.length)]
+          const r = 30 + Math.pow(rand(), 1.6) * 80
+          leaves.push({ tip, r })
+        }
+        leaves.sort((a, b) => a.r - b.r)
+        for (const { tip, r } of leaves) {
+          const droop = Math.PI * (0.05 + rand() * 0.5) * (rand() < 0.5 ? -1 : 1)
+          const pet = r * (0.5 + rand() * 0.4)
+          const lx = tip[0] + Math.sin(droop) * pet * 0.6
+          const ly = tip[1] + Math.cos(droop) * pet * 0.4 + r * 0.6
+          g.strokeStyle = bark
+          g.lineWidth = 2
+          g.beginPath()
+          g.moveTo(tip[0], tip[1])
+          g.quadraticCurveTo(tip[0], (tip[1] + ly) / 2, lx, ly - r * 0.7)
+          g.stroke()
+          const blur = r > 92 ? 3.2 : r > 76 ? 1.6 : 0
+          platanoLeaf(g, lx, ly, r, droop + Math.PI * (rand() < 0.12 ? 1 : 0), 0.5 + rand() * 0.5, tones[Math.floor(rand() * tones.length)], rand, blur)
+        }
+        // Bolitas colgando de tallos largos
+        for (let i = 0; i < 6; i += 1) {
+          const b = branches[i % branches.length]
+          const p = b[Math.floor(b.length * (0.45 + rand() * 0.5))]
+          const len = 120 + rand() * 140
+          g.strokeStyle = bark
+          g.lineWidth = 2
+          g.beginPath()
+          g.moveTo(p[0], p[1])
+          g.quadraticCurveTo(p[0] + 14, p[1] + len * 0.5, p[0] + 5, p[1] + len)
+          g.stroke()
+          seedBall(g, p[0] + 5, p[1] + len + 15, 14 + rand() * 5, rand, '#080a0a', 'rgba(255,175,95,0.5)')
+        }
+      })
+
+      // ---------------------------------------------------------------------------
+      // 3) Rama de jacarandá florida, de día
+      sheet('jacaranda', 1400, 1100, (g, w, h) => {
+        const rand = rng(37)
+        const bark = '#3b2e2a'
+        const main = bez([1460, -40], [1180, 120], [1000, 330], [760, 520], 50)
+        taper(g, main, 36, 10, bark)
+        const branches = [
+          bez(main[20], [1080, 380], [1060, 560], [1020, 720], 30),
+          bez(main[34], [860, 520], [760, 640], [700, 820], 30),
+          bez(main[12], [1300, 260], [1330, 420], [1360, 580], 30),
+          bez(main[44], [640, 560], [560, 640], [470, 690], 30),
+        ]
+        branches.forEach((b, i) => taper(g, b, 12 - i, 3, bark))
+        // Hojas bipinnadas: un raquis curvo con pinnas cortas y foliolos diminutos (se ve como un helecho)
+        const fern = (x, y, len, ang, blur) => {
+          g.save()
+          g.translate(x, y)
+          g.rotate(ang)
+          if (blur) g.filter = `blur(${blur}px)`
+          const bend = (rand() - 0.5) * 0.5
+          const pts = bez([0, 0], [len * 0.35, len * bend * 0.3], [len * 0.7, len * bend * 0.5], [len, len * bend * 0.4], 18)
+          g.strokeStyle = '#4c6a33'
+          g.lineWidth = 1.6
+          g.beginPath()
+          pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])))
+          g.stroke()
+          const pinnae = 14
+          for (let k = 1; k < pinnae; k += 1) {
+            const p = pts[Math.round((k / pinnae) * (pts.length - 1))]
+            const pl = len * 0.2 * (1 - k / (pinnae * 1.4))
+            for (const side of [-1, 1]) {
+              const a = side * (1.05 - k * 0.02)
+              const cx = Math.cos(a)
+              const sy = Math.sin(a)
+              for (let j = 1; j <= 12; j += 1) {
+                const t = j / 12
+                const fx = p[0] + cx * pl * t
+                const fy = p[1] + sy * pl * t
+                const shade = 0.75 + rand() * 0.35
+                g.fillStyle = `rgba(${Math.round(78 * shade)},${Math.round(122 * shade)},${Math.round(56 * shade)},0.92)`
+                g.beginPath()
+                g.ellipse(fx + sy * 3.2, fy - cx * 3.2, 3.4 * (1 - t * 0.4), 1.6, a + 0.5, 0, TAU)
+                g.ellipse(fx - sy * 3.2, fy + cx * 3.2, 3.4 * (1 - t * 0.4), 1.6, a - 0.5, 0, TAU)
+                g.fill()
+              }
+            }
+          }
+          g.restore()
+        }
+        const along = [main, ...branches]
+        for (let i = 0; i < 26; i += 1) {
+          const path = along[i % along.length]
+          const p = path[Math.floor(path.length * (0.3 + rand() * 0.7)) - 1]
+          fern(p[0], p[1], 130 + rand() * 100, Math.PI * (0.35 + rand() * 0.75), i > 20 ? 2.2 : 0)
+        }
+        // Racimos de flores lila en las puntas
+        const bell = (x, y, r, a) => {
+          g.save()
+          g.translate(x, y)
+          g.rotate(a)
+          const grad = g.createLinearGradient(0, -r, 0, r)
+          grad.addColorStop(0, '#c8b4f2')
+          grad.addColorStop(0.5, '#9b7fd4')
+          grad.addColorStop(1, '#6b4fae')
+          g.fillStyle = grad
+          g.beginPath()
+          g.moveTo(-r * 0.32, -r)
+          g.quadraticCurveTo(-r * 0.5, 0, -r * 0.9, r * 0.7)
+          for (let k = 0; k <= 5; k += 1) {
+            const xx = -r * 0.9 + (k * r * 1.8) / 5
+            g.quadraticCurveTo(xx - r * 0.18, r * 1.05, xx, r * 0.72)
+          }
+          g.quadraticCurveTo(r * 0.5, 0, r * 0.32, -r)
+          g.closePath()
+          g.fill()
+          g.fillStyle = 'rgba(255,255,255,0.25)'
+          g.beginPath()
+          g.ellipse(-r * 0.2, -r * 0.1, r * 0.12, r * 0.5, 0.1, 0, TAU)
+          g.fill()
+          g.restore()
+        }
+        const tips = branches.map((b) => b[b.length - 1]).concat([main[main.length - 1], main[30], branches[0][18], branches[1][15]])
+        for (const [tx, ty] of tips) {
+          const n = 26 + Math.floor(rand() * 18)
+          for (let k = 0; k < n; k += 1) {
+            const a = rand() * TAU
+            const rr = Math.sqrt(rand()) * 70
+            bell(tx + Math.cos(a) * rr, ty + Math.sin(a) * rr * 0.8 + 30, 9 + rand() * 8, Math.PI * (0.8 + rand() * 0.4))
+          }
+        }
+        // Flores cayendo
+        for (let i = 0; i < 9; i += 1) bell(300 + rand() * 900, 700 + rand() * 360, 8, rand() * TAU)
+      })
+
+      // ---------------------------------------------------------------------------
+      // 4) Borde de una azotea: antena, estanque de agua y una parabólica
+      sheet('techo', 2400, 700, (g, w, h) => {
+        const rand = rng(51)
+        const top = h - 150
+        // Antena de televisión (yagi)
+        g.strokeStyle = '#25282d'
+        g.lineWidth = 9
+        g.beginPath()
+        g.moveTo(1880, top)
+        g.lineTo(1880, 40)
+        g.stroke()
+        for (let i = 0; i < 9; i += 1) {
+          g.lineWidth = 4
+          g.beginPath()
+          g.moveTo(1880 - 70 + i * 4, 70 + i * 26)
+          g.lineTo(1880 + 70 - i * 4, 70 + i * 26)
+          g.stroke()
+        }
+        // Estanque sobre patas
+        g.fillStyle = '#2f3338'
+        g.fillRect(420, top - 300, 260, 230)
+        g.fillStyle = 'rgba(255,255,255,0.08)'
+        g.fillRect(420, top - 300, 34, 230)
+        g.fillStyle = '#23262a'
+        g.beginPath()
+        g.ellipse(550, top - 300, 130, 22, 0, 0, TAU)
+        g.fill()
+        g.fillStyle = '#1d2024'
+        for (const x of [440, 650]) g.fillRect(x, top - 70, 14, 70)
+        // Parabólica
+        g.fillStyle = '#c9cbcf'
+        g.beginPath()
+        g.ellipse(1250, top - 120, 70, 90, -0.5, 0, TAU)
+        g.fill()
+        g.strokeStyle = '#7d8187'
+        g.lineWidth = 6
+        g.beginPath()
+        g.moveTo(1250, top - 120)
+        g.lineTo(1300, top)
+        g.stroke()
+        // Ductos
+        for (const x of [900, 960, 2200]) {
+          g.fillStyle = '#3a3e44'
+          g.fillRect(x, top - 120 - rand() * 60, 26, 200)
+          g.fillStyle = '#2a2d31'
+          g.fillRect(x - 6, top - 130 - rand() * 50, 38, 14)
+        }
+        // Parapeto de hormigón, con textura
+        g.fillStyle = '#4a4d52'
+        g.fillRect(0, top, w, h - top)
+        g.fillStyle = '#5c6066'
+        g.fillRect(0, top - 18, w, 22)
+        for (let i = 0; i < 9000; i += 1) {
+          g.fillStyle = `rgba(0,0,0,${rand() * 0.18})`
+          g.fillRect(rand() * w, top + rand() * (h - top), 2 + rand() * 3, 2 + rand() * 3)
+        }
+        for (let x = 0; x < w; x += 300) {
+          g.fillStyle = 'rgba(0,0,0,0.25)'
+          g.fillRect(x, top - 18, 4, h - top + 18)
+        }
+        const shade = g.createLinearGradient(0, top, 0, h)
+        shade.addColorStop(0, 'rgba(0,0,0,0)')
+        shade.addColorStop(1, 'rgba(0,0,0,0.55)')
+        g.fillStyle = shade
+        g.fillRect(0, top, w, h - top)
+      })
+
+      // ---------------------------------------------------------------------------
+      // 5) Baranda de balcón con cardenales, al atardecer
+      sheet('baranda', 1600, 1000, (g, w, h) => {
+        const rand = rng(67)
+        const railY = 420
+        // Macetero y cardenales (detrás de la baranda)
+        const pot = (x, y, s) => {
+          g.fillStyle = '#7a3b22'
+          g.beginPath()
+          g.moveTo(x - 110 * s, y)
+          g.lineTo(x + 110 * s, y)
+          g.lineTo(x + 86 * s, y + 170 * s)
+          g.lineTo(x - 86 * s, y + 170 * s)
+          g.closePath()
+          g.fill()
+          g.fillStyle = 'rgba(255,170,90,0.35)'
+          g.fillRect(x - 110 * s, y, 220 * s, 16 * s)
+          for (let i = 0; i < 40; i += 1) {
+            const a = rand() * Math.PI
+            const r = 60 + rand() * 120
+            const lx = x + Math.cos(a) * r * s * 1.1
+            const ly = y - Math.sin(a) * r * s * 0.9
+            g.fillStyle = rand() > 0.5 ? '#2c4a24' : '#21391c'
+            g.beginPath()
+            g.arc(lx, ly, (18 + rand() * 12) * s, 0, TAU)
+            g.fill()
+          }
+          for (let i = 0; i < 9; i += 1) {
+            const a = 0.3 + rand() * 2.5
+            const r = 120 + rand() * 80
+            const fx = x + Math.cos(a) * r * s
+            const fy = y - Math.sin(a) * r * s - 30 * s
+            for (let k = 0; k < 9; k += 1) {
+              g.fillStyle = k % 3 ? '#d81f2c' : '#ff4a4a'
+              g.beginPath()
+              g.arc(fx + (rand() - 0.5) * 34 * s, fy + (rand() - 0.5) * 30 * s, (7 + rand() * 5) * s, 0, TAU)
+              g.fill()
+            }
+          }
+        }
+        pot(320, railY + 260, 1.1)
+        pot(980, railY + 300, 0.85)
+        // Baranda: pasamanos y barrotes, silueta con luz cálida del poniente
+        const ink = '#0a0b0e'
+        g.fillStyle = ink
+        g.fillRect(-10, railY, w + 20, 26)
+        g.fillRect(-10, h - 60, w + 20, 22)
+        for (let x = 14; x < w; x += 40) g.fillRect(x, railY + 20, 9, h - railY)
+        g.fillStyle = 'rgba(255,150,80,0.45)'
+        g.fillRect(-10, railY, w + 20, 4)
+        for (let x = 14; x < w; x += 40) g.fillRect(x, railY + 26, 2, h - railY)
+        // Una planta colgando del pasamanos
+        g.strokeStyle = '#1d3a1b'
+        g.lineWidth = 3
+        for (let i = 0; i < 14; i += 1) {
+          const x0 = 1260 + rand() * 120
+          g.beginPath()
+          g.moveTo(x0, railY + 10)
+          g.bezierCurveTo(x0 + 30, railY + 120, x0 - 30, railY + 220, x0 + (rand() - 0.5) * 60, railY + 260 + rand() * 200)
+          g.stroke()
+          for (let k = 0; k < 8; k += 1) {
+            g.fillStyle = k % 2 ? '#2f5a2a' : '#24461f'
+            g.beginPath()
+            g.ellipse(x0 + (rand() - 0.5) * 40, railY + 40 + k * 40 + rand() * 20, 12, 7, rand() * 3, 0, TAU)
+            g.fill()
+          }
+        }
+        g.fillStyle = '#8a4a2a'
+        g.fillRect(1250, railY - 70, 150, 80)
+      })
+
+      window.__done = true
+    </script>
+  </body>
+</html>

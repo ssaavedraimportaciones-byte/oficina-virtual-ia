@@ -1,7 +1,5 @@
-'use client'
-
-import { Fragment, useEffect, useRef } from 'react'
-import '@fontsource-variable/fraunces'
+import { Fragment } from 'react'
+import type { gsap as Gsap } from 'gsap'
 import { bus } from './bus'
 import { CHAPTERS, DEMO_NOTE, FLIGHTS, HANDOFF_REASON, HANDOFF_SUBJECT, SUMMARY_SHOT } from './data'
 
@@ -13,10 +11,12 @@ export function SplitWords({ text, accent = [], breakAfter = [] }: { text: strin
       <span aria-hidden="true">
         {text.split(' ').map((word, i) => (
           <Fragment key={`${word}-${i}`}>
-            <span className={accent.includes(i) ? 'zv-w zv-acc' : 'zv-w'} style={{ '--i': i } as React.CSSProperties}>
-              {word}
+            <span className="zv-wm">
+              <span className={accent.includes(i) ? 'zv-w zv-acc' : 'zv-w'} style={{ '--i': i } as React.CSSProperties}>
+                {word}
+              </span>
             </span>
-            {breakAfter.includes(i) && <br />}
+            {breakAfter.includes(i) ? <br /> : ' '}
           </Fragment>
         ))}
       </span>
@@ -49,255 +49,161 @@ const INSERTS: { id: string; in: number; out?: number }[] = [
   { id: 'amanece', in: 41.8, out: 44.2 },
   { id: 'resumen', in: 47.8 },
 ]
-const CHAPTER_UNITS = 10
+export const CHAPTER_UNITS = 10
+/** Largo del escenario fijo, en altos de pantalla. */
+export const NIGHT_SCREENS = 10
 
+/**
+ * Arma la línea de tiempo de la noche (se llama dentro de un gsap.context).
+ * El scroll es el tiempo: cada tween mueve el estado compartido (`bus`) o el DOM.
+ */
+export function buildNight(gsap: typeof Gsap, stage: HTMLElement, lite: boolean) {
+  const q = <T extends Element>(sel: string) => Array.from(stage.querySelectorAll<T>(sel))
+  const one = <T extends Element>(sel: string) => stage.querySelector<T>(sel)
+
+  const clock = one<HTMLElement>('[data-clock]')
+  const proxy = { m: CHAPTERS[0].minutes, stock: 12 }
+  const renderClock = () => {
+    if (!clock) return
+    const m = Math.round(proxy.m) % 1440
+    clock.textContent = `${pad(Math.floor(m / 60))}:${pad(m % 60)}`
+  }
+  const stockEl = one<HTMLElement>('[data-stock]')
+  const renderStock = () => {
+    if (stockEl) stockEl.textContent = String(Math.round(proxy.stock))
+  }
+
+  const tl = gsap.timeline({
+    defaults: { ease: 'none' },
+    scrollTrigger: {
+      trigger: stage,
+      start: 'top top',
+      end: () => `+=${Math.round(window.innerHeight * NIGHT_SCREENS)}`,
+      pin: true,
+      scrub: 0.9,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+    },
+  })
+  tl.set({}, {}, CHAPTER_UNITS * CHAPTERS.length)
+
+  // Barras de cine: se cierran al entrar a la noche
+  tl.fromTo(q('[data-bar]'), { scaleY: 0 }, { scaleY: 1, duration: 0.8, ease: 'power2.out' }, 0)
+
+  // Subtítulos y tarjeta de escena
+  q<HTMLElement>('[data-copy]').forEach((copy, i) => {
+    const o = i * CHAPTER_UNITS
+    const words = Array.from(copy.querySelectorAll('.zv-w'))
+    const bits = Array.from(copy.querySelectorAll('.zv-sub-b'))
+    tl.fromTo(copy, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, o + 0.2)
+    tl.fromTo(words, { yPercent: 110 }, { yPercent: 0, stagger: 0.06, duration: 0.7, ease: 'power3.out' }, o + 0.25)
+    tl.fromTo(bits, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, o + 0.8)
+    if (i < CHAPTERS.length - 1) tl.to(copy, { autoAlpha: 0, y: -12, duration: 0.5, ease: 'power1.in' }, o + CHAPTER_UNITS - 0.6)
+  })
+  q<HTMLElement>('[data-scene]').forEach((card, i) => {
+    const o = i * CHAPTER_UNITS
+    tl.fromTo(card, { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.6, ease: 'power3.out' }, o)
+    if (i < CHAPTERS.length - 1) tl.to(card, { autoAlpha: 0, duration: 0.4 }, o + CHAPTER_UNITS - 0.5)
+  })
+  ;[1, 2, 3, 4].forEach((i) => {
+    tl.to(proxy, { m: CHAPTERS[i].minutes, duration: 1.4, ease: 'power1.inOut', onUpdate: renderClock }, i * CHAPTER_UNITS - 0.8)
+  })
+
+  // Rótulos sobre las ventanas
+  const labels = q<HTMLElement>('[data-anchor]:not([data-anchor="shelf"])')
+  tl.fromTo(labels, { autoAlpha: 0 }, { autoAlpha: 1, stagger: 0.35, duration: 0.5 }, 0.5)
+  const status = (id: string, from: string, to: string, at: number) => {
+    const a = one(`[data-st="${id}-${from}"]`)
+    const b = one(`[data-st="${id}-${to}"]`)
+    if (a) tl.to(a, { autoAlpha: 0, duration: 0.3 }, at)
+    if (b) tl.fromTo(b, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, at)
+  }
+
+  // --- 01 · 23:47 La cuadra. Caro apaga la luz; Ana escribe; el local cerrado responde.
+  tl.to(bus, { owner: 0, duration: 0.8, ease: 'power2.in' }, 0.9)
+  status('owner', 'a', 'b', 1.4)
+  tl.to(bus, { anaPhone: 1, duration: 0.4 }, 1.4)
+  tl.to(bus, { shop: 1, duration: 0.6, ease: 'power2.out' }, 4.3)
+  status('shop', 'a', 'b', 4.4)
+
+  // En los primeros planos del local, su rótulo sobra.
+  const shopLabel = one('[data-anchor="shop"]')
+  if (shopLabel) {
+    tl.to(shopLabel, { autoAlpha: 0, duration: 0.4 }, 9.6)
+    tl.to(shopLabel, { autoAlpha: 1, duration: 0.5 }, 30.6)
+  }
+
+  // --- 02 · 23:52 La vitrina
+  tl.to(bus, { cam: 1, duration: 2.2, ease: 'power2.inOut' }, 9.4)
+  // --- 03 · 00:06 El estante
+  tl.to(bus, { cam: 2, duration: 2.0, ease: 'power2.inOut' }, 19.4)
+  const shelf = one('[data-anchor="shelf"]')
+  if (shelf) {
+    tl.fromTo(shelf, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4 }, 21.2)
+    tl.to(shelf, { autoAlpha: 0, duration: 0.4 }, 29.2)
+  }
+  tl.to(bus, { sold: 2, duration: 1.2, ease: 'power2.inOut' }, 25.7)
+  tl.to(proxy, { stock: 10, duration: 1.2, ease: 'power2.inOut', onUpdate: renderStock }, 25.7)
+  if (stockEl) tl.fromTo(stockEl, { color: '#f1e8d6' }, { color: '#ffb347', duration: 0.3 }, 25.7)
+
+  // --- 04 · 02:31 Lluvia. Reclamo, el agente se pausa y le avisa a Caro.
+  tl.to(bus, { cam: 3, duration: 2.2, ease: 'power2.inOut' }, 29.4)
+  tl.to(bus, { rain: 1, duration: 1.6 }, 30)
+  tl.to(bus, { shop: 0.18, duration: 0.6 }, 36.2)
+  status('shop', 'b', 'c', 36.2)
+  tl.to(bus, { ownerPhone: 1, duration: 0.3 }, 38.3)
+  status('owner', 'b', 'c', 38.4)
+
+  // --- 05 · 08:05 Amanece. Caro despierta y responde desde el panel.
+  tl.to(bus, { rain: 0, duration: 1.6 }, 40)
+  tl.to(bus, { dawn: 0.55, duration: 3 }, 40)
+  tl.to(bus, { owner: 1, ownerPhone: 0, duration: 0.8 }, 41)
+  status('owner', 'c', 'd', 41.2)
+  tl.to(bus, { cam: 4, dawn: 1, duration: 3.6, ease: 'power2.inOut' }, 46.2)
+  tl.to(labels, { autoAlpha: 0, duration: 0.6 }, 46.4)
+
+  // Mensajes que viajan de ventana en ventana
+  FLIGHTS.forEach((f) => {
+    const cue = FLIGHT_CUES[f.id]
+    const el = one<HTMLElement>(`[data-flight="${f.id}"]`)
+    if (!el) return
+    // El contenedor lo posiciona el mundo 3D (transform); acá solo se anima la burbuja de adentro.
+    tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, cue.in)
+    tl.fromTo(el.firstElementChild, { scale: 0.9, y: 10 }, { scale: 1, y: 0, duration: 0.4, ease: 'power3.out' }, cue.in)
+    tl.fromTo(bus.fl, { [f.id]: 0 }, { [f.id]: 1, duration: cue.land - cue.fly, ease: 'power1.inOut' }, cue.fly)
+    const ticks = el.querySelector('[data-ticks]')
+    if (ticks) tl.fromTo(ticks, { color: '#8a6a3a' }, { color: '#1d6fa0', duration: 0.3 }, cue.land + 0.2)
+    tl.to(el, { autoAlpha: 0, duration: 0.4 }, cue.out)
+  })
+
+  // Insertos: las capturas reales del panel, como un corte de cámara
+  const veil = one('[data-veil]')
+  INSERTS.forEach(({ id, in: at, out }) => {
+    const shot = one<HTMLElement>(`[data-shot="${id}"]`)
+    if (!shot) return
+    const ring = shot.querySelector('[data-ring]')
+    tl.fromTo(shot, { autoAlpha: 0, y: 40, scale: 0.96 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: 'power3.out' }, at)
+    if (veil) tl.to(veil, { autoAlpha: 1, duration: 0.6 }, at)
+    if (ring) tl.fromTo(ring, { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' }, at + 0.8)
+    if (out !== undefined) {
+      tl.to(shot, { autoAlpha: 0, y: -20, ...(lite ? {} : { filter: 'blur(8px)' }), duration: 0.6, ease: 'power1.in' }, out)
+      if (veil) tl.to(veil, { autoAlpha: 0, duration: 0.6 }, out)
+    }
+  })
+  // Al final de la noche se abre el telón para el día
+  tl.to(q('[data-bar]'), { scaleY: 0, duration: 0.8, ease: 'power2.in' }, 49.2)
+
+  renderClock()
+  renderStock()
+  return tl
+}
+
+/** El escenario fijo de la noche (solo el marcado; la animación la arma `buildNight`). */
 export default function Stage() {
-  const stageRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const root = document.documentElement
-    const stage = stageRef.current
-    if (!root.classList.contains('js-motion') || !stage) return
-
-    let cancelled = false
-    let cleanup = () => {}
-
-    const run = async () => {
-      const [{ default: gsap }, { ScrollTrigger }, { default: Lenis }] = await Promise.all([
-        import('gsap'),
-        import('gsap/ScrollTrigger'),
-        import('lenis'),
-      ])
-      if (cancelled) return
-      gsap.registerPlugin(ScrollTrigger)
-      ScrollTrigger.config({ ignoreMobileResize: true })
-      if (document.fonts?.ready) await document.fonts.ready
-      if (cancelled) return
-
-      const lenis = new Lenis({ lerp: 0.09, anchors: { offset: -72 } })
-      lenis.on('scroll', ScrollTrigger.update)
-      const tick = (time: number) => lenis.raf(time * 1000)
-      gsap.ticker.add(tick)
-      gsap.ticker.lagSmoothing(0)
-
-      const hero = document.querySelector<HTMLElement>('[data-hero]')
-      const heroContent = document.querySelector<HTMLElement>('[data-hero-content]')
-      const q = <T extends HTMLElement>(sel: string) => Array.from(stage.querySelectorAll<T>(sel))
-      const one = <T extends HTMLElement>(sel: string) => stage.querySelector<T>(sel)
-
-      let ctx: ReturnType<typeof gsap.context> | undefined
-      let builtWidth = 0
-
-      const build = () => {
-        builtWidth = window.innerWidth
-        const lite = window.matchMedia('(max-width: 820px), (pointer: coarse)').matches
-
-        // Cada armado parte de la noche en su estado inicial; los tweens registran desde acá.
-        Object.assign(bus, { cam: 0, shop: 0.3, owner: 1, ownerPhone: 0, anaPhone: 0, sold: 0, dawn: 0, rain: 0 })
-        FLIGHTS.forEach((f) => (bus.fl[f.id] = 0))
-
-        ctx = gsap.context(() => {
-          // 1) Portada: el título se va y la cámara baja del cielo a la calle.
-          if (hero) {
-            ScrollTrigger.create({
-              trigger: hero,
-              start: 'top top',
-              end: 'bottom bottom',
-              onUpdate: (self) => {
-                bus.hero = self.progress
-              },
-            })
-            if (heroContent) {
-              gsap.to(heroContent, {
-                opacity: 0,
-                y: -70,
-                ease: 'none',
-                scrollTrigger: { trigger: hero, start: 'top top', end: '55% top', scrub: true },
-              })
-            }
-          }
-
-          // 2) La noche: un escenario fijo. El scroll es el tiempo.
-          const rail = q('[data-rail]')
-          const clock = one('[data-clock]')
-          const proxy = { m: CHAPTERS[0].minutes, stock: 12 }
-          const renderClock = () => {
-            if (!clock) return
-            const m = Math.round(proxy.m) % 1440
-            clock.textContent = `${pad(Math.floor(m / 60))}:${pad(m % 60)}`
-          }
-          const stockEl = one('[data-stock]')
-          const renderStock = () => {
-            if (stockEl) stockEl.textContent = String(Math.round(proxy.stock))
-          }
-
-          const tl = gsap.timeline({
-            defaults: { ease: 'none' },
-            scrollTrigger: {
-              trigger: stage,
-              start: 'top top',
-              end: () => `+=${Math.round(window.innerHeight * 10)}`,
-              pin: true,
-              scrub: 0.9,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-              onUpdate: (self) => {
-                const active = Math.min(CHAPTERS.length - 1, Math.floor(self.progress * CHAPTERS.length))
-                rail.forEach((el, i) => {
-                  const state = i === active ? 'on' : i < active ? 'past' : 'next'
-                  if (el.dataset.state !== state) el.dataset.state = state
-                })
-              },
-            },
-          })
-          // Duración total fija: 5 capítulos.
-          tl.set({}, {}, CHAPTER_UNITS * CHAPTERS.length)
-
-          // Barras de cine: se cierran al entrar a la noche
-          tl.fromTo(q('[data-bar]'), { scaleY: 0 }, { scaleY: 1, duration: 0.8, ease: 'power2.out' }, 0)
-
-
-          // Subtítulos y escena de cada capítulo
-          q('[data-copy]').forEach((copy, i) => {
-            const o = i * CHAPTER_UNITS
-            const words = Array.from(copy.querySelectorAll('.zv-w'))
-            const bits = Array.from(copy.querySelectorAll('.zv-sub-b'))
-            tl.fromTo(copy, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, o + 0.2)
-            tl.fromTo(words, { opacity: 0, yPercent: 40, filter: lite ? 'none' : 'blur(6px)' }, { opacity: 1, yPercent: 0, filter: 'blur(0px)', stagger: 0.06, duration: 0.6, ease: 'power3.out' }, o + 0.25)
-            tl.fromTo(bits, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, o + 0.8)
-            if (i < CHAPTERS.length - 1) tl.to(copy, { autoAlpha: 0, y: -12, duration: 0.5, ease: 'power1.in' }, o + CHAPTER_UNITS - 0.6)
-          })
-          q('[data-scene]').forEach((card, i) => {
-            const o = i * CHAPTER_UNITS
-            tl.fromTo(card, { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.6, ease: 'power3.out' }, o)
-            if (i < CHAPTERS.length - 1) tl.to(card, { autoAlpha: 0, duration: 0.4 }, o + CHAPTER_UNITS - 0.5)
-          })
-          ;[1, 2, 3, 4].forEach((i) => {
-            tl.to(proxy, { m: CHAPTERS[i].minutes, duration: 1.4, ease: 'power1.inOut', onUpdate: renderClock }, i * CHAPTER_UNITS - 0.8)
-          })
-
-          // Rótulos sobre las ventanas
-          tl.fromTo(q('[data-anchor]:not([data-anchor="shelf"])'), { autoAlpha: 0 }, { autoAlpha: 1, stagger: 0.35, duration: 0.5 }, 0.5)
-          const status = (id: string, from: string, to: string, at: number) => {
-            const a = one(`[data-st="${id}-${from}"]`)
-            const b = one(`[data-st="${id}-${to}"]`)
-            if (a) tl.to(a, { autoAlpha: 0, duration: 0.3 }, at)
-            if (b) tl.fromTo(b, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, at)
-          }
-
-          // --- 01 · 23:47 La cuadra. Caro apaga la luz; Ana escribe; el local cerrado responde.
-          tl.to(bus, { owner: 0, duration: 0.8, ease: 'power2.in' }, 0.9)
-          status('owner', 'a', 'b', 1.4)
-          tl.to(bus, { anaPhone: 1, duration: 0.4 }, 1.4)
-          tl.to(bus, { shop: 1, duration: 0.6, ease: 'power2.out' }, 4.3)
-          status('shop', 'a', 'b', 4.4)
-
-          // En los primeros planos del local, su rótulo sobra.
-          const shopLabel = one('[data-anchor="shop"]')
-          if (shopLabel) {
-            tl.to(shopLabel, { autoAlpha: 0, duration: 0.4 }, 9.6)
-            tl.to(shopLabel, { autoAlpha: 1, duration: 0.5 }, 30.6)
-          }
-
-          // --- 02 · 23:52 La vitrina
-          tl.to(bus, { cam: 1, duration: 2.2, ease: 'power2.inOut' }, 9.4)
-          // --- 03 · 00:06 El estante
-          tl.to(bus, { cam: 2, duration: 2.0, ease: 'power2.inOut' }, 19.4)
-          const shelf = one('[data-anchor="shelf"]')
-          if (shelf) {
-            tl.fromTo(shelf, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4 }, 21.2)
-            tl.to(shelf, { autoAlpha: 0, duration: 0.4 }, 29.2)
-          }
-          tl.to(bus, { sold: 2, duration: 1.2, ease: 'power2.inOut' }, 25.7)
-          tl.to(proxy, { stock: 10, duration: 1.2, ease: 'power2.inOut', onUpdate: renderStock }, 25.7)
-          if (stockEl) tl.fromTo(stockEl, { color: '#f1e8d6' }, { color: '#ffb347', duration: 0.3 }, 25.7)
-
-          // --- 04 · 02:31 Lluvia. Reclamo, el agente se pausa y le avisa a Caro.
-          tl.to(bus, { cam: 3, duration: 2.2, ease: 'power2.inOut' }, 29.4)
-          tl.to(bus, { rain: 1, duration: 1.6 }, 30)
-          tl.to(bus, { shop: 0.18, duration: 0.6 }, 36.2)
-          status('shop', 'b', 'c', 36.2)
-          tl.to(bus, { ownerPhone: 1, duration: 0.3 }, 38.3)
-          status('owner', 'b', 'c', 38.4)
-
-          // --- 05 · 08:05 Amanece. Caro despierta y responde desde el panel.
-          tl.to(bus, { rain: 0, duration: 1.6 }, 40)
-          tl.to(bus, { dawn: 0.55, duration: 3 }, 40)
-          tl.to(bus, { owner: 1, ownerPhone: 0, duration: 0.8 }, 41)
-          status('owner', 'c', 'd', 41.2)
-          tl.to(bus, { cam: 4, dawn: 1, duration: 3.6, ease: 'power2.inOut' }, 46.2)
-          tl.to(q('[data-anchor]:not([data-anchor="shelf"])'), { autoAlpha: 0, duration: 0.6 }, 46.4)
-
-          // Mensajes que viajan de ventana en ventana
-          FLIGHTS.forEach((f) => {
-            const cue = FLIGHT_CUES[f.id]
-            const el = one(`[data-flight="${f.id}"]`)
-            if (!el) return
-            // El contenedor lo posiciona el mundo 3D (transform); acá solo se anima la burbuja de adentro.
-            tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, cue.in)
-            tl.fromTo(el.firstElementChild, { scale: 0.9, y: 10 }, { scale: 1, y: 0, duration: 0.4, ease: 'power3.out' }, cue.in)
-            tl.fromTo(bus.fl, { [f.id]: 0 }, { [f.id]: 1, duration: cue.land - cue.fly, ease: 'power1.inOut' }, cue.fly)
-            const ticks = el.querySelector('[data-ticks]')
-            if (ticks) tl.fromTo(ticks, { color: '#8a6a3a' }, { color: '#1d6fa0', duration: 0.3 }, cue.land + 0.2)
-            tl.to(el, { autoAlpha: 0, duration: 0.4 }, cue.out)
-          })
-
-          // Insertos: las capturas reales del panel, como un corte de cámara
-          const veil = one('[data-veil]')
-          INSERTS.forEach(({ id, in: at, out }) => {
-            const shot = one(`[data-shot="${id}"]`)
-            if (!shot) return
-            const ring = shot.querySelector('[data-ring]')
-            tl.fromTo(shot, { autoAlpha: 0, y: 40, scale: 0.96 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: 'power3.out' }, at)
-            if (veil) tl.to(veil, { autoAlpha: 1, duration: 0.6 }, at)
-            if (ring) tl.fromTo(ring, { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' }, at + 0.8)
-            if (out !== undefined) {
-              tl.to(shot, { autoAlpha: 0, y: -20, ...(lite ? {} : { filter: 'blur(8px)' }), duration: 0.6, ease: 'power1.in' }, out)
-              if (veil) tl.to(veil, { autoAlpha: 0, duration: 0.6 }, out)
-            }
-          })
-
-          renderClock()
-          renderStock()
-        }, stage)
-      }
-
-      build()
-      ScrollTrigger.refresh()
-
-      let timer = 0
-      const onResize = () => {
-        window.clearTimeout(timer)
-        timer = window.setTimeout(() => {
-          if (Math.abs(window.innerWidth - builtWidth) < 2) return
-          ctx?.revert()
-          build()
-          ScrollTrigger.refresh()
-        }, 250)
-      }
-      window.addEventListener('resize', onResize)
-
-      cleanup = () => {
-        window.removeEventListener('resize', onResize)
-        window.clearTimeout(timer)
-        ctx?.revert()
-        gsap.ticker.remove(tick)
-        lenis.destroy()
-      }
-      if (cancelled) cleanup()
-    }
-
-    void run()
-    return () => {
-      cancelled = true
-      cleanup()
-    }
-  }, [])
-
   const shots = [...CHAPTERS.filter((c) => c.shot).map((c) => ({ id: c.id, ...c.shot! })), { id: 'resumen', ...SUMMARY_SHOT }]
 
   return (
-    <section ref={stageRef} className="zv-stage" aria-label="Una noche con ZeroVisto, en cinco escenas">
+    <section className="zv-stage" data-stage aria-label="Una noche con ZeroVisto, en cinco escenas">
       <div className="zv-scrim" />
       <div className="zv-veil" data-veil />
 
@@ -365,12 +271,12 @@ export default function Stage() {
       {/* Insertos: capturas reales del panel */}
       <div className="zv-inserts">
         {shots.map((shot) => (
-          <figure key={shot.id} className="zv-shot" data-shot={shot.id}>
+          <figure key={shot.id} className="zv-shot" data-shot={shot.id} data-tilt>
             <figcaption>
               <span>{shot.caption}</span>
               <span>panel real · datos de demostración</span>
             </figcaption>
-            <div className="zv-shot-img">
+            <div className="zv-shot-img zv-tilt">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={shot.src} alt={shot.alt} width={shot.width} height={shot.height} decoding="async" />
               <span
@@ -383,12 +289,12 @@ export default function Stage() {
         ))}
       </div>
 
-      {/* Tarjeta de escena: hora y lugar */}
+      {/* Tarjeta de escena: número, hora y lugar */}
       <div className="zv-scenes">
         {CHAPTERS.map((c, i) => (
           <div key={c.id} className="zv-scene" data-scene aria-hidden="true">
-            <p className="zv-scene-k">
-              Escena {pad(i + 1)} · {c.kicker}
+            <p className="zv-label">
+              <span>{pad(i + 1)}</span> — {c.kicker}
             </p>
           </div>
         ))}
@@ -399,15 +305,6 @@ export default function Stage() {
           Una calle de Santiago · demostración
         </p>
       </div>
-
-      <ol className="zv-rail" aria-hidden="true">
-        {CHAPTERS.map((c, i) => (
-          <li key={c.id} data-rail data-state={i === 0 ? 'on' : 'next'}>
-            <span className="zv-rail-n">{pad(i + 1)}</span>
-            <span className="zv-rail-t">{c.time}</span>
-          </li>
-        ))}
-      </ol>
 
       {/* Subtítulos */}
       <div className="zv-subs">

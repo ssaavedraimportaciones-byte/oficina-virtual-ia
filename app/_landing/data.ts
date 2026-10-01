@@ -187,3 +187,167 @@ export const FLIGHTS: Flight[] = [
 export const DEMO_NOTE = 'Capturas del panel con datos de demostración · negocio ficticio «Uñas Bella»'
 
 export const HANDOFF_SUBJECT = 'Ana necesita que le responda una persona — Uñas Bella'
+
+export interface StreetShop {
+  /** id de la plantilla de rubro (lib/industries.ts) */
+  id: string
+  emoji: string
+  label: string
+  /** Qué hace el agente en ese rubro, en corto (resumen de la plantilla). */
+  does: string
+  sign: { text: string; sub?: string; kind: 'lightbox' | 'neon' | 'painted' | 'channel'; bg: string; fg: string; font?: 'sans' | 'serif' | 'script' }
+  facade: string
+  /** Color de la luz interior y del haz en la vista aérea. */
+  glow: string
+  floors: number
+}
+
+/** La calle de los rubros: un local por plantilla, en el orden en que pasa la cámara. */
+export const STREET: StreetShop[] = [
+  {
+    id: 'odontologia',
+    emoji: '🦷',
+    label: 'Odontología',
+    does: 'Entiende qué necesita el paciente, distingue una urgencia y agenda la hora.',
+    sign: { text: 'DENTAL', sub: 'odontología', kind: 'lightbox', bg: '#f4f8fb', fg: '#1f6f8b' },
+    facade: '#d9d4c8',
+    glow: '#bfe8ff',
+    floors: 2,
+  },
+  {
+    id: 'taller',
+    emoji: '🔧',
+    label: 'Taller mecánico',
+    does: 'Pregunta marca, modelo y año, da una idea de precio y coordina el día.',
+    sign: { text: 'TALLER', sub: 'mecánica y frenos', kind: 'painted', bg: '#e2b03a', fg: '#1b1b1b' },
+    facade: '#8f8a80',
+    glow: '#ffb15c',
+    floors: 1,
+  },
+  {
+    id: 'peluqueria',
+    emoji: '💈',
+    label: 'Peluquería y barbería',
+    does: 'Pregunta el servicio y con quién lo quiere, da el precio y agenda.',
+    sign: { text: 'Barbería', kind: 'neon', bg: '#111', fg: '#ff5d73', font: 'script' },
+    facade: '#3f4a56',
+    glow: '#ffd2a8',
+    floors: 3,
+  },
+  {
+    id: 'inmobiliaria',
+    emoji: '🏠',
+    label: 'Inmobiliaria',
+    does: 'Califica si busca comprar o arrendar, zona y presupuesto, y coordina la visita.',
+    sign: { text: 'PROPIEDADES', sub: 'venta y arriendo', kind: 'lightbox', bg: '#1f2a44', fg: '#f2f2f2' },
+    facade: '#b9b2a5',
+    glow: '#fff2dc',
+    floors: 2,
+  },
+  {
+    id: 'gastronomia',
+    emoji: '🍽️',
+    label: 'Gastronomía',
+    does: 'Responde carta, precios y horarios, y toma la reserva para cuántos y a qué hora.',
+    sign: { text: 'La Picada', sub: 'almuerzos · once', kind: 'neon', bg: '#111', fg: '#ffb347', font: 'script' },
+    facade: '#9c5b45',
+    glow: '#ffc27a',
+    floors: 1,
+  },
+  {
+    id: 'gimnasio',
+    emoji: '🏋️',
+    label: 'Gimnasio',
+    does: 'Entiende el objetivo, pasa planes y precios, e invita a una clase de prueba.',
+    sign: { text: 'GIMNASIO', sub: 'entrenamiento', kind: 'channel', bg: '#111', fg: '#7cf0b0' },
+    facade: '#2f3439',
+    glow: '#d7e6ff',
+    floors: 2,
+  },
+  {
+    id: 'estudio-juridico',
+    emoji: '⚖️',
+    label: 'Estudio jurídico',
+    does: 'Entiende el tema sin dar asesoría por chat y coordina la primera consulta.',
+    sign: { text: 'Abogados', sub: 'estudio jurídico', kind: 'painted', bg: '#2b2220', fg: '#e8d2a0', font: 'serif' },
+    facade: '#6e6458',
+    glow: '#ffd89a',
+    floors: 3,
+  },
+  {
+    id: 'ecommerce',
+    emoji: '🛍️',
+    label: 'Tienda',
+    does: 'Confirma precio y stock, explica pago y despacho, y cierra la venta.',
+    sign: { text: 'TIENDA', sub: 'ropa y accesorios', kind: 'lightbox', bg: '#ffffff', fg: '#c2410c' },
+    facade: '#e7e1d6',
+    glow: '#fff0e0',
+    floors: 1,
+  },
+  {
+    id: 'otro',
+    emoji: '✨',
+    label: 'Tu negocio',
+    does: 'Describes tu negocio con tus palabras y el agente se arma a su medida.',
+    sign: { text: 'TU NEGOCIO', sub: 'el que sea', kind: 'channel', bg: '#111', fg: '#ffb347' },
+    facade: '#4a4552',
+    glow: '#ffcf8a',
+    floors: 2,
+  },
+]
+
+/** Centro (x) de cada local de la calle de rubros. */
+export const streetX = (i: number) => 15.6 + i * 7
+
+/** Datos del producto (no métricas de clientes): lo que trae ZeroVisto hoy. */
+export const FACTS = [
+  { value: '24/7', label: 'responde a cualquier hora' },
+  { value: '2', label: 'canales: WhatsApp e Instagram' },
+  { value: '10', label: 'plantillas de rubro' },
+  { value: '1', label: 'panel para tu equipo' },
+]
+
+/** Capítulos del riel lateral: toda la página. */
+export const RAIL = [
+  { id: 'inicio', n: '00', label: 'Inicio' },
+  { id: 'llega', n: '01', label: '23:47' },
+  { id: 'agenda', n: '02', label: '23:52' },
+  { id: 'venta', n: '03', label: '00:06' },
+  { id: 'persona', n: '04', label: '02:31' },
+  { id: 'amanece', n: '05', label: '08:05' },
+  { id: 'rubros', n: '06', label: 'Rubros' },
+  { id: 'negocios', n: '07', label: 'Negocios' },
+  { id: 'limites', n: '08', label: 'Límites' },
+  { id: 'empieza', n: '09', label: 'Empieza' },
+  { id: 'final', n: '10', label: 'Esta noche' },
+]
+
+export const NAV = [
+  { id: 'noche', label: 'Una noche' },
+  { id: 'rubros', label: 'Rubros' },
+  { id: 'negocios', label: 'Negocios' },
+  { id: 'empieza', label: 'Cómo empieza' },
+]
+
+export const STEPS = [
+  { title: 'Elige tu rubro', text: 'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.' },
+  {
+    title: 'Cárgale tu información',
+    text: 'Precios, horarios, servicios y productos. Es lo único que el agente puede afirmar, así que no inventa. Puedes importarla desde tu sitio o tu Instagram.',
+  },
+  { title: 'Conecta tus canales', text: 'Tu WhatsApp Business o tu Instagram. Antes lo pruebas en el simulador, escribiendo como si fueras el cliente.' },
+  { title: 'Tú te dedicas a tu negocio', text: 'El agente atiende. Tú recibes las horas agendadas, los pedidos registrados y los casos que necesitan a una persona.' },
+]
+
+export const GUARDRAILS = [
+  { title: 'No inventa', text: 'Solo afirma lo que cargaste: precios, horarios, servicios, stock. Si no lo sabe, lo dice o pasa el caso.' },
+  { title: 'Se detiene cuando corresponde', text: 'Si el cliente reclama o pide una persona, el agente se pausa. Tú respondes desde el panel y se lo devuelves cuando quieras.' },
+  { title: 'Tiene tope mensual', text: 'Cada plan incluye una cantidad de respuestas al mes y la ves en tu resumen. Si se agota, tu cliente recibe un aviso en vez de quedar en visto, y tú, un correo.' },
+  { title: 'Si algo falla, avisa', text: 'Si la IA se cae o la plataforma entra en mantención, tu cliente recibe un mensaje claro. Sus mensajes quedan guardados para tu equipo.' },
+]
+
+export const MULTI = [
+  { title: 'Cada negocio, lo suyo', text: 'Conversaciones, agenda, catálogo, canales y conocimiento viven separados por negocio. Lo de uno nunca se mezcla con lo de otro.' },
+  { title: 'Dueños y equipo', text: 'Invita a tu gente con el rol que corresponde. El dueño administra; el equipo atiende las conversaciones.' },
+  { title: 'Un solo ingreso', text: 'Si tienes más de un negocio, los ves todos desde la misma cuenta y cambias de uno a otro con un clic.' },
+]

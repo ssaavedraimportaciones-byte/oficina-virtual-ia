@@ -443,6 +443,8 @@ export async function createUser(input: {
   email: string
   password: string
   role: SystemRole
+  /** Solo cuando la persona se registró sola y aceptó los términos. */
+  termsAcceptedAt?: Date
 }): Promise<CreateUserResult> {
   const email = input.email.toLowerCase().trim()
 
@@ -450,7 +452,12 @@ export async function createUser(input: {
   if (existing) return { ok: false, reason: 'Ya existe un usuario con ese email.' }
 
   const user = await prisma.user.create({
-    data: { email, passwordHash: await hashPassword(input.password), role: input.role },
+    data: {
+      email,
+      passwordHash: await hashPassword(input.password),
+      role: input.role,
+      termsAcceptedAt: input.termsAcceptedAt,
+    },
   })
 
   // Best-effort: si no hay SMTP configurado esto no hace nada, y no debe

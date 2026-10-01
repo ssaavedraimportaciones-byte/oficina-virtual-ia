@@ -146,3 +146,24 @@ export function handoffEmail(
     text: `El agente le pasó la conversación con ${contactName} (${businessName}) al equipo.\n\nMotivo: ${reason}\n\nResponder: ${conversationUrl}`,
   }
 }
+
+export function quotaReachedEmail(
+  businessName: string,
+  usage: { plan: 'FREE' | 'PRO'; limit: number | null },
+  accountUrl: string,
+) {
+  const upgrade =
+    usage.plan === 'FREE'
+      ? ' Pasándote al plan PRO el límite sube y el agente vuelve a responder solo.'
+      : ' Escríbenos si necesitas aumentar el límite.'
+  return {
+    subject: `${businessName}: el agente llegó al límite de respuestas de este mes — ${BRAND.name}`,
+    html: emailShell(
+      'El agente dejó de responder solo',
+      `<strong>${escapeHtml(businessName)}</strong> llegó al límite de <strong>${usage.limit}</strong> respuestas automáticas de este mes. Hasta el día 1 los mensajes nuevos se siguen guardando y los clientes reciben un aviso de que una persona los va a contestar, pero el agente no responde.${upgrade}`,
+      accountUrl,
+      'Ver mi plan',
+    ),
+    text: `${businessName} llegó al límite de ${usage.limit} respuestas automáticas de este mes. Los mensajes nuevos se guardan pero el agente no responde hasta el día 1.${upgrade}\n\nVer mi plan: ${accountUrl}`,
+  }
+}

@@ -85,7 +85,7 @@ function Nav() {
           <Link href="/panel" className="hover:text-white">Ingresar</Link>
         </nav>
         <Link
-          href="/panel/nuevo"
+          href="/registro"
           className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
@@ -111,7 +111,7 @@ function Hero() {
       </p>
       <div className="mt-10 flex items-center justify-center gap-4">
         <Link
-          href="/panel/nuevo"
+          href="/registro"
           className="rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis
@@ -222,7 +222,7 @@ function CTA() {
           Crea tu agente en minutos y pruébalo en el simulador antes de conectar tus canales.
         </p>
         <Link
-          href="/panel/nuevo"
+          href="/registro"
           className="mt-8 inline-block rounded-md bg-amber-500 px-8 py-3 font-medium text-gray-950 hover:bg-amber-400"
         >
           Probar gratis

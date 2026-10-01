@@ -1,6 +1,7 @@
 import { generateAgentReply } from './agentEngine'
 import { updateContactNotes } from './contactNotes'
-import { notifyNewConversation } from './notifications'
+import { notifyNewConversation, notifyQuotaReached } from './notifications'
+import { rateLimit } from './rateLimit'
 import {
   appendIncomingMessage,
   appendMessage,
@@ -11,6 +12,7 @@ import {
   listServices,
 } from './store'
 import type { Business, Channel, Conversation } from './types'
+import { getAgentUsage, QUOTA_REPLY } from './usage'
 
 interface IncomingMessage {
   business: Business
@@ -39,6 +41,7 @@ export type IncomingResult =
   | { status: 'duplicate' }
   | { status: 'paused'; conversation: Conversation }
   | { status: 'superseded'; conversation: Conversation }
+  | { status: 'quota'; conversation: Conversation }
   | { status: 'replied'; conversation: Conversation; reply: string }
 
 /**
@@ -95,6 +98,28 @@ export async function handleIncomingMessage(
     if (lastContactMessageId(conversation) !== saved.messageId) {
       return { status: 'superseded', conversation }
     }
+  }
+
+  // Cupo mensual de la empresa: si se agotó, no se llama a la IA (cuesta plata
+  // de la plataforma). Al cliente no se lo deja en visto: recibe un aviso de
+  // que una persona lo va a contestar, una sola vez, y el dueño recibe un mail.
+  const usage = await getAgentUsage(business.id)
+  if (usage.exceeded) {
+    const lastFromUs = [...conversation.messages].reverse().find((m) => m.sender !== 'contact')
+    if (lastFromUs?.text !== QUOTA_REPLY) {
+      await deps.send(QUOTA_REPLY)
+      conversation = await appendMessage(conversation.id, { sender: 'agent', text: QUOTA_REPLY })
+    }
+    const firstTime = await rateLimit(`quota:${business.id}:${usage.month}`, 1, 32 * 24 * 60 * 60 * 1000)
+    if (firstTime.allowed) {
+      defer(async () => {
+        await notifyQuotaReached(business, usage).catch((error) => {
+          console.error('[pipeline] no se pudo avisar que se agotó el cupo:', error)
+        })
+      })
+    }
+    await Promise.all(inline)
+    return { status: 'quota', conversation }
   }
 
   const [knowledge, services, products] = await Promise.all([

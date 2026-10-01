@@ -1,6 +1,7 @@
 import { appUrl } from './auth'
 import { prisma } from './db'
-import { handoffEmail, newConversationEmail, sendEmail } from './email'
+import { handoffEmail, newConversationEmail, quotaReachedEmail, sendEmail } from './email'
+import type { AgentUsage } from './usage'
 import type { Business, Conversation } from './types'
 
 /**
@@ -31,6 +32,18 @@ export async function notifyHandoff(
   await emailOwners(
     business.id,
     handoffEmail(business.config.businessName, conversation.contactName, reason, url),
+  )
+}
+
+/**
+ * Avisa que se agotó el cupo mensual de respuestas del agente. Es de las pocas
+ * notificaciones que el dueño tiene que ver sí o sí: el agente dejó de
+ * contestar y sus clientes están esperando.
+ */
+export async function notifyQuotaReached(business: Business, usage: AgentUsage): Promise<void> {
+  await emailOwners(
+    business.id,
+    quotaReachedEmail(business.config.businessName, usage, `${appUrl()}/account`),
   )
 }
 

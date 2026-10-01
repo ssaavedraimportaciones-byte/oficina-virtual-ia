@@ -32,6 +32,9 @@ model User {
   /// (no hay forma de garantizar que todo despliegue tenga SMTP configurado),
   /// pero importa antes de confiarle un envío de recuperación de contraseña.
   emailVerifiedAt DateTime?
+  /// Cuándo aceptó los términos y la política de privacidad al registrarse.
+  /// null = la cuenta la creó un administrador (no pasó por el registro).
+  termsAcceptedAt DateTime?
   createdAt       DateTime   @default(now())
 
   plan                 Plan    @default(FREE)

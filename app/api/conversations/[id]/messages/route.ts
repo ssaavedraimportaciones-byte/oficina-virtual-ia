@@ -4,6 +4,7 @@ import { describeApiError, generateAgentReply } from '@/lib/agentEngine'
 import { requireBusinessAccess } from '@/lib/authz'
 import { updateContactNotes } from '@/lib/contactNotes'
 import { sendHumanReply } from '@/lib/humanReply'
+import { getAgentUsage, quotaMessage } from '@/lib/usage'
 import {
   appendMessage,
   getBusiness,
@@ -72,6 +73,11 @@ export async function POST(
   conversation = await appendMessage(conversation.id, { sender: 'contact', text: parsed.data.text })
   if (conversation.agentPaused) {
     return NextResponse.json({ conversation })
+  }
+
+  const usage = await getAgentUsage(business.id)
+  if (usage.exceeded) {
+    return NextResponse.json({ conversation, error: quotaMessage(usage) }, { status: 429 })
   }
 
   try {

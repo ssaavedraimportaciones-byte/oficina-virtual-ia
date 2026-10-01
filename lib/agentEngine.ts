@@ -134,16 +134,16 @@ export async function generateAgentReply(
   return FALLBACK_REPLY
 }
 
-const NOTES_SYSTEM_PROMPT = `Analizás una conversación de ventas/atención al cliente y mantenés
+const NOTES_SYSTEM_PROMPT = `Analizas una conversación de ventas/atención al cliente y mantienes
 una ficha corta con lo que se sabe de ESA persona (no de la empresa). Se te pasa la ficha
 anterior y la conversación completa actualizada.
 
-Devolvé SOLO la ficha actualizada, en viñetas cortas (máximo 6), con datos concretos que hayan
+Devuelve SOLO la ficha actualizada, en viñetas cortas (máximo 6), con datos concretos que hayan
 salido en la charla: qué necesita, presupuesto, zona/ubicación, urgencia, preferencias,
 objeciones, y cualquier dato personal que haya compartido (nombre, ocupación, etc.).
 
 No inventes nada que no esté en la conversación. No repitas la conversación. No agregues
-explicaciones ni encabezados, solo las viñetas. Si todavía no hay nada relevante, devolvé "Sin
+explicaciones ni encabezados, solo las viñetas. Si todavía no hay nada relevante, devuelve "Sin
 datos relevantes todavía".`
 
 /**
@@ -167,7 +167,7 @@ export async function generateContactNotes(
       ...toLlmMessages(history),
       {
         role: 'user',
-        text: `Ficha anterior:\n${previousNotes || '(vacía)'}\n\nActualizá la ficha con la conversación de arriba.`,
+        text: `Ficha anterior:\n${previousNotes || '(vacía)'}\n\nActualiza la ficha con la conversación de arriba.`,
       },
     ],
   })

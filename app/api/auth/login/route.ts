@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   const limit = await rateLimit(key, MAX_ATTEMPTS, WINDOW_MS)
   if (!limit.allowed) {
     return NextResponse.json(
-      { error: 'Demasiados intentos. Probá de nuevo en unos minutos.' },
+      { error: 'Demasiados intentos. Prueba de nuevo en unos minutos.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } },
     )
   }

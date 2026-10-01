@@ -67,7 +67,7 @@ export default function ChannelConnect({
     if (!res.ok) {
       // El token puede no tener permisos para listar, pero sí para operar una
       // cuenta puntual: se ofrece igual la carga manual del ID.
-      setError(`${data.error ?? 'No se pudieron leer las cuentas'}. Podés cargar el ID a mano.`)
+      setError(`${data.error ?? 'No se pudieron leer las cuentas'}. Puedes cargar el ID a mano.`)
       setAccounts([])
       return
     }
@@ -149,7 +149,7 @@ export default function ChannelConnect({
             <form onSubmit={handleDiscover} className="flex flex-col gap-3">
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-gray-200">
-                  1. Pegá tu token de acceso de Meta
+                  1. Pega tu token de acceso de Meta
                 </span>
                 <span className="text-xs text-gray-500">
                   Es el token de larga duración de tu app.{' '}
@@ -190,7 +190,7 @@ export default function ChannelConnect({
             </form>
           ) : (
             <div className="flex flex-col gap-3">
-              <span className="text-sm font-medium text-gray-200">2. Elegí la cuenta</span>
+              <span className="text-sm font-medium text-gray-200">2. Elige la cuenta</span>
 
               {accounts.length > 0 && (
                 <div className="flex flex-col gap-2">
@@ -212,7 +212,7 @@ export default function ChannelConnect({
                   value={manualId}
                   onChange={(e) => setManualId(e.target.value)}
                   placeholder={
-                    channel === 'whatsapp' ? 'O pegá el Phone number ID' : 'O pegá el ID de la cuenta'
+                    channel === 'whatsapp' ? 'O pega el Phone number ID' : 'O pega el ID de la cuenta'
                   }
                   className="input flex-1"
                 />

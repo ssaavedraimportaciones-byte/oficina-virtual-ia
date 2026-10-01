@@ -321,7 +321,7 @@ export async function updateBusinessHours(id: string, hours: WeekHours): Promise
 }
 
 export async function deleteBusiness(id: string): Promise<void> {
-  // Conversaciones, conocimiento, servicios, turnos, productos y pedidos
+  // Conversaciones, conocimiento, servicios, citas, productos y pedidos
   // cuelgan de Business con onDelete: Cascade en el schema.
   await prisma.business.delete({ where: { id } })
 }
@@ -529,7 +529,7 @@ export async function setConversationStatus(
   return mapConversation(row)
 }
 
-// --- Agenda: servicios y turnos ---
+// --- Agenda: servicios y citas ---
 
 export async function listServices(businessId: string): Promise<Service[]> {
   const rows = await prisma.service.findMany({ where: { businessId } })
@@ -645,7 +645,7 @@ export async function createOrder(input: {
         })
         if (updated.count === 0) {
           throw new StockRaceError(
-            `"${product.name}" se quedó sin stock justo ahora. Volvé a consultar el catálogo.`,
+            `"${product.name}" se quedó sin stock justo ahora. Vuelve a consultar el catálogo.`,
           )
         }
       }

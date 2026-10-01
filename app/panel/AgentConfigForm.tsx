@@ -99,7 +99,7 @@ export default function AgentConfigForm({
         />
       </Field>
 
-      <Field label="Qué necesitás que haga el agente" hint="Su objetivo en cada conversación">
+      <Field label="Qué necesitas que haga el agente" hint="Su objetivo en cada conversación">
         <textarea
           required
           rows={4}

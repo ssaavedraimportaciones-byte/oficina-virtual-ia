@@ -42,7 +42,7 @@ export default function NuevoNegocioPage() {
     setSaving(false)
 
     if (!res.ok) {
-      setError('Revisá que todos los campos estén completos.')
+      setError('Revisa que todos los campos estén completos.')
       return
     }
 
@@ -58,8 +58,8 @@ export default function NuevoNegocioPage() {
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-white">¿A qué se dedica el negocio?</h1>
         <p className="mt-2 text-sm text-gray-400">
-          Elegí el rubro y el agente arranca preconfigurado. Después podés editar todo, y si tu
-          rubro no está en la lista, usá &ldquo;Otro rubro&rdquo; y escribilo vos.
+          Elige el rubro y el agente arranca preconfigurado. Después puedes editar todo, y si tu
+          rubro no está en la lista, usa &ldquo;Otro rubro&rdquo; y escríbelo tú.
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -91,7 +91,7 @@ export default function NuevoNegocioPage() {
         {template.emoji} {template.label}
       </h1>
       <p className="mt-2 text-sm text-gray-400">
-        Ya viene precargado para este rubro. Completá el nombre y ajustá lo que quieras.
+        Ya viene precargado para este rubro. Completa el nombre y ajusta lo que quieras.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-6">

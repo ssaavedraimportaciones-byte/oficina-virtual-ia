@@ -129,7 +129,7 @@ export default function PedidosPage() {
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Productos</h2>
         <p className="mt-1 text-xs text-gray-500">
-          Dejá el stock vacío si no querés llevar control: ese producto nunca se agota solo.
+          Deja el stock vacío si no quieres llevar control: ese producto nunca se agota solo.
         </p>
 
         {products.length > 0 && (

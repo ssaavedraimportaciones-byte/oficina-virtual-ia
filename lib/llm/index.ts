@@ -49,7 +49,7 @@ export function getProvider(): LlmProvider {
   const status = providerStatus()
   if (!status.configured) {
     throw new Error(
-      'No hay ningún proveedor de IA configurado. Cargá ANTHROPIC_API_KEY o OPENAI_API_KEY para que el agente pueda responder.',
+      'No hay ningún proveedor de IA configurado. Carga ANTHROPIC_API_KEY o OPENAI_API_KEY para que el agente pueda responder.',
     )
   }
 

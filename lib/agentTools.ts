@@ -27,14 +27,14 @@ import type { Business, Conversation } from './types'
 export const HANDOFF_TOOL: LlmTool = {
   name: 'derivar_a_humano',
   description:
-    'Pasa la conversación a una persona del equipo y te saca de la conversación: a partir de ahí no respondés más vos. Usalo si el contacto pide hablar con una persona, está enojado, hace un reclamo o pide algo que no podés resolver.',
+    'Pasa la conversación a una persona del equipo y te saca de la conversación: a partir de ahí no respondes más tú. Úsalo si el contacto pide hablar con una persona, está enojado, hace un reclamo o pide algo que no puedes resolver.',
   parameters: {
     type: 'object',
     properties: {
       motivo: {
         type: 'string',
         description:
-          'En una frase, qué necesita el contacto y por qué lo derivás. Lo lee el equipo para retomar sin releer toda la charla.',
+          'En una frase, qué necesita el contacto y por qué lo derivas. Lo lee el equipo para retomar sin releer toda la charla.',
       },
     },
     required: ['motivo'],
@@ -45,7 +45,7 @@ export const AGENDA_TOOLS: LlmTool[] = [
   {
     name: 'consultar_disponibilidad',
     description:
-      'Devuelve los horarios libres para reservar un servicio. Usalo SIEMPRE antes de ofrecerle horarios al cliente: nunca inventes disponibilidad.',
+      'Devuelve los horarios libres para reservar un servicio. Úsalo SIEMPRE antes de ofrecerle horarios al cliente: nunca inventes disponibilidad.',
     parameters: {
       type: 'object',
       properties: {
@@ -55,12 +55,12 @@ export const AGENDA_TOOLS: LlmTool[] = [
         },
         desde: {
           type: 'string',
-          description: 'Fecha inicial en formato YYYY-MM-DD. Si no la sabés, usá la fecha de hoy.',
+          description: 'Fecha inicial en formato YYYY-MM-DD. Si no la sabes, usa la fecha de hoy.',
         },
         hora_desde: {
           type: 'string',
           description:
-            'Opcional, HH:mm (24 horas). Devuelve solo horarios desde esa hora. Usalo cuando el cliente pide un momento del día: "a la tarde" = 14:00, "a la noche" = 18:00.',
+            'Opcional, HH:mm (24 horas). Devuelve solo horarios desde esa hora. Úsalo cuando el cliente pide un momento del día: "a la tarde" = 14:00, "a la noche" = 18:00.',
         },
       },
       required: ['servicio'],
@@ -69,7 +69,7 @@ export const AGENDA_TOOLS: LlmTool[] = [
   {
     name: 'agendar_turno',
     description:
-      'Reserva un turno en la agenda del negocio. Usalo solo cuando el cliente ya confirmó un horario concreto que salió de consultar_disponibilidad.',
+      'Reserva una cita en la agenda del negocio. Úsalo solo cuando el cliente ya confirmó un horario concreto que salió de consultar_disponibilidad.',
     parameters: {
       type: 'object',
       properties: {
@@ -78,7 +78,7 @@ export const AGENDA_TOOLS: LlmTool[] = [
         hora: { type: 'string', description: 'Hora en formato HH:mm (24 horas).' },
         nombre_cliente: {
           type: 'string',
-          description: 'Nombre del cliente. Si no lo sabés, preguntáselo antes de reservar.',
+          description: 'Nombre del cliente. Si no lo sabes, pregúntaselo antes de reservar.',
         },
       },
       required: ['servicio', 'fecha', 'hora', 'nombre_cliente'],
@@ -90,14 +90,14 @@ export const PEDIDO_TOOLS: LlmTool[] = [
   {
     name: 'consultar_catalogo',
     description:
-      'Devuelve los productos disponibles con su precio y su stock. Usalo SIEMPRE antes de confirmar precios o disponibilidad: nunca inventes productos ni digas que hay stock sin consultarlo.',
+      'Devuelve los productos disponibles con su precio y su stock. Úsalo SIEMPRE antes de confirmar precios o disponibilidad: nunca inventes productos ni digas que hay stock sin consultarlo.',
     parameters: {
       type: 'object',
       properties: {
         busqueda: {
           type: 'string',
           description:
-            'Opcional. Palabra para filtrar el catálogo. Si lo omitís devuelve todo el catálogo.',
+            'Opcional. Palabra para filtrar el catálogo. Si lo omites devuelve todo el catálogo.',
         },
       },
     },
@@ -105,7 +105,7 @@ export const PEDIDO_TOOLS: LlmTool[] = [
   {
     name: 'crear_pedido',
     description:
-      'Registra un pedido y descuenta el stock. Usalo solo cuando el cliente ya confirmó qué quiere llevar y en qué cantidad, y sabés su nombre.',
+      'Registra un pedido y descuenta el stock. Úsalo solo cuando el cliente ya confirmó qué quiere llevar y en qué cantidad, y sabes su nombre.',
     parameters: {
       type: 'object',
       properties: {
@@ -123,7 +123,7 @@ export const PEDIDO_TOOLS: LlmTool[] = [
         },
         nombre_cliente: {
           type: 'string',
-          description: 'Nombre del cliente. Si no lo sabés, preguntáselo antes de registrar.',
+          description: 'Nombre del cliente. Si no lo sabes, pregúntaselo antes de registrar.',
         },
         nota: {
           type: 'string',
@@ -149,12 +149,12 @@ async function runConsultarDisponibilidad(
 ): Promise<string> {
   const services = await listServices(ctx.business.id)
   if (services.length === 0) {
-    return 'El negocio todavía no cargó servicios en la agenda, así que no puedo consultar disponibilidad. Decile al cliente que le confirmás el horario a la brevedad.'
+    return 'El negocio todavía no cargó servicios en la agenda, así que no puedo consultar disponibilidad. Dile al cliente que le confirmas el horario a la brevedad.'
   }
 
   const service = input.servicio ? findServiceByName(services, input.servicio) : null
   if (!service) {
-    return `No encontré ese servicio. Los disponibles son: ${services.map((s) => s.name).join(', ')}. Preguntale al cliente cuál quiere.`
+    return `No encontré ese servicio. Los disponibles son: ${services.map((s) => s.name).join(', ')}. Pregúntale al cliente cuál quiere.`
   }
 
   const now = businessNow()
@@ -204,7 +204,7 @@ async function runAgendarTurno(
   // Sin esto, un "3pm" o "15" termina en una hora que no se puede comparar
   // con la agenda y pasa como libre.
   if (!DATE_RE.test(input.fecha) || !TIME_RE.test(input.hora)) {
-    return 'La fecha tiene que ir como YYYY-MM-DD y la hora como HH:mm (24 horas). Volvé a intentarlo con ese formato.'
+    return 'La fecha tiene que ir como YYYY-MM-DD y la hora como HH:mm (24 horas). Vuelve a intentarlo con ese formato.'
   }
 
   const services = await listServices(ctx.business.id)
@@ -217,7 +217,7 @@ async function runAgendarTurno(
   const appointments = await listAppointments(ctx.business.id)
 
   // Se revalida acá aunque el horario haya salido de consultar_disponibilidad:
-  // entre una cosa y la otra otro cliente puede haber tomado el turno.
+  // entre una cosa y la otra otro cliente puede haber tomado la cita.
   const check = isSlotFree(
     ctx.business.hours,
     appointments,
@@ -226,7 +226,7 @@ async function runAgendarTurno(
     businessNow(),
   )
   if (!check.ok) {
-    return `No se pudo reservar: ${check.reason} Ofrecele otro horario al cliente.`
+    return `No se pudo reservar: ${check.reason} Ofrécele otro horario al cliente.`
   }
 
   await addAppointment({
@@ -240,7 +240,7 @@ async function runAgendarTurno(
     durationMinutes: service.durationMinutes,
   })
 
-  return `Turno confirmado: ${service.name} el ${formatDateLabel(input.fecha)} a las ${input.hora}, a nombre de ${input.nombre_cliente}. Confirmáselo al cliente.`
+  return `Cita confirmada: ${service.name} el ${formatDateLabel(input.fecha)} a las ${input.hora}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente.`
 }
 
 async function runConsultarCatalogo(
@@ -249,7 +249,7 @@ async function runConsultarCatalogo(
 ): Promise<string> {
   const products = (await listProducts(ctx.business.id)).filter((p) => p.active)
   if (products.length === 0) {
-    return 'El negocio todavía no cargó su catálogo, así que no puedo confirmar productos ni precios. Tomale el pedido y decile que se lo confirmás a la brevedad.'
+    return 'El negocio todavía no cargó su catálogo, así que no puedo confirmar productos ni precios. Tómale el pedido y dile que se lo confirmas a la brevedad.'
   }
 
   const term = input.busqueda?.trim().toLowerCase()
@@ -268,7 +268,7 @@ async function runConsultarCatalogo(
   const soldOut = matches.filter(isSoldOut)
 
   const warning = soldOut.length
-    ? `\n\nOJO: ${soldOut.map((p) => p.name).join(', ')} ${soldOut.length === 1 ? 'está agotado' : 'están agotados'}. No los ofrezcas ni los agregues a un pedido; si el cliente los pide, avisale y ofrecele una alternativa.`
+    ? `\n\nOJO: ${soldOut.map((p) => p.name).join(', ')} ${soldOut.length === 1 ? 'está agotado' : 'están agotados'}. No los ofrezcas ni los agregues a un pedido; si el cliente los pide, avísale y ofrécele una alternativa.`
     : ''
 
   return `Catálogo:\n${lines.join('\n')}${warning}`
@@ -279,7 +279,7 @@ async function runCrearPedido(
   input: { items?: { producto: string; cantidad: number }[]; nombre_cliente?: string; nota?: string },
 ): Promise<string> {
   if (!input.nombre_cliente) {
-    return 'Falta el nombre del cliente. Preguntáselo antes de registrar el pedido.'
+    return 'Falta el nombre del cliente. Pregúntaselo antes de registrar el pedido.'
   }
   if (!Array.isArray(input.items) || input.items.length === 0) {
     return 'Falta el detalle del pedido: qué productos y en qué cantidad.'
@@ -302,7 +302,7 @@ async function runCrearPedido(
     .map((i) => `${i.quantity}x ${i.name} (${formatPrice(i.unitPrice * i.quantity)})`)
     .join(', ')
 
-  return `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}. Confirmáselo al cliente con el total.`
+  return `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}. Confírmaselo al cliente con el total.`
 }
 
 async function runDerivarAHumano(ctx: ToolContext, input: { motivo?: string }): Promise<string> {
@@ -313,7 +313,7 @@ async function runDerivarAHumano(ctx: ToolContext, input: { motivo?: string }): 
   await notifyHandoff(ctx.business, conversation, reason).catch((error) => {
     console.error('[derivar_a_humano] no se pudo avisar al equipo:', error)
   })
-  return 'Listo: la conversación quedó derivada al equipo y ya les avisamos. Decile al contacto, en una frase, que una persona le va a responder por acá. No hagas nada más en esta conversación.'
+  return 'Listo: la conversación quedó derivada al equipo y ya les avisamos. Dile al contacto, en una frase, que una persona le va a responder por acá. No hagas nada más en esta conversación.'
 }
 
 export async function runAgentTool(

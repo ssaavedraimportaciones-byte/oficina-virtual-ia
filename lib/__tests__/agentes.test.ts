@@ -59,13 +59,13 @@ describe('historial que ve el agente', () => {
       msg('contact', 'hola'),
       msg('contact', 'cuánto sale el semi?'),
       msg('agent', 'Sale $8000'),
-      msg('human', 'Te hago 10% si venís hoy'),
+      msg('human', 'Te hago 10% si vienes hoy'),
       msg('contact', 'dale'),
     ])
 
     expect(out).toEqual([
       { role: 'user', text: 'hola\ncuánto sale el semi?' },
-      { role: 'assistant', text: 'Sale $8000\n[Equipo] Te hago 10% si venís hoy' },
+      { role: 'assistant', text: 'Sale $8000\n[Equipo] Te hago 10% si vienes hoy' },
       { role: 'user', text: 'dale' },
     ])
   })
@@ -116,7 +116,7 @@ describe('motor del agente', () => {
       businessId: business.id, channel: 'simulador', contactName: 'Ana', contactHandle: randomUUID(),
     })
 
-    const reply = await generateAgentReply(business.config, [], [msg('contact', 'qué tenés?')], {
+    const reply = await generateAgentReply(business.config, [], [msg('contact', 'qué tienes?')], {
       products: await store.listProducts(business.id),
       toolContext: { business, conversation },
     })
@@ -249,7 +249,7 @@ describe('pipeline de mensajes entrantes', () => {
   })
 
   it('a una ráfaga de mensajes le contesta una sola vez, con todo el contexto', async () => {
-    const requests = fakeProvider([{ text: 'Sale $8000, ¿querés turno?', toolCalls: [] }])
+    const requests = fakeProvider([{ text: 'Sale $8000, ¿quieres turno?', toolCalls: [] }])
     const send = vi.fn().mockResolvedValue(undefined)
     const handle = randomUUID()
 
@@ -315,7 +315,7 @@ describe('horarios que ya pasaron', () => {
   // 2026-08-10 es lunes.
   const now = { date: '2026-08-10', time: '11:15' }
 
-  it('no se ofrecen turnos de hoy que ya empezaron', () => {
+  it('no se ofrecen citas de hoy que ya empezaron', () => {
     const slots = getAvailableSlots(HOURS, [], 60, '2026-08-10', '2026-08-10', 40, now)
     expect(slots[0]).toEqual({ date: '2026-08-10', time: '11:30' })
   })

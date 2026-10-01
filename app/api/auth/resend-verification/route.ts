@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const limit = await rateLimit(`resend-verify:${user.id}`, MAX_ATTEMPTS, WINDOW_MS)
   if (!limit.allowed) {
     return NextResponse.json(
-      { error: 'Ya se envió un mail hace poco. Esperá unos minutos.' },
+      { error: 'Ya se envió un mail hace poco. Espera unos minutos.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } },
     )
   }

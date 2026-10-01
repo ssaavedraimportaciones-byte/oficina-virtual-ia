@@ -17,7 +17,7 @@ function getKey(): Buffer | null {
 
   if (key.length !== 32) {
     throw new Error(
-      'ENCRYPTION_KEY debe ser de 32 bytes (64 caracteres hex, o base64). Generá una con: openssl rand -hex 32',
+      'ENCRYPTION_KEY debe ser de 32 bytes (64 caracteres hex, o base64). Genera una con: openssl rand -hex 32',
     )
   }
   return key
@@ -31,7 +31,7 @@ export function encryptSecret(plain: string): string {
   const key = getKey()
   if (!key) {
     throw new Error(
-      'Falta ENCRYPTION_KEY: no se pueden guardar tokens sin cifrar. Generá una con: openssl rand -hex 32',
+      'Falta ENCRYPTION_KEY: no se pueden guardar tokens sin cifrar. Genera una con: openssl rand -hex 32',
     )
   }
 

@@ -68,14 +68,14 @@ export function checkOrder(products: Product[], requested: RequestedItem[]): Sto
     if (isSoldOut(product)) {
       return {
         ok: false,
-        reason: `"${product.name}" está AGOTADO. Ofrecele otra opción al cliente y no lo agregues al pedido.`,
+        reason: `"${product.name}" está AGOTADO. Ofrécele otra opción al cliente y no lo agregues al pedido.`,
       }
     }
 
     if (product.stock !== null && quantity > product.stock) {
       return {
         ok: false,
-        reason: `De "${product.name}" quedan solo ${product.stock} unidades y pidió ${quantity}. Preguntale si quiere llevar ${product.stock}.`,
+        reason: `De "${product.name}" quedan solo ${product.stock} unidades y pidió ${quantity}. Pregúntale si quiere llevar ${product.stock}.`,
       }
     }
 

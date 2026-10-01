@@ -77,7 +77,7 @@ export default function TwoFactorSection({ enabled: initialEnabled }: { enabled:
       {enabled ? (
         <form onSubmit={handleDisable} className="mt-3 flex flex-col gap-3">
           <p className="text-xs text-gray-500">
-            Para desactivarla, ingresá el código actual de tu app de autenticación.
+            Para desactivarla, ingresa el código actual de tu app de autenticación.
           </p>
           <input
             required
@@ -100,8 +100,8 @@ export default function TwoFactorSection({ enabled: initialEnabled }: { enabled:
       ) : enrollment ? (
         <form onSubmit={handleConfirm} className="mt-3 flex flex-col gap-3">
           <p className="text-xs text-gray-500">
-            Agregá esta clave a tu app de autenticación (Google Authenticator, Authy, 1Password…),
-            ya sea escaneando o pegando el texto a mano, y confirmá con el código que te muestre.
+            Agrega esta clave a tu app de autenticación (Google Authenticator, Authy, 1Password…),
+            ya sea escaneando o pegando el texto a mano, y confirma con el código que te muestre.
           </p>
           <code className="block select-all break-all rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-amber-400">
             {enrollment.secret}

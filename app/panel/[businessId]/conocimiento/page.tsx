@@ -159,7 +159,7 @@ export default function ConocimientoPage() {
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Importar desde tu sitio web</h2>
         <p className="mt-1 text-xs text-gray-500">
-          Pegá la URL de tu landing, la página de precios, o cualquier página pública.
+          Pega la URL de tu landing, la página de precios, o cualquier página pública.
         </p>
         <form onSubmit={handleImport} className="mt-4 flex gap-3">
           <input
@@ -184,7 +184,7 @@ export default function ConocimientoPage() {
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Importar desde Instagram</h2>
         <p className="mt-1 text-xs text-gray-500">
-          Si el negocio tiene Instagram, poné el usuario y se trae la bio, el sitio y las últimas
+          Si el negocio tiene Instagram, pon el usuario y se trae la bio, el sitio y las últimas
           publicaciones. Necesita la cuenta conectada en{' '}
           <Link href={`/panel/${businessId}/conexiones`} className="text-amber-400 hover:underline">
             Conexiones

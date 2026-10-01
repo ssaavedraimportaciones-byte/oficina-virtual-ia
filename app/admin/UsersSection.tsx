@@ -167,7 +167,7 @@ export default function UsersSection({
                   {u.emailVerifiedAt ? 'Email verificado' : 'Email sin verificar'}
                 </span>
                 {u.id === currentUserId && (
-                  <span className="ml-2 text-xs text-gray-600">(vos)</span>
+                  <span className="ml-2 text-xs text-gray-600">(tú)</span>
                 )}
               </div>
               <div className="flex items-center gap-3">
@@ -250,7 +250,7 @@ export default function UsersSection({
           <div className="w-full max-w-sm rounded-lg border border-gray-800 bg-gray-950 p-6">
             <h3 className="text-sm font-medium text-white">Contraseña nueva para {tempPassword.email}</h3>
             <p className="mt-2 text-xs text-gray-500">
-              Se muestra una sola vez. Pasásela por otro canal (llamada, WhatsApp) — no queda
+              Se muestra una sola vez. Pásasela por otro canal (llamada, WhatsApp) — no queda
               guardada en ningún lado en texto plano. Todas sus sesiones activas se cerraron.
             </p>
             <code className="mt-4 block select-all rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-amber-400">

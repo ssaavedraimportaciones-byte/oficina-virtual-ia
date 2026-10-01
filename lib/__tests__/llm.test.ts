@@ -83,13 +83,13 @@ describe('traducción de herramientas por proveedor', () => {
     }) as any)
 
     const out = await provider.complete({
-      system: 'sos un agente', maxTokens: 100, tools: [tool],
+      system: 'eres un agente', maxTokens: 100, tools: [tool],
       messages: [{ role: 'user', text: 'hola' }],
     })
 
     expect(captured.tools[0].type).toBe('function')
     expect(captured.tools[0].function.name).toBe('consultar_catalogo')
-    expect(captured.messages[0]).toEqual({ role: 'system', content: 'sos un agente' })
+    expect(captured.messages[0]).toEqual({ role: 'system', content: 'eres un agente' })
     expect(out.text).toBe('texto')
     expect(out.toolCalls).toEqual([{ id: 'c1', name: 'consultar_catalogo', input: { busqueda: 'torta' } }])
   })
@@ -187,7 +187,7 @@ describe('traducción de herramientas por proveedor', () => {
     await provider.complete({
       system: 's', maxTokens: 10,
       messages: [
-        { role: 'user', text: 'qué tenés' },
+        { role: 'user', text: 'qué tienes' },
         { role: 'assistant_tools', text: '', calls: [{ id: 't1', name: 'consultar_catalogo', input: {} }], raw },
         { role: 'tool_results', results: [{ id: 't1', content: 'tortas' }] },
       ],

@@ -15,7 +15,7 @@ export default function DeleteBusinessButton({
 
   async function handleDelete() {
     const answer = window.prompt(
-      `Esto borra "${businessName}" con todas sus conversaciones y su base de conocimiento. Escribí el nombre del negocio para confirmar:`,
+      `Esto borra "${businessName}" con todas sus conversaciones y su base de conocimiento. Escribe el nombre del negocio para confirmar:`,
     )
     if (answer !== businessName) return
 

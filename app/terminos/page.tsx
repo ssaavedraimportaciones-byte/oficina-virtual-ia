@@ -19,17 +19,17 @@ export default function TerminosPage() {
         {BRAND.name} es una plataforma que permite crear un agente de atención automatizado
         (impulsado por modelos de lenguaje de terceros, como Anthropic u OpenAI) para responder
         mensajes de WhatsApp, Instagram y otros canales en nombre de un negocio, además de
-        gestionar conversaciones, turnos, catálogo y pedidos.
+        gestionar conversaciones, citas, catálogo y pedidos.
       </p>
 
       <h2>3. Cuenta y responsabilidad del contenido</h2>
       <ul>
         <li>
-          Sos responsable de mantener la confidencialidad de tu contraseña y de toda la actividad
+          Eres responsable de mantener la confidencialidad de tu contraseña y de toda la actividad
           que ocurra en tu cuenta.
         </li>
         <li>
-          Sos responsable de la información que cargás en la base de conocimiento del agente y de
+          Eres responsable de la información que cargas en la base de conocimiento del agente y de
           las respuestas que el agente termina enviando a tus clientes en tu nombre: revisalas
           antes de darle a tu agente acceso a canales reales.
         </li>
@@ -54,7 +54,7 @@ export default function TerminosPage() {
 
       <h2>6. Datos de tus clientes</h2>
       <p>
-        Al usar {BRAND.name} para atender a tus propios clientes, sos vos (el titular del negocio)
+        Al usar {BRAND.name} para atender a tus propios clientes, eres tú (el titular del negocio)
         quien decide qué datos de esos clientes se procesan por este medio. Ver la{' '}
         <Link href="/privacidad" className="text-amber-400 hover:underline">
           Política de Privacidad

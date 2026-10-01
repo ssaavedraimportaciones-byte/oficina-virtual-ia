@@ -42,7 +42,7 @@ export default function ConfigurarPage() {
     setSaving(false)
 
     if (!res.ok) {
-      setError('Revisá que todos los campos estén completos.')
+      setError('Revisa que todos los campos estén completos.')
       return
     }
 
@@ -56,7 +56,7 @@ export default function ConfigurarPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-8 py-12">
-      <h1 className="text-2xl font-bold text-white">Configurá tu agente</h1>
+      <h1 className="text-2xl font-bold text-white">Configura tu agente</h1>
       <p className="mt-2 text-sm text-gray-400">
         Esto define cómo habla y qué busca lograr. Los datos concretos (precios, catálogo, tu
         sitio web) se cargan aparte en{' '}

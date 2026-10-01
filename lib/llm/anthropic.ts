@@ -112,23 +112,23 @@ export function createAnthropicProvider(apiKey: string): LlmProvider {
       const raw = error instanceof Error ? error.message : String(error)
 
       if (error instanceof Anthropic.APIConnectionError || /not in allowlist|ENOTFOUND|ECONNREFUSED|fetch failed/i.test(raw)) {
-        return 'El servidor no puede conectarse a api.anthropic.com. Revisá la salida a internet o la política de red del hosting.'
+        return 'El servidor no puede conectarse a api.anthropic.com. Revisa la salida a internet o la política de red del hosting.'
       }
       if (error instanceof Anthropic.AuthenticationError || status === 401 || /API key is invalid/i.test(raw)) {
-        return 'La API key de Anthropic es inválida. Revisá ANTHROPIC_API_KEY.'
+        return 'La API key de Anthropic es inválida. Revisa ANTHROPIC_API_KEY.'
       }
       // La falta de saldo llega como un 400 genérico: no hay clase propia.
       if (/credit balance is too low/i.test(raw)) {
-        return 'La cuenta de Anthropic no tiene saldo. Cargá créditos en console.anthropic.com (Plans & Billing).'
+        return 'La cuenta de Anthropic no tiene saldo. Carga créditos en console.anthropic.com (Plans & Billing).'
       }
       if (error instanceof Anthropic.RateLimitError || status === 429) {
-        return 'Se alcanzó el límite de uso de Anthropic. Esperá un momento y reintentá.'
+        return 'Se alcanzó el límite de uso de Anthropic. Espera un momento y reintenta.'
       }
       if (error instanceof Anthropic.NotFoundError || status === 404) {
-        return `El modelo ${model} no está disponible para esta cuenta. Revisá ANTHROPIC_MODEL.`
+        return `El modelo ${model} no está disponible para esta cuenta. Revisa ANTHROPIC_MODEL.`
       }
       if (error instanceof Anthropic.InternalServerError || (status && status >= 500)) {
-        return 'Anthropic tuvo un error temporal. Reintentá en un momento.'
+        return 'Anthropic tuvo un error temporal. Reintenta en un momento.'
       }
       return raw
     },

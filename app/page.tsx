@@ -1,93 +1,81 @@
 import Link from 'next/link'
 import { BRAND } from '@/lib/brand'
-
-const CHANNELS = ['WhatsApp', 'Instagram DM', 'Agenda de horas', 'Pedidos y stock']
-
-const FEATURES = [
-  {
-    title: 'Responde al tiro, 24/7',
-    description:
-      'Contesta cada mensaje en segundos, de día, de noche y en feriados. El cliente que te escribe a las 11 de la noche no se enfría esperando.',
-  },
-  {
-    title: 'WhatsApp e Instagram en un solo lugar',
-    description:
-      'Todas las conversaciones llegan a un mismo panel, con el historial de cada cliente. Cada negocio conecta su propio número o su propia cuenta.',
-  },
-  {
-    title: 'Agenda horas de verdad',
-    description:
-      'Mira tu disponibilidad real, ofrece horarios y reserva sin pisar otras horas. Se acabó el ir y venir por mensajes.',
-  },
-  {
-    title: 'Toma pedidos y cuida tu stock',
-    description:
-      'Consulta el catálogo, confirma precio y disponibilidad, registra el pedido y descuenta el stock automáticamente.',
-  },
-  {
-    title: 'Se acuerda de cada cliente',
-    description:
-      'Arma una ficha con lo que cada persona va contando: qué busca, presupuesto, urgencia. Tu equipo la ve al tiro, sin releer la conversación.',
-  },
-  {
-    title: 'Te pasa el caso cuando hace falta',
-    description:
-      'Si el cliente se molesta o pide hablar con una persona, el agente se pausa y te avisa por mail. Tú respondes desde el panel y le devuelves la conversación cuando quieras.',
-  },
-]
+import { INDUSTRY_TEMPLATES } from '@/lib/industries'
+import Cursor from './_landing/Cursor'
+import Stage, { SplitWords } from './_landing/Stage'
+import StaticStory from './_landing/Static'
+import World from './_landing/World'
+import './_landing/landing.css'
 
 const STEPS = [
   {
-    step: '01',
     title: 'Elige tu rubro',
-    description:
-      'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.',
+    text: 'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.',
   },
   {
-    step: '02',
     title: 'Cárgale tu información',
-    description: 'Precios, horarios, servicios y productos. Es lo único que el agente puede afirmar, así que no inventa.',
+    text: 'Precios, horarios, servicios y productos. Es lo único que el agente puede afirmar, así que no inventa. Puedes importarla desde tu sitio web o tu Instagram.',
   },
   {
-    step: '03',
     title: 'Conecta tus canales',
-    description: 'Tu WhatsApp Business o tu Instagram. Antes puedes probar al agente en el simulador.',
+    text: 'Tu WhatsApp Business o tu Instagram. Antes puedes probar al agente en el simulador, escribiendo como si fueras el cliente.',
   },
   {
-    step: '04',
     title: 'Tú te dedicas a tu negocio',
-    description: 'El agente atiende. Tú recibes las horas agendadas y los pedidos ya registrados, y los casos que necesitan a una persona.',
+    text: 'El agente atiende. Tú recibes las horas agendadas, los pedidos ya registrados y los casos que necesitan a una persona.',
   },
 ]
 
-const INDUSTRIES = [
-  '💅 Manicura',
-  '🦷 Odontología',
-  '🔧 Taller mecánico',
-  '💈 Peluquería',
-  '🏠 Inmobiliaria',
-  '🍽️ Gastronomía',
-  '🏋️ Gimnasio',
-  '⚖️ Estudio jurídico',
-  '🛍️ Tienda / E-commerce',
-  '✨ Y cualquier otro',
+const GUARDRAILS = [
+  {
+    title: 'No inventa',
+    text: 'Solo afirma lo que cargaste: precios, horarios, servicios, stock. Si no lo sabe, lo dice o pasa el caso.',
+  },
+  {
+    title: 'Se detiene cuando corresponde',
+    text: 'Si el cliente reclama o pide una persona, el agente se pausa. Tú respondes desde el panel y se lo devuelves cuando quieras.',
+  },
+  {
+    title: 'Tiene tope mensual',
+    text: 'Cada plan incluye una cantidad de respuestas al mes y la ves en tu resumen. Si se agota, tu cliente recibe un aviso en vez de quedar en visto, y tú, un mail.',
+  },
+  {
+    title: 'Si algo falla, avisa',
+    text: 'Si la IA se cae o la plataforma entra en mantenimiento, tu cliente recibe un mensaje claro. Sus mensajes quedan guardados para que tu equipo los vea.',
+  },
+]
+
+const MULTI = [
+  {
+    title: 'Cada negocio, lo suyo',
+    text: 'Conversaciones, agenda, catálogo, canales y conocimiento viven separados por negocio. Lo de uno nunca se mezcla con lo de otro.',
+  },
+  {
+    title: 'Dueños y equipo',
+    text: 'Invita a tu gente con el rol que corresponde. El dueño administra el negocio; el equipo atiende las conversaciones.',
+  },
+  {
+    title: 'Un solo ingreso',
+    text: 'Si tienes más de un negocio, los ves todos desde la misma cuenta y cambias de uno a otro con un clic.',
+  },
 ]
 
 function Nav() {
   return (
-    <header className="border-b border-gray-800">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
-        <nav className="hidden items-center gap-8 text-sm text-gray-300 md:flex">
-          <a href="#producto" className="hover:text-white">Producto</a>
-          <a href="#funciones" className="hover:text-white">Funciones</a>
-          <a href="#rubros" className="hover:text-white">Rubros</a>
-          <Link href="/panel" className="hover:text-white">Ingresar</Link>
-        </nav>
-        <Link
-          href="/registro"
-          className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-gray-950 hover:bg-amber-400"
-        >
+    <header className="zv-nav">
+      <Link href="/" className="zv-brand" aria-label={`${BRAND.name}, inicio`}>
+        {BRAND.name}
+      </Link>
+      <nav aria-label="Principal" className="zv-navlinks">
+        <a href="#noche">Una noche</a>
+        <a href="#rubros">Rubros</a>
+        <a href="#empieza">Cómo empieza</a>
+      </nav>
+      <div className="zv-navright">
+        <Link href="/panel" className="zv-navlogin">
+          Ingresar
+        </Link>
+        <Link href="/registro" className="zv-btn zv-btn--sm">
           Probar gratis
         </Link>
       </div>
@@ -97,135 +85,156 @@ function Nav() {
 
 function Hero() {
   return (
-    <section id="producto" className="mx-auto max-w-6xl px-6 py-24 text-center">
-      <p className="mb-4 font-mono text-sm uppercase tracking-widest text-amber-400">
-        {BRAND.tagline}
-      </p>
-      <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-tight text-white md:text-6xl">
-        Tu cliente escribe. {BRAND.name} responde.
-      </h1>
-      <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
-        Un agente de IA que atiende tu WhatsApp e Instagram al tiro, a cualquier hora: responde
-        dudas, agenda horas, toma pedidos y te pasa el caso cuando hace falta una persona. Se
-        adapta a cualquier rubro.
-      </p>
-      <div className="mt-10 flex items-center justify-center gap-4">
-        <Link
-          href="/registro"
-          className="rounded-md bg-amber-500 px-6 py-3 font-medium text-gray-950 hover:bg-amber-400"
-        >
-          Probar gratis
-        </Link>
-        <a
-          href="#funciones"
-          className="rounded-md border border-gray-700 px-6 py-3 font-medium text-gray-200 hover:border-gray-500"
-        >
-          Ver funciones
-        </a>
+    <section className="zv-hero" data-hero aria-labelledby="zv-hero-title">
+      <div className="zv-hero-sticky" data-hero-content>
+        <p className="zv-eyebrow">{BRAND.tagline}</p>
+        <h1 id="zv-hero-title" className="zv-title">
+          <SplitWords text="Tu cliente escribe. ZeroVisto responde." accent={[4]} breakAfter={[2]} />
+        </h1>
+        <p className="zv-lead">
+          Un agente de IA que atiende tu WhatsApp e Instagram al tiro, a cualquier hora: responde dudas, agenda horas,
+          toma pedidos y te pasa el caso cuando hace falta una persona. Se adapta a cualquier rubro.
+        </p>
+        <div className="zv-cta-row">
+          <Link href="/registro" className="zv-btn">
+            Probar gratis
+          </Link>
+          <a href="#noche" className="zv-btn zv-btn--ghost">
+            Ver una noche entera
+          </a>
+        </div>
+        <span className="zv-hero-v" aria-hidden="true">
+          Cero en visto
+        </span>
+        <span className="zv-cue" aria-hidden="true">
+          <i /> Baja y mira la noche
+        </span>
       </div>
-      <div className="mt-14 flex flex-wrap items-center justify-center gap-3">
-        {CHANNELS.map((channel) => (
-          <span
-            key={channel}
-            className="rounded-full border border-gray-800 bg-gray-900 px-4 py-1.5 text-sm text-gray-300"
-          >
-            {channel}
-          </span>
+    </section>
+  )
+}
+
+function Steps() {
+  return (
+    <section id="empieza" className="zv-sec" aria-labelledby="zv-steps-title">
+      <div className="zv-sec-head">
+        <p className="zv-sec-label">
+          <span>06</span>Cómo empieza
+        </p>
+        <h2 id="zv-steps-title" className="zv-sec-title">
+          Listo para esta noche, en cuatro pasos.
+        </h2>
+      </div>
+      <ol className="zv-list">
+        {STEPS.map((step, i) => (
+          <li key={step.title}>
+            <span className="n">{String(i + 1).padStart(2, '0')}</span>
+            <h3>{step.title}</h3>
+            <p>{step.text}</p>
+          </li>
         ))}
-      </div>
-    </section>
-  )
-}
-
-function Features() {
-  return (
-    <section id="funciones" className="border-t border-gray-800 bg-gray-950 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-14 text-center">
-          <h2 className="text-3xl font-bold text-white md:text-4xl">
-            Un vendedor que nunca deja a nadie en visto
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-            Deja de perder clientes por demorarte en contestar. El agente se encarga de lo
-            repetitivo y tu equipo se queda con lo que de verdad necesita a una persona.
-          </p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-lg border border-gray-800 bg-gray-900 p-6"
-            >
-              <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-              <p className="mt-2 text-sm text-gray-400">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HowItWorks() {
-  return (
-    <section className="border-t border-gray-800 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-14 text-center">
-          <h2 className="text-3xl font-bold text-white md:text-4xl">Cómo funciona</h2>
-        </div>
-        <div className="grid gap-8 md:grid-cols-4">
-          {STEPS.map((item) => (
-            <div key={item.step}>
-              <span className="font-mono text-sm text-amber-400">{item.step}</span>
-              <h3 className="mt-2 text-lg font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-sm text-gray-400">{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      </ol>
     </section>
   )
 }
 
 function Industries() {
   return (
-    <section id="rubros" className="border-t border-gray-800 bg-gray-900/40 py-24">
-      <div className="mx-auto max-w-6xl px-6 text-center">
-        <h2 className="text-3xl font-bold text-white md:text-4xl">Se adapta a tu negocio</h2>
-        <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-          Elige tu rubro y el agente parte con el tono, las preguntas y el proceso de venta que
-          corresponde. Un mismo sistema para todos tus negocios.
+    <section id="rubros" className="zv-sec" aria-labelledby="zv-rubros-title">
+      <div className="zv-sec-head">
+        <p className="zv-sec-label">
+          <span>07</span>Rubros
         </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          {INDUSTRIES.map((industry) => (
-            <span
-              key={industry}
-              className="rounded-full border border-gray-800 bg-gray-950 px-5 py-2 text-sm text-gray-300"
-            >
-              {industry}
+        <h2 id="zv-rubros-title" className="zv-sec-title">
+          Se adapta a tu negocio.
+        </h2>
+        <p className="zv-sec-intro">
+          Elige tu rubro y el agente parte con el tono, los objetivos y la lista de lo que conviene cargar. Son un punto de
+          partida: el rubro es texto libre y todo se puede editar después.
+        </p>
+      </div>
+      <ul className="zv-rubros">
+        {INDUSTRY_TEMPLATES.map((t) => (
+          <li key={t.id} className="zv-rubro">
+            <span className="e" aria-hidden="true">
+              {t.emoji}
             </span>
-          ))}
-        </div>
+            <h3>{t.label}</h3>
+            <p>{t.industry || 'Cualquier otro: describes tu negocio y el agente se arma a su medida.'}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function Multi() {
+  return (
+    <section className="zv-sec" aria-labelledby="zv-multi-title">
+      <div className="zv-sec-head">
+        <p className="zv-sec-label">
+          <span>08</span>Varios negocios
+        </p>
+        <h2 id="zv-multi-title" className="zv-sec-title">
+          Muchos negocios. Cero mezcla.
+        </h2>
+      </div>
+      <div className="zv-cols">
+        {MULTI.map((item) => (
+          <div key={item.title} className="zv-col">
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </div>
+        ))}
       </div>
     </section>
   )
 }
 
-function CTA() {
+function Guardrails() {
   return (
-    <section id="demo" className="border-t border-gray-800 py-24">
-      <div className="mx-auto max-w-3xl px-6 text-center">
-        <h2 className="text-3xl font-bold text-white md:text-4xl">
-          Que ningún cliente más quede en visto
-        </h2>
-        <p className="mt-4 text-gray-400">
-          Crea tu agente en minutos y pruébalo en el simulador antes de conectar tus canales.
+    <section className="zv-sec" aria-labelledby="zv-guard-title">
+      <div className="zv-sec-head">
+        <p className="zv-sec-label">
+          <span>09</span>Con los pies en la tierra
         </p>
-        <Link
-          href="/registro"
-          className="mt-8 inline-block rounded-md bg-amber-500 px-8 py-3 font-medium text-gray-950 hover:bg-amber-400"
-        >
+        <h2 id="zv-guard-title" className="zv-sec-title">
+          Lo que el agente no hace.
+        </h2>
+        <p className="zv-sec-intro">
+          Un agente que contesta a las 11 de la noche tiene que saber cuándo parar. Esto es lo que ya viene resuelto.
+        </p>
+      </div>
+      <div className="zv-cols zv-cols--4">
+        {GUARDRAILS.map((item) => (
+          <div key={item.title} className="zv-col">
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function Final() {
+  return (
+    <section className="zv-final" aria-labelledby="zv-final-title">
+      <p className="zv-sec-label">
+        <span>10</span>Esta noche
+      </p>
+      <h2 id="zv-final-title" className="zv-sec-title" style={{ marginTop: '1.4rem' }}>
+        Que ningún cliente más quede en <em className="zv-acc">visto.</em>
+      </h2>
+      <p className="zv-sec-intro">
+        Crea tu agente en minutos y pruébalo en el simulador antes de conectar tus canales.
+      </p>
+      <div className="zv-cta-row">
+        <Link href="/registro" className="zv-btn">
           Probar gratis
+        </Link>
+        <Link href="/panel" className="zv-btn zv-btn--ghost">
+          Ya tengo cuenta
         </Link>
       </div>
     </section>
@@ -234,33 +243,43 @@ function CTA() {
 
 function Footer() {
   return (
-    <footer className="border-t border-gray-800 py-10">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-gray-500 md:flex-row">
-        <span className="font-mono text-amber-400">{BRAND.name}</span>
-        <div className="flex items-center gap-4">
-          <Link href="/terminos" className="hover:text-gray-300">
-            Términos
-          </Link>
-          <Link href="/privacidad" className="hover:text-gray-300">
-            Privacidad
-          </Link>
-        </div>
-        <span>&copy; {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.</span>
-      </div>
+    <footer className="zv-foot">
+      <span className="zv-brand">{BRAND.name}</span>
+      <nav aria-label="Legal">
+        <Link href="/terminos">Términos</Link>
+        <Link href="/privacidad">Privacidad</Link>
+      </nav>
+      <span>
+        &copy; {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.
+      </span>
     </footer>
   )
 }
 
 export default function Home() {
   return (
-    <main>
+    <div className="zv">
+      <a href="#contenido" className="zv-skip">
+        Saltar al contenido
+      </a>
       <Nav />
-      <Hero />
-      <Features />
-      <HowItWorks />
-      <Industries />
-      <CTA />
+      <main id="contenido">
+        <div className="zv-zone" data-zone>
+          <World />
+          <Hero />
+          <div id="noche">
+            <Stage />
+            <StaticStory />
+          </div>
+        </div>
+        <Steps />
+        <Industries />
+        <Multi />
+        <Guardrails />
+        <Final />
+      </main>
       <Footer />
-    </main>
+      <Cursor />
+    </div>
   )
 }

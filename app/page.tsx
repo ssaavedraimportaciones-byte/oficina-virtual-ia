@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { BRAND } from '@/lib/brand'
 
-const CHANNELS = ['WhatsApp', 'Instagram DM', 'Agenda de citas', 'Pedidos y stock']
+const CHANNELS = ['WhatsApp', 'Instagram DM', 'Agenda de horas', 'Pedidos y stock']
 
 const FEATURES = [
   {
@@ -15,9 +15,9 @@ const FEATURES = [
       'Todas las conversaciones llegan a un mismo panel, con el historial de cada cliente. Cada negocio conecta su propio número o su propia cuenta.',
   },
   {
-    title: 'Agenda citas de verdad',
+    title: 'Agenda horas de verdad',
     description:
-      'Mira tu disponibilidad real, ofrece horarios y reserva sin pisar otras citas. Se acabó el ir y venir por mensajes.',
+      'Mira tu disponibilidad real, ofrece horarios y reserva sin pisar otras horas. Se acabó el ir y venir por mensajes.',
   },
   {
     title: 'Toma pedidos y cuida tu stock',
@@ -56,7 +56,7 @@ const STEPS = [
   {
     step: '04',
     title: 'Tú te dedicas a tu negocio',
-    description: 'El agente atiende. Tú recibes las citas y los pedidos ya registrados, y los casos que necesitan a una persona.',
+    description: 'El agente atiende. Tú recibes las horas agendadas y los pedidos ya registrados, y los casos que necesitan a una persona.',
   },
 ]
 
@@ -106,7 +106,7 @@ function Hero() {
       </h1>
       <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
         Un agente de IA que atiende tu WhatsApp e Instagram al tiro, a cualquier hora: responde
-        dudas, agenda citas, toma pedidos y te pasa el caso cuando hace falta una persona. Se
+        dudas, agenda horas, toma pedidos y te pasa el caso cuando hace falta una persona. Se
         adapta a cualquier rubro.
       </p>
       <div className="mt-10 flex items-center justify-center gap-4">

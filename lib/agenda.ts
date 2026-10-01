@@ -1,6 +1,6 @@
 import type { Appointment, Service, WeekHours } from './types'
 
-/** Granularidad de la grilla de citas, en minutos. */
+/** Granularidad de la grilla de horas, en minutos. */
 const SLOT_STEP = 30
 
 const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -58,7 +58,7 @@ export interface LocalNow {
   time: string
 }
 
-/** Si la cita ya empezó (o empieza ahora), no se puede ofrecer ni reservar. */
+/** Si la hora ya empezó (o empieza ahora), no se puede ofrecer ni reservar. */
 function isPast(date: string, startMinutes: number, now?: LocalNow): boolean {
   if (!now) return false
   if (date !== now.date) return date < now.date
@@ -67,7 +67,7 @@ function isPast(date: string, startMinutes: number, now?: LocalNow): boolean {
 
 /**
  * Horarios libres para un servicio en un rango de fechas. Recorre día por día
- * el horario de atención y descarta los que se pisan con una cita ya
+ * el horario de atención y descarta los que se pisan con una hora ya
  * confirmada y, si se pasa `now`, los que ya pasaron.
  */
 export function getAvailableSlots(

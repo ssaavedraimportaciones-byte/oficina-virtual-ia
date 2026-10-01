@@ -9,9 +9,8 @@ export default function TerminosPage() {
     <LegalLayout title="Términos de servicio" updated="[completar fecha de publicación]">
       <h2>1. Quiénes somos</h2>
       <p>
-        {BRAND.name} es operado por [RAZÓN SOCIAL / NOMBRE DEL TITULAR], [CUIT/NIF/identificación
-        fiscal], con domicilio en [DOMICILIO]. Para cualquier consulta sobre estos términos,
-        escribinos a [EMAIL DE CONTACTO].
+        {BRAND.name} es operado por [RAZÓN SOCIAL / NOMBRE DEL TITULAR], [RUT], con domicilio en [DOMICILIO]. Para cualquier consulta sobre estos términos,
+        escríbenos a [EMAIL DE CONTACTO].
       </p>
 
       <h2>2. Qué es el servicio</h2>
@@ -19,7 +18,7 @@ export default function TerminosPage() {
         {BRAND.name} es una plataforma que permite crear un agente de atención automatizado
         (impulsado por modelos de lenguaje de terceros, como Anthropic u OpenAI) para responder
         mensajes de WhatsApp, Instagram y otros canales en nombre de un negocio, además de
-        gestionar conversaciones, citas, catálogo y pedidos.
+        gestionar conversaciones, horas agendadas, catálogo y pedidos.
       </p>
 
       <h2>3. Cuenta y responsabilidad del contenido</h2>
@@ -71,7 +70,7 @@ export default function TerminosPage() {
       </p>
 
       <h2>8. Ley aplicable</h2>
-      <p>Estos términos se rigen por las leyes de [JURISDICCIÓN A DEFINIR].</p>
+      <p>Estos términos se rigen por las leyes de la República de Chile. [DEFINIR tribunales competentes, p. ej. los de la comuna de domicilio del titular.]</p>
     </LegalLayout>
   )
 }

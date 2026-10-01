@@ -16,7 +16,7 @@ const VOSEO = new RegExp(
   `(?<![${LETTERS}])(vos|sos|tenés|podés|querés|sabés|necesitás|preferís|elegís|hacés|decís|ponés|venís|llegás|usás|cargás|mirás|confirmás|derivás|respondés|mantenés|` +
     // imperativos: "cargá", "elegí", "respondé", "escribilo", "decile", "preguntale"…
     `(?:agregá|ajustá|cargá|completá|configurá|confirmá|consultá|copiá|dejá|devolvé|elegí|escribí|esperá|generá|ignorá|ingresá|iniciá|llamá|pasá|pegá|poné|probá|registrá|reintentá|reservá|respondé|revisá|seguí|tené|usá|volvé|` +
-    `escribilo|decile|decilo|preguntale|ofrecele|avisale|confirmale|tomale|contale|pedile|usalo|confirmalo)` +
+    `escribilo|escribinos|decile|decilo|preguntale|ofrecele|avisale|confirmale|tomale|contale|pedile|usalo|confirmalo)` +
     `)(?![${LETTERS}])`,
   'i',
 )

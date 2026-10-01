@@ -76,7 +76,7 @@ describe('getBusinessAnalytics', () => {
     expect(stats.revenueTotal).toBe(ok.order.total)
   })
 
-  it('cuenta productos agotados y citas confirmadas', async () => {
+  it('cuenta productos agotados y horas confirmadas', async () => {
     const business = await newBusiness()
     await store.addProduct({ businessId: business.id, name: 'Agotado', price: 500, stock: 0 })
     await store.addProduct({ businessId: business.id, name: 'Con stock', price: 500, stock: 5 })

@@ -91,7 +91,7 @@ export default function AgendaPage() {
   }
 
   async function cancel(id: string) {
-    if (!window.confirm('¿Cancelar esta cita?')) return
+    if (!window.confirm('¿Cancelar esta hora?')) return
     await fetch(`/api/appointments/${id}`, { method: 'DELETE' })
     await load()
   }
@@ -106,8 +106,8 @@ export default function AgendaPage() {
     <div className="mx-auto max-w-2xl px-8 py-12">
       <h1 className="text-2xl font-bold text-white">Agenda</h1>
       <p className="mt-2 text-sm text-gray-400">
-        Carga tus servicios y horarios, y el agente va a poder consultar disponibilidad y reservar
-        citas solo, directamente desde el chat.
+        Carga tus servicios y horarios, y el agente va a poder consultar disponibilidad y agendar
+        horas solo, directamente desde el chat.
       </p>
 
       {services.length === 0 && (
@@ -120,7 +120,7 @@ export default function AgendaPage() {
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Servicios</h2>
         <p className="mt-1 text-xs text-gray-500">
-          La duración define cada cuánto se puede reservar y cuándo se pisa una cita con otra.
+          La duración define cada cuánto se puede reservar y cuándo se pisa una hora con otra.
         </p>
 
         {services.length > 0 && (
@@ -235,9 +235,9 @@ export default function AgendaPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 font-medium text-white">Citas reservadas ({upcoming.length})</h2>
+        <h2 className="mb-3 font-medium text-white">Horas reservadas ({upcoming.length})</h2>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-gray-500">Todavía no hay citas reservadas.</p>
+          <p className="text-sm text-gray-500">Todavía no hay horas reservadas.</p>
         ) : (
           <div className="flex flex-col divide-y divide-gray-800 rounded-lg border border-gray-800">
             {upcoming.map((appointment) => {

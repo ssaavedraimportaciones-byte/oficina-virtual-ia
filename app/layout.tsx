@@ -5,7 +5,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: `${BRAND.name} — ${BRAND.tagline}. Agentes de IA para WhatsApp e Instagram`,
   description:
-    'Un agente de IA que atiende tu WhatsApp e Instagram al tiro: responde, agenda citas, toma pedidos y te pasa el caso cuando hace falta una persona. Para cualquier rubro.',
+    'Un agente de IA que atiende tu WhatsApp e Instagram al tiro: responde, agenda horas, toma pedidos y te pasa el caso cuando hace falta una persona. Para cualquier rubro.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

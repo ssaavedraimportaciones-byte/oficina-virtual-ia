@@ -32,8 +32,8 @@ export default async function ResumenPage({
 
       <h2 className="mt-10 text-sm font-medium uppercase tracking-wide text-gray-500">Agenda</h2>
       <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Citas totales" value={stats.appointmentCount} />
-        <Stat label="Citas confirmadas" value={stats.confirmedAppointments} />
+        <Stat label="Horas agendadas" value={stats.appointmentCount} />
+        <Stat label="Horas confirmadas" value={stats.confirmedAppointments} />
       </div>
 
       <h2 className="mt-10 text-sm font-medium uppercase tracking-wide text-gray-500">Pedidos</h2>

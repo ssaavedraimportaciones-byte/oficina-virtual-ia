@@ -11,6 +11,8 @@ export default defineConfig({
     path: 'prisma/migrations',
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    // Las migraciones necesitan una conexión de sesión. La aplicación usa el
+    // pool transaccional de Supabase mediante DATABASE_URL.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
   },
 })

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { BRAND } from '@/lib/brand'
 export default function LegalLayout({
   title,
@@ -10,9 +11,9 @@ export default function LegalLayout({
 }) {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <a href="/" className="font-mono text-sm font-semibold text-amber-400">
+      <Link href="/" className="font-mono text-sm font-semibold text-amber-400">
         {BRAND.name}
-      </a>
+      </Link>
 
       <div className="mt-8 rounded-lg border border-amber-700/40 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
         <strong>Borrador, no es asesoramiento legal.</strong> Este texto es una plantilla de

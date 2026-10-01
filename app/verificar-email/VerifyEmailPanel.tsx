@@ -2,6 +2,7 @@
 
 import { BRAND } from '@/lib/brand'
 import { useState } from 'react'
+import Link from 'next/link'
 
 /**
  * Requiere un click explícito en vez de confirmar solo con visitar la
@@ -28,9 +29,9 @@ export default function VerifyEmailPanel({ token }: { token: string | null }) {
       <div className="flex w-full max-w-sm flex-col gap-4 text-center">
         <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
         <p className="text-sm text-gray-300">Email verificado correctamente.</p>
-        <a href="/panel" className="text-sm text-amber-400 hover:underline">
+        <Link href="/panel" className="text-sm text-amber-400 hover:underline">
           Ir al panel
-        </a>
+        </Link>
       </div>
     )
   }

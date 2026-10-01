@@ -10,7 +10,13 @@ function createClient(): PrismaClient {
   if (!connectionString) {
     throw new Error('Falta DATABASE_URL. Configurala en .env.local.')
   }
-  const adapter = new PrismaPg({ connectionString })
+  // Cada función serverless puede crear su propio proceso. Limitar el pool a
+  // una conexión evita multiplicar el límite de Supabase por instancia.
+  const adapter = new PrismaPg({
+    connectionString,
+    max: 1,
+    connectionTimeoutMillis: 10_000,
+  })
   return new PrismaClient({ adapter })
 }
 

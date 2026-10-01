@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   if (!(await canOwnAnotherBusiness(user.id, user.role))) {
     return NextResponse.json(
-      { error: 'El plan gratuito permite un solo negocio propio. Pasate a PRO para crear más.' },
+      { error: 'El plan gratuito permite un solo negocio propio. Pásate a PRO para crear más.' },
       { status: 402 },
     )
   }

@@ -46,7 +46,7 @@ export default function LoginForm() {
         <div>
           <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
           <h1 className="mt-1 text-xl font-bold text-white">Código de verificación</h1>
-          <p className="mt-1 text-sm text-gray-500">Ingresá el código de tu app de autenticación.</p>
+          <p className="mt-1 text-sm text-gray-500">Ingresa el código de tu app de autenticación.</p>
         </div>
         <input
           required

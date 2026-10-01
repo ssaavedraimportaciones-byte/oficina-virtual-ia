@@ -34,8 +34,8 @@ export default function ConexionesPage() {
     <div className="mx-auto max-w-2xl px-8 py-12">
       <h1 className="text-2xl font-bold text-white">Conexiones</h1>
       <p className="mt-2 text-sm text-gray-400">
-        Pegá tu token de Meta una vez y elegí la cuenta de la lista. Se valida contra Meta antes de
-        guardar, así no te enterás de que algo estaba mal recién cuando escribe un cliente.
+        Pega tu token de Meta una vez y elige la cuenta de la lista. Se valida contra Meta antes de
+        guardar, así no te enteras de que algo estaba mal recién cuando escribe un cliente.
       </p>
 
       <div className="mt-8 flex flex-col gap-4">
@@ -63,7 +63,7 @@ export default function ConexionesPage() {
       <section className="mt-8 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Webhooks en Meta</h2>
         <p className="mt-1 text-xs text-gray-500">
-          Pegá estas URLs en la configuración de webhooks de tu app de Meta. Son las mismas para
+          Pega estas URLs en la configuración de webhooks de tu app de Meta. Son las mismas para
           todos tus negocios: el sistema reconoce solo a cuál corresponde cada mensaje.
         </p>
         <div className="mt-4 flex flex-col gap-4">
@@ -74,7 +74,7 @@ export default function ConexionesPage() {
           El verify token es el valor de{' '}
           <code className="text-amber-400">WHATSAPP_VERIFY_TOKEN</code> /{' '}
           <code className="text-amber-400">INSTAGRAM_VERIFY_TOKEN</code> en tus variables de
-          entorno. Suscribite al campo <span className="text-gray-300">messages</span>.
+          entorno. Suscríbete al campo <span className="text-gray-300">messages</span>.
         </p>
       </section>
 

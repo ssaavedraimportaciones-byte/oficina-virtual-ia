@@ -105,9 +105,9 @@ export default function ConversationPage() {
 
   const placeholder =
     sender === 'contact'
-      ? 'Escribí como si fueras el cliente…'
+      ? 'Escribe como si fueras el cliente…'
       : isSimulator
-        ? 'Escribí como alguien del equipo…'
+        ? 'Escribe como alguien del equipo…'
         : `Responder como equipo (le llega por ${CHANNEL_LABELS[conversation.channel]})…`
 
   return (
@@ -151,7 +151,7 @@ export default function ConversationPage() {
             {conversation.messages.length === 0 && (
               <p className="text-center text-sm text-gray-500">
                 {isSimulator
-                  ? 'Escribí un mensaje como si fueras el cliente para probar al agente.'
+                  ? 'Escribe un mensaje como si fueras el cliente para probar al agente.'
                   : 'Todavía no hay mensajes.'}
               </p>
             )}
@@ -215,7 +215,7 @@ export default function ConversationPage() {
           </div>
           {sender === 'human' && !conversation.agentPaused && (
             <p className="text-xs text-gray-600">
-              Al responder vos, el agente deja de contestar en esta conversación hasta que se la devuelvas.
+              Al responder tú, el agente deja de contestar en esta conversación hasta que se la devuelvas.
             </p>
           )}
         </form>

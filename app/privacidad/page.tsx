@@ -30,7 +30,7 @@ export default function PrivacidadPage() {
 
       <h2>2. Para qué se usan</h2>
       <ul>
-        <li>Operar el servicio: autenticar cuentas, generar respuestas del agente, agendar turnos, procesar pedidos.</li>
+        <li>Operar el servicio: autenticar cuentas, generar respuestas del agente, agendar citas, procesar pedidos.</li>
         <li>Enviar mails operativos: verificación de cuenta, recuperación de contraseña, aviso de conversación nueva.</li>
         <li>Facturación del plan pago, a través de Stripe.</li>
         <li>Seguridad: detectar intentos de fuerza bruta, prevenir abuso.</li>
@@ -66,7 +66,7 @@ export default function PrivacidadPage() {
       <h2>4. Cuánto tiempo se guardan los datos</h2>
       <p>
         Mientras la cuenta esté activa. Al eliminar un negocio o una cuenta, se borran sus
-        conversaciones, mensajes, turnos y pedidos asociados. [DEFINIR si hay un período de
+        conversaciones, mensajes, citas y pedidos asociados. [DEFINIR si hay un período de
         retención de backups y cuánto dura.]
       </p>
 

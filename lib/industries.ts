@@ -25,9 +25,9 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     emoji: '💅',
     industry: 'Manicura, esculpidas y esmaltado semipermanente',
     description:
-      'Estudio de uñas. Trabajamos con turnos previos, atendemos en local y ofrecemos distintos servicios de manicura y decoración.',
+      'Estudio de uñas. Trabajamos con citas previas, atendemos en local y ofrecemos distintos servicios de manicura y decoración.',
     goals:
-      'Averiguar qué servicio quiere (semipermanente, esculpidas, retiro, kapping), pasarle el precio, y cerrar el turno con día y horario concreto. Si pregunta por diseños, contarle qué opciones hay.',
+      'Averiguar qué servicio quiere (semipermanente, esculpidas, retiro, kapping), pasarle el precio, y cerrar la cita con día y horario concreto. Si pregunta por diseños, contarle qué opciones hay.',
     tone: 'cercano',
     knowledgeHints: [
       'Lista de precios por servicio',
@@ -43,9 +43,9 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     emoji: '🦷',
     industry: 'Consultorio odontológico',
     description:
-      'Consultorio dental. Atendemos consultas generales, limpieza, arreglos, ortodoncia y urgencias, con turno previo.',
+      'Consultorio dental. Atendemos consultas generales, limpieza, arreglos, ortodoncia y urgencias, con cita previa.',
     goals:
-      'Entender qué necesita (control, dolor, urgencia, estética, ortodoncia), si tiene obra social o es particular, y agendar el turno. Si es una urgencia con dolor, priorizarla y avisar al equipo.',
+      'Entender qué necesita (control, dolor, urgencia, estética, ortodoncia), si tiene obra social o es particular, y agendar la cita. Si es una urgencia con dolor, priorizarla y avisar al equipo.',
     tone: 'formal',
     knowledgeHints: [
       'Obras sociales y prepagas que se aceptan',
@@ -79,9 +79,9 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     emoji: '💈',
     industry: 'Peluquería y barbería',
     description:
-      'Peluquería. Cortes, color, tratamientos y peinados, con turno previo.',
+      'Peluquería. Cortes, color, tratamientos y peinados, con cita previa.',
     goals:
-      'Saber qué servicio busca y con qué profesional si tiene preferencia, pasarle el precio y cerrar día y horario del turno.',
+      'Saber qué servicio busca y con qué profesional si tiene preferencia, pasarle el precio y cerrar día y horario de la cita.',
     tone: 'cercano',
     knowledgeHints: [
       'Lista de precios por servicio',

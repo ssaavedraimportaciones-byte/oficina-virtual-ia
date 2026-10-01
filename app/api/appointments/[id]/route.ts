@@ -6,7 +6,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params
   const businessId = await getAppointmentBusinessId(id)
   if (!businessId) {
-    return NextResponse.json({ error: 'Turno no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Cita no encontrada' }, { status: 404 })
   }
 
   const user = await requireBusinessAccess(businessId)
@@ -16,6 +16,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const appointment = await cancelAppointment(id)
     return NextResponse.json({ appointment })
   } catch {
-    return NextResponse.json({ error: 'Turno no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Cita no encontrada' }, { status: 404 })
   }
 }

@@ -20,7 +20,7 @@ async function graph<T>(path: string, token: string): Promise<T> {
   try {
     res = await fetch(url)
   } catch {
-    throw new Error('No se pudo contactar a Meta. Revisá la conexión del servidor.')
+    throw new Error('No se pudo contactar a Meta. Revisa la conexión del servidor.')
   }
 
   const raw = await res.text()
@@ -46,7 +46,7 @@ async function graphPost<T>(path: string, token: string): Promise<T> {
       headers: { Authorization: `Bearer ${token}` },
     })
   } catch {
-    throw new Error('No se pudo contactar a Meta. Revisá la conexión del servidor.')
+    throw new Error('No se pudo contactar a Meta. Revisa la conexión del servidor.')
   }
   const data = (await res.json().catch(() => null)) as (T & { error?: { message?: string } }) | null
   if (!res.ok || !data || data.error) {
@@ -202,7 +202,7 @@ export async function subscribeWhatsAppWebhooks(
   if (!wabaId) {
     return {
       subscribed: false,
-      reason: 'El token no da acceso a la cuenta de WhatsApp Business del número, así que no se pudo activar la recepción de mensajes. Suscribí la app al WABA desde Meta (subscribed_apps) o usá un token con permiso whatsapp_business_management.',
+      reason: 'El token no da acceso a la cuenta de WhatsApp Business del número, así que no se pudo activar la recepción de mensajes. Suscribe la app al WABA desde Meta (subscribed_apps) o usa un token con permiso whatsapp_business_management.',
     }
   }
 

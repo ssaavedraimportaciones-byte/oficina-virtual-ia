@@ -10,7 +10,7 @@ export async function POST() {
 
   const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
   if (!row.stripeCustomerId) {
-    return NextResponse.json({ error: 'Todavía no tenés una suscripción.' }, { status: 400 })
+    return NextResponse.json({ error: 'Todavía no tienes una suscripción.' }, { status: 400 })
   }
 
   const result = await createBillingPortalSession(row.stripeCustomerId, `${appUrl()}/account`)

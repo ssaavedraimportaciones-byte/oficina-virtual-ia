@@ -93,7 +93,7 @@ export default async function AdminPage() {
             <span className="text-gray-600">
               {llm.configured
                 ? `${llm.id === 'openai' ? 'OpenAI' : 'Anthropic'} · modelo ${llm.model}`
-                : 'sin configurar — cargá ANTHROPIC_API_KEY u OPENAI_API_KEY'}
+                : 'sin configurar — carga ANTHROPIC_API_KEY u OPENAI_API_KEY'}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export default async function AdminPage() {
               <span className="text-gray-300">Cifrado de tokens (ENCRYPTION_KEY)</span>
               {!encryptionOn && (
                 <p className="text-xs text-danger">
-                  Sin esto no se pueden conectar canales nuevos. Generá una con{' '}
+                  Sin esto no se pueden conectar canales nuevos. Genera una con{' '}
                   <code>openssl rand -hex 32</code>.
                 </p>
               )}

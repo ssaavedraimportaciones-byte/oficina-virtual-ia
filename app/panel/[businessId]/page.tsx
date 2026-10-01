@@ -39,7 +39,7 @@ export default async function ConversacionesPage({
 
       {conversations.length === 0 ? (
         <p className="text-sm text-gray-500">
-          Todavía no hay conversaciones. Iniciá una de prueba con el botón de arriba, o esperá a
+          Todavía no hay conversaciones. Inicia una de prueba con el botón de arriba, o espera a
           que lleguen mensajes reales una vez conectado WhatsApp/Instagram en{' '}
           <Link href={`/panel/${businessId}/conexiones`} className="text-amber-400">
             Conexiones

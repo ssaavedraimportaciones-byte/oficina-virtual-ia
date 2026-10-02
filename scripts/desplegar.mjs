@@ -86,7 +86,7 @@ step('1/5  Sesión en Vercel')
 const who = spawnSync(isWin ? 'npx.cmd' : 'npx', ['--yes', 'vercel@62', 'whoami'], {
   shell: isWin,
   encoding: 'utf8',
-  stdio: ['inherit', 'pipe', 'inherit'], // stderr visible: si el CLI pide iniciar sesión, que se vea,
+  stdio: ['inherit', 'pipe', 'inherit'], // stderr visible: si el CLI pide iniciar sesión, que se vea
   env: { ...process.env, VERCEL_TELEMETRY_DISABLED: '1' },
 })
 if (who.status !== 0) {

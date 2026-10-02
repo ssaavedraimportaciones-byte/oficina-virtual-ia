@@ -4,7 +4,8 @@ import './globals.css'
 
 function siteUrl(): URL {
   try {
-    return new URL(process.env.NEXT_PUBLIC_URL || 'http://localhost:3000')
+    const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    return new URL(process.env.NEXT_PUBLIC_URL || (vercel ? `https://${vercel}` : 'http://localhost:3000'))
   } catch {
     return new URL('http://localhost:3000')
   }

@@ -84,8 +84,8 @@ export default function ConexionesPage() {
       </section>
 
       <p className="mt-8 text-xs text-gray-600">
-        Nota: los tokens de Meta se guardan en texto plano en la base de datos. Antes de usar esto
-        en producción con muchos clientes, conviene moverlos a un gestor de secretos o cifrarlos.
+        Los tokens de Meta se guardan cifrados (AES-256) en la base de datos y nunca se muestran de
+        vuelta en el panel.
       </p>
     </div>
   )

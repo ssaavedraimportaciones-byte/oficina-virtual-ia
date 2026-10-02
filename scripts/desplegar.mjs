@@ -144,8 +144,8 @@ if (!host) {
 }
 ok(`Base de datos: ${host}`)
 const enc = encodeURIComponent(dbPassword)
-const databaseUrl = `postgresql://${DB_USER}:${enc}@${host}:6543/postgres?sslmode=require&uselibpqcompat=true`
-const directUrl = `postgresql://${DB_USER}:${enc}@${host}:5432/postgres?sslmode=require&uselibpqcompat=true`
+const databaseUrl = `postgresql://${DB_USER}:${enc}@${host}:6543/postgres?sslmode=no-verify`
+const directUrl = `postgresql://${DB_USER}:${enc}@${host}:5432/postgres?sslmode=no-verify`
 
 // --- 3. Proyecto en Vercel --------------------------------------------------------
 step(`3/5  Proyecto "${project}" en Vercel (${team})`)

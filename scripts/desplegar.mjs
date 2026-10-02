@@ -51,15 +51,21 @@ const fail = (msg) => {
 // Se usa vía npx para no exigir una instalación global. En Windows, npx es un .cmd
 // y necesita shell; los valores secretos nunca van como argumentos, van por stdin.
 const isWin = process.platform === 'win32'
-function vercel(cmdArgs, { input, capture = false, allowFail = false } = {}) {
+function vercel(cmdArgs, { input, capture = false, allowFail = false, timeoutMs = 120_000 } = {}) {
   const full = ['--yes', 'vercel@62', ...cmdArgs, '--scope', team]
   const res = spawnSync(isWin ? 'npx.cmd' : 'npx', full, {
     input,
     shell: isWin,
-    stdio: [input !== undefined ? 'pipe' : 'inherit', capture ? 'pipe' : 'inherit', 'inherit'],
+    // La entrada se cierra (nada que escribir): si el CLI intentara preguntar algo,
+    // falla en vez de dejar la terminal colgada esperando una respuesta invisible.
+    stdio: [input !== undefined ? 'pipe' : 'ignore', capture ? 'pipe' : 'inherit', 'inherit'],
     encoding: 'utf8',
+    timeout: timeoutMs,
     env: { ...process.env, VERCEL_TELEMETRY_DISABLED: '1' },
   })
+  if (res.error?.code === 'ETIMEDOUT') {
+    fail(`"vercel ${cmdArgs.join(' ')}" tardó demasiado y se canceló. Vuelve a ejecutar el script.`)
+  }
   if (res.status !== 0 && !allowFail) {
     fail(`Falló: vercel ${cmdArgs.join(' ')}`)
   }
@@ -144,7 +150,7 @@ const directUrl = `postgresql://${DB_USER}:${enc}@${host}:5432/postgres?sslmode=
 // --- 3. Proyecto en Vercel --------------------------------------------------------
 step(`3/5  Proyecto "${project}" en Vercel (${team})`)
 vercel(['project', 'add', project], { allowFail: true }) // si ya existe, no pasa nada
-vercel(['link', '--yes', '--project', project])
+vercel(['link', '--yes', '--project', project, '--team', team])
 ok('Carpeta enlazada al proyecto')
 
 // --- 4. Variables de entorno ------------------------------------------------------
@@ -179,7 +185,7 @@ for (const [key, value] of Object.entries(env)) {
 
 // --- 5. Publicar ------------------------------------------------------------------
 step('5/5  Publicando en producción (tarda 2 a 4 minutos)')
-const deploy = vercel(['deploy', '--prod', '--yes'], { capture: true })
+const deploy = vercel(['deploy', '--prod', '--yes'], { capture: true, timeoutMs: 900_000 })
 const url = (deploy.stdout || '').trim().split(/\s+/).pop()
 
 console.log(`

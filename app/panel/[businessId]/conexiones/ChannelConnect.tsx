@@ -10,6 +10,38 @@ interface DiscoveredAccount {
   pageName?: string
 }
 
+/**
+ * Guía paso a paso para conseguir el token, en español llano: el link a los docs
+ * de Meta (en inglés, pensado para desarrolladores) no alcanza para alguien que
+ * nunca entró a Meta for Developers. Esto no reemplaza la verificación de Meta
+ * (eso lo exige Meta, no nosotros), pero evita que el dueño del negocio se
+ * pierda en el camino.
+ */
+const STEPS: Record<'whatsapp' | 'instagram', { title: string; items: string[]; note: string }> = {
+  whatsapp: {
+    title: 'Cómo conseguir el token de WhatsApp',
+    items: [
+      'Entra a developers.facebook.com → "Mis apps" → "Crear app" → elige el tipo "Negocio".',
+      'Dentro de la app, agrega el producto "WhatsApp" (botón "Configurar").',
+      'En Configuración de la empresa → "Usuarios del sistema" → "Agregar", crea uno con rol Administrador.',
+      'Con ese usuario, clic en "Generar nuevo token": elige tu app y marca los permisos whatsapp_business_messaging y whatsapp_business_management. Elige que no expire.',
+      'Copia ese token y pégalo abajo.',
+    ],
+    note: 'Con el número de prueba que da Meta solo pueden escribirte hasta 5 contactos verificados. Para atender clientes reales hay que agregar tu propio número de WhatsApp Business y verificar el negocio ante Meta — eso puede tardar unos días y lo hace Meta, no nosotros.',
+  },
+  instagram: {
+    title: 'Cómo conseguir el token de Instagram',
+    items: [
+      'La cuenta de Instagram tiene que ser "Profesional" (Business o Creador) y estar vinculada a una página de Facebook — si no, Instagram no deja conectar nada por fuera de la app oficial.',
+      'En developers.facebook.com, en tu app (o en una nueva tipo "Negocio") agrega el producto "Instagram".',
+      'En Configuración de la empresa → "Cuentas" → "Instagram", vincula tu página de Facebook y tu cuenta de Instagram.',
+      'En "Usuarios del sistema" → "Generar nuevo token", marca los permisos instagram_basic, instagram_manage_messages y pages_messaging. Elige que no expire.',
+      'Copia ese token y pégalo abajo.',
+    ],
+    note: 'Igual que con WhatsApp, Meta pide verificar el negocio antes de que puedas responder mensajes de cualquier persona — eso puede tardar unos días.',
+  },
+}
+
 function accountLabel(channel: 'whatsapp' | 'instagram', account: DiscoveredAccount) {
   if (channel === 'whatsapp') {
     return account.verifiedName
@@ -147,20 +179,29 @@ export default function ChannelConnect({
         <div className="mt-6 border-t border-gray-800 pt-6">
           {accounts === null ? (
             <form onSubmit={handleDiscover} className="flex flex-col gap-3">
+              <details className="rounded-md border border-gray-800 bg-gray-900/60 open:pb-3">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-amber-400">
+                  ¿Cómo consigo el token? — {STEPS[channel].title.replace('Cómo conseguir el token de ', '')}
+                </summary>
+                <ol className="mx-4 mt-1 list-decimal space-y-2 pl-4 text-xs leading-relaxed text-gray-400">
+                  {STEPS[channel].items.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+                <p className="mx-4 mt-3 text-xs text-gray-500">⚠️ {STEPS[channel].note}</p>
+                <p className="mx-4 mt-2 text-xs text-gray-500">
+                  <a href={helpUrl} target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">
+                    Ver la guía oficial de Meta
+                  </a>{' '}
+                  si algún paso cambió o quieres más detalle.
+                </p>
+              </details>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-gray-200">
                   1. Pega tu token de acceso de Meta
                 </span>
                 <span className="text-xs text-gray-500">
-                  Es el token de larga duración de tu app.{' '}
-                  <a
-                    href={helpUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-amber-400 hover:underline"
-                  >
-                    Dónde encontrarlo
-                  </a>
+                  Es el token de larga duración, sin fecha de expiración, de tu app.
                 </span>
                 <input
                   required

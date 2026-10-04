@@ -195,7 +195,7 @@ function Integraciones() {
           label="Se conecta con lo que ya usas"
           title="Toda tu operación, dentro del chat."
           accent={[2]}
-          intro="Hoy atiende por WhatsApp e Instagram. Estas son las integraciones que vienen, para que el agente agende, cobre y venda sin que tu cliente salga de la conversación."
+          intro="Hoy atiende por WhatsApp e Instagram, e importa tu catálogo desde WooCommerce o Jumpseller. Estas son las demás integraciones que vienen, para que el agente agende, cobre y venda sin que tu cliente salga de la conversación."
         />
         <ul className="zv-integra-grid" data-reveal>
           {INTEGRATIONS.map((it) => (

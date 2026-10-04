@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { formatPrice, isSoldOut } from '@/lib/catalog'
 import type { Order, OrderStatus, Product } from '@/lib/types'
+import ImportCatalog from './ImportCatalog'
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pendiente: 'text-amber-400 border-amber-500/40',
@@ -225,6 +226,8 @@ export default function PedidosPage() {
             {saving ? 'Agregando…' : 'Agregar'}
           </button>
         </form>
+
+        <ImportCatalog businessId={businessId} onImported={load} />
       </section>
 
       <section className="mt-8">

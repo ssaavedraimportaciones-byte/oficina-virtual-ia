@@ -364,11 +364,11 @@ export type IntegrationStatus = 'live' | 'soon'
 export const INTEGRATIONS: { name: string; emoji: string; text: string; group: string; status: IntegrationStatus }[] = [
   { name: 'WhatsApp Business', emoji: '💬', text: 'Atiende donde ya te escriben.', group: 'Canales', status: 'live' },
   { name: 'Instagram', emoji: '📸', text: 'Responde los mensajes directos.', group: 'Canales', status: 'live' },
+  { name: 'WooCommerce', emoji: '🧩', text: 'Importa tu catálogo y precios desde tu tienda WordPress.', group: 'Tienda', status: 'live' },
+  { name: 'Jumpseller', emoji: '🛒', text: 'Importa productos, precios y stock desde tu tienda.', group: 'Tienda', status: 'live' },
   { name: 'Google Calendar', emoji: '📅', text: 'Agenda y bloquea las horas solo.', group: 'Agenda', status: 'soon' },
   { name: 'Google Sheets', emoji: '📊', text: 'Catálogo y datos en una planilla.', group: 'Agenda', status: 'soon' },
-  { name: 'Jumpseller', emoji: '🛒', text: 'Tu tienda online, con productos y stock.', group: 'Tienda', status: 'soon' },
   { name: 'Bsale', emoji: '🧾', text: 'Boletas, stock y ventas al día.', group: 'Tienda', status: 'soon' },
-  { name: 'WooCommerce', emoji: '🧩', text: 'Tu tienda en WordPress.', group: 'Tienda', status: 'soon' },
   { name: 'Transbank Webpay', emoji: '💳', text: 'Cobros con tarjeta en el chat.', group: 'Pagos', status: 'soon' },
   { name: 'Mercado Pago', emoji: '🔗', text: 'Links de pago, sin salir de la conversación.', group: 'Pagos', status: 'soon' },
   { name: 'Flow', emoji: '🏦', text: 'Pagos y transferencias online.', group: 'Pagos', status: 'soon' },

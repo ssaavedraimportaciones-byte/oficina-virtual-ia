@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import type { bus as Bus } from '../bus'
 import { ANA, OWNER, createCity, type Emitter } from './city'
@@ -276,11 +277,49 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   // --- Post-proceso -----------------------------------------------------------------
   let composer: EffectComposer | null = null
   let bloom: UnrealBloomPass | null = null
+  let grade: ShaderPass | null = null
   if (!lite) {
     composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
     bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.42, 0.7, 0.86)
     composer.addPass(bloom)
+    // Grado final "de lente", en espacio lineal (antes del tonemap): la imagen
+    // no sale de un render 3D plano, sino con el carácter de una toma de cámara:
+    // aberración cromática hacia los bordes, viñeta y un grano filmico vivo.
+    grade = new ShaderPass({
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uAmount: { value: 1 }, // 0 = sin grado (lo baja el gobernador si hace falta)
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tDiffuse; uniform float uTime; uniform float uAmount;
+        varying vec2 vUv;
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        void main() {
+          vec2 c = vUv - 0.5;
+          float r2 = dot(c, c);
+          // Aberración cromática: los canales se separan hacia la orilla.
+          float a = 0.0018 * uAmount * r2;
+          vec3 col;
+          col.r = texture2D(tDiffuse, vUv - c * a).r;
+          col.g = texture2D(tDiffuse, vUv).g;
+          col.b = texture2D(tDiffuse, vUv + c * a).b;
+          // Viñeta suave en las esquinas.
+          float vig = smoothstep(1.15, 0.2, r2 * 1.9);
+          col *= mix(1.0, vig, 0.5 * uAmount);
+          // Grano filmico, se mueve cada cuadro. Ponderado por luz: casi nada en
+          // las sombras profundas (donde el tonemap lo exagera) y sutil en el resto.
+          float luma = dot(col, vec3(0.299, 0.587, 0.114));
+          float g = hash(vUv * vec2(1920.0, 1080.0) + fract(uTime) * 100.0);
+          col += (g - 0.5) * 0.013 * uAmount * smoothstep(0.03, 0.5, luma);
+          gl_FragColor = vec4(max(col, 0.0), 1.0);
+        }`,
+    })
+    composer.addPass(grade)
     composer.addPass(new OutputPass())
   }
 
@@ -418,6 +457,7 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
     }
 
     if (bloom) bloom.strength = 0.42 - Math.min(0.15, Math.max(0, L.sunHeight) * 0.15)
+    if (grade) grade.uniforms.uTime.value = t
 
     // Gobernador de calidad: si el equipo no da la talla, primero se apagan sombras y brillo,
     // después baja la resolución. Reacciona rápido a cuadros muy lentos y despacio a los apenas lentos.

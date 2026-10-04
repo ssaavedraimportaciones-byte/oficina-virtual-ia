@@ -332,33 +332,83 @@ export const NAV = [
 ]
 
 /**
- * Segundo ejemplo, de otro rubro, para que se entienda que la app no es solo
- * para un tipo de negocio: la misma atención en un food truck. Conversación de
- * demostración; el negocio es ficticio. Todo lo que hace el agente acá es lo que
- * de verdad hace (carta/catálogo, pedido, hora de retiro, aviso de listo).
+ * Ejemplos de otros rubros, para que se entienda que la app no es solo para un
+ * tipo de negocio: la misma atención en distintos casos. Conversaciones de
+ * demostración; los negocios son ficticios. Todo lo que hace el agente acá es lo
+ * que de verdad hace (carta/catálogo, pedido, agenda, derivación por urgencia).
  */
-export const FOODTRUCK = {
-  name: 'Pancho Rodante',
-  place: 'Food truck · Plaza Ñuñoa · viernes 21:34',
-  messages: [
-    { who: 'contact', text: 'Hola! siguen abiertos? dónde están hoy?' },
-    { who: 'agent', text: '¡Hola! Sí, hasta las 23:00 🔥 Hoy estamos en Plaza Ñuñoa, por Jorge Washington. ¿Te paso la carta?' },
-    { who: 'contact', text: 'dale' },
-    { who: 'agent', text: 'Va 👇\n• Completo italiano — $3.500\n• Churrasco palta — $5.900\n• Papas fritas (M) — $2.500\n• Bebida en lata — $1.500\n¿Qué te sirvo?' },
-    { who: 'contact', text: 'un italiano y papas medianas pa llevar' },
-    { who: 'agent', text: 'Anotado 🌭🍟\n1× Completo italiano — $3.500\n1× Papas (M) — $2.500\nTotal $6.000. ¿A qué nombre y para qué hora lo dejo listo?' },
-    { who: 'contact', text: 'Nico, lo paso a buscar en 20 min' },
-    { who: 'agent', text: 'Listo Nico 🙌 Tu pedido queda para las 21:55. Te aviso apenas salga.' },
-    { who: 'agent', text: '¡Nico, tu pedido está listo! 🔥 Te esperamos en Plaza Ñuñoa, Jorge Washington.' },
-  ] as { who: Who; text: string }[],
-  steps: [
-    'Respondió dónde está y hasta qué hora — con tus datos.',
-    'Mostró la carta con precios — tu catálogo.',
-    'Tomó el pedido y calculó el total.',
-    'Lo dejó agendado para una hora de retiro.',
-    'Le avisó al cliente cuando estuvo listo.',
-  ],
+export interface Caso {
+  id: string
+  tag: string
+  label: string
+  title: string
+  accent: number[]
+  intro: string
+  name: string
+  place: string
+  messages: { who: Who; text: string }[]
+  steps: string[]
 }
+
+export const CASES: Caso[] = [
+  {
+    id: 'foodtruck',
+    tag: '＋',
+    label: 'Otro rubro, en vivo',
+    title: 'El mismo agente, otro negocio.',
+    accent: [3],
+    intro:
+      'No es solo para uñas. Mira la misma atención en un food truck un viernes por la noche: responde dónde está, muestra la carta, toma el pedido y lo deja listo para retirar.',
+    name: 'Pancho Rodante',
+    place: 'Food truck · Plaza Ñuñoa · viernes 21:34',
+    messages: [
+      { who: 'contact', text: 'Hola! siguen abiertos? dónde están hoy?' },
+      { who: 'agent', text: '¡Hola! Sí, hasta las 23:00 🔥 Hoy estamos en Plaza Ñuñoa, por Jorge Washington. ¿Te paso la carta?' },
+      { who: 'contact', text: 'dale' },
+      { who: 'agent', text: 'Va 👇\n• Completo italiano — $3.500\n• Churrasco palta — $5.900\n• Papas fritas (M) — $2.500\n• Bebida en lata — $1.500\n¿Qué te sirvo?' },
+      { who: 'contact', text: 'un italiano y papas medianas pa llevar' },
+      { who: 'agent', text: 'Anotado 🌭🍟\n1× Completo italiano — $3.500\n1× Papas (M) — $2.500\nTotal $6.000. ¿A qué nombre y para qué hora lo dejo listo?' },
+      { who: 'contact', text: 'Nico, lo paso a buscar en 20 min' },
+      { who: 'agent', text: 'Listo Nico 🙌 Tu pedido queda para las 21:55. Te aviso apenas salga.' },
+      { who: 'agent', text: '¡Nico, tu pedido está listo! 🔥 Te esperamos en Plaza Ñuñoa, Jorge Washington.' },
+    ],
+    steps: [
+      'Respondió dónde está y hasta qué hora — con tus datos.',
+      'Mostró la carta con precios — tu catálogo.',
+      'Tomó el pedido y calculó el total.',
+      'Lo dejó agendado para una hora de retiro.',
+      'Le avisó al cliente cuando estuvo listo.',
+    ],
+  },
+  {
+    id: 'dentista',
+    tag: '＋',
+    label: 'Y cuando es urgente',
+    title: 'Una urgencia, resuelta al tiro.',
+    accent: [1],
+    intro:
+      'Un paciente con dolor escribe a las diez de la noche, con la clínica cerrada. El agente entiende la urgencia, agenda la primera hora y avisa al equipo para que lo prioricen.',
+    name: 'Clínica Sonrisa',
+    place: 'Clínica dental · martes 22:10',
+    messages: [
+      { who: 'contact', text: 'Hola, me duele una muela hace 2 días y ya no aguanto 😣' },
+      { who: 'agent', text: 'Hola, lamento el dolor 🦷 ¿Es un dolor fuerte y constante, o molesta solo con el frío o el dulce? Así veo si te doy una hora de urgencia.' },
+      { who: 'contact', text: 'fuerte, no me deja dormir' },
+      { who: 'agent', text: 'Entiendo. Te doy la primera hora disponible y aviso al equipo para que te prioricen. ¿Te atiendes por Isapre, Fonasa o particular?' },
+      { who: 'contact', text: 'Fonasa' },
+      { who: 'agent', text: 'Perfecto. Tengo mañana a las 9:30 o a las 11:00 con el Dr. Rojas. ¿Cuál te acomoda? Dime tu nombre y te la dejo agendada.' },
+      { who: 'contact', text: '9:30, soy Camila' },
+      { who: 'agent', text: 'Listo Camila, quedaste mañana a las 9:30 con el Dr. Rojas (urgencia por dolor). Le avisé al equipo para que te reciban al tiro. Si el dolor empeora esta noche, escríbenos.' },
+    ],
+    steps: [
+      'Entendió qué necesitaba y midió la urgencia.',
+      'Preguntó por Isapre, Fonasa o particular — como en Chile.',
+      'Ofreció horas reales de tu agenda.',
+      'Agendó la hora con el profesional.',
+      'Avisó al equipo para priorizar la urgencia.',
+    ],
+  },
+]
 
 export const STEPS = [
   { title: 'Elige tu rubro', text: 'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.' },

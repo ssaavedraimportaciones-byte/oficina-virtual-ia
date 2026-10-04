@@ -1469,13 +1469,51 @@
   font-size: 0.76rem;
   color: var(--zv-dim);
 }
+
+/* Dentista: otro ejemplo (agenda + urgencia), con un tinte apenas más frío */
+.zv-dentista::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 7, 16, 0.8) 0%, rgba(4, 7, 16, 0.6) 50%, rgba(4, 7, 16, 0.74) 100%);
+  pointer-events: none;
+}
+
+/* Caso volteado: los pasos quedan a la izquierda y el teléfono a la derecha
+   para dar ritmo entre un ejemplo y el siguiente */
+.zv-caso--flip .zv-ft-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+}
+.zv-caso--flip .zv-ft-phone {
+  margin-left: auto;
+}
+
+/* Títulos destacables de los casos: más grandes y con un kicker en ámbar */
+.zv-h2--case {
+  font-size: clamp(2.4rem, 5.4vw, 5.8rem);
+  line-height: 0.95;
+}
+.zv-head--big .zv-label {
+  color: var(--zv-amber);
+  letter-spacing: 0.26em;
+}
+.zv-head--big .zv-label span {
+  color: var(--zv-amber);
+}
+
 @media (max-width: 899px) {
   .zv-ft-grid {
     grid-template-columns: 1fr;
     gap: 1.6rem;
   }
+  .zv-caso--flip .zv-ft-grid {
+    grid-template-columns: 1fr;
+  }
   .zv-ft-phone {
     max-width: 100%;
+  }
+  .zv-caso--flip .zv-ft-phone {
+    margin-left: 0;
   }
 }
 .zv-head .zv-label {

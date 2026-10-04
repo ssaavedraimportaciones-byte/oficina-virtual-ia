@@ -9,7 +9,7 @@ import Rail from './_landing/Rail'
 import Stage, { SplitWords } from './_landing/Stage'
 import StaticStory from './_landing/Static'
 import World from './_landing/World'
-import { FACTS, FOODTRUCK, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
+import { CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
 import '@fontsource-variable/archivo/wdth.css'
 import '@fontsource-variable/fraunces/index.css'
 import '@fontsource-variable/fraunces/wght-italic.css'
@@ -18,13 +18,13 @@ import './_landing/landing.css'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-function SectionHead({ id, n, label, title, intro, accent = [] }: { id: string; n: string; label: string; title: string; intro?: string; accent?: number[] }) {
+function SectionHead({ id, n, label, title, intro, accent = [], big = false }: { id: string; n: string; label: string; title: string; intro?: string; accent?: number[]; big?: boolean }) {
   return (
-    <header className="zv-head" data-reveal>
+    <header className={`zv-head${big ? ' zv-head--big' : ''}`} data-reveal>
       <p className="zv-label" data-reveal-item>
         <span>{n}</span> — {label}
       </p>
-      <h2 id={id} className="zv-h2">
+      <h2 id={id} className={`zv-h2${big ? ' zv-h2--case' : ''}`}>
         <SplitWords text={title} accent={accent} />
       </h2>
       {intro && (
@@ -185,46 +185,60 @@ function Limites() {
   )
 }
 
-function FoodTruck() {
+function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) {
+  const flip = index % 2 === 1
+  const phone = (
+    <div className="zv-phone zv-ft-phone" data-reveal-item>
+      <div className="zv-ft-head">
+        <span className="zv-ft-name">{caso.name}</span>
+        <span className="zv-ft-place">{caso.place}</span>
+      </div>
+      <div className="zv-chat">
+        {caso.messages.map((m, i) => (
+          <div key={i} className="zv-msg" data-who={m.who}>
+            <div className="zv-msg-in">
+              <div className="zv-bubble">{m.text}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+  const side = (
+    <div className="zv-ft-side" data-reveal-item>
+      <p className="zv-ft-kick">Qué hizo el agente</p>
+      <ol className="zv-ft-steps">
+        {caso.steps.map((s, i) => (
+          <li key={i}>
+            <span className="zv-list-n">{pad(i + 1)}</span>
+            <span>{s}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="zv-ft-note">Conversación de demostración · negocio ficticio «{caso.name}».</p>
+    </div>
+  )
   return (
-    <section id="foodtruck" className="zv-sec zv-foodtruck" data-section="foodtruck" aria-labelledby="zv-ft-title">
+    <section
+      id={caso.id}
+      className={`zv-sec zv-foodtruck zv-caso${flip ? ' zv-caso--flip' : ''}`}
+      data-section={caso.id}
+      aria-labelledby={`${caso.id}-title`}
+    >
       <div className="zv-col zv-col--wide">
-        <SectionHead
-          id="zv-ft-title"
-          n="＋"
-          label="Otro rubro, en vivo"
-          title="El mismo agente, otro negocio."
-          accent={[3]}
-          intro="No es solo para uñas. Mira la misma atención en un food truck un viernes por la noche: responde dónde está, muestra la carta, toma el pedido y lo deja listo para retirar."
-        />
+        <SectionHead id={`${caso.id}-title`} n={caso.tag} label={caso.label} title={caso.title} accent={caso.accent} intro={caso.intro} big />
         <div className="zv-ft-grid" data-reveal>
-          <div className="zv-phone zv-ft-phone" data-reveal-item>
-            <div className="zv-ft-head">
-              <span className="zv-ft-name">{FOODTRUCK.name}</span>
-              <span className="zv-ft-place">{FOODTRUCK.place}</span>
-            </div>
-            <div className="zv-chat">
-              {FOODTRUCK.messages.map((m, i) => (
-                <div key={i} className="zv-msg" data-who={m.who}>
-                  <div className="zv-msg-in">
-                    <div className="zv-bubble">{m.text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="zv-ft-side" data-reveal-item>
-            <p className="zv-ft-kick">Qué hizo el agente</p>
-            <ol className="zv-ft-steps">
-              {FOODTRUCK.steps.map((s, i) => (
-                <li key={i}>
-                  <span className="zv-list-n">{pad(i + 1)}</span>
-                  <span>{s}</span>
-                </li>
-              ))}
-            </ol>
-            <p className="zv-ft-note">Conversación de demostración · food truck ficticio «{FOODTRUCK.name}».</p>
-          </div>
+          {flip ? (
+            <>
+              {side}
+              {phone}
+            </>
+          ) : (
+            <>
+              {phone}
+              {side}
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -371,7 +385,9 @@ export default function Home() {
           <StaticStory />
         </div>
         <Rubros />
-        <FoodTruck />
+        {CASES.map((caso, i) => (
+          <Caso key={caso.id} caso={caso} index={i} />
+        ))}
         <Negocios />
         <Limites />
         <Integraciones />

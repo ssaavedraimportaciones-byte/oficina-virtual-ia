@@ -9,7 +9,7 @@ import Rail from './_landing/Rail'
 import Stage, { SplitWords } from './_landing/Stage'
 import StaticStory from './_landing/Static'
 import World from './_landing/World'
-import { FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
+import { FACTS, FOODTRUCK, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
 import '@fontsource-variable/archivo/wdth.css'
 import '@fontsource-variable/fraunces/index.css'
 import '@fontsource-variable/fraunces/wght-italic.css'
@@ -185,6 +185,52 @@ function Limites() {
   )
 }
 
+function FoodTruck() {
+  return (
+    <section id="foodtruck" className="zv-sec zv-foodtruck" data-section="foodtruck" aria-labelledby="zv-ft-title">
+      <div className="zv-col zv-col--wide">
+        <SectionHead
+          id="zv-ft-title"
+          n="＋"
+          label="Otro rubro, en vivo"
+          title="El mismo agente, otro negocio."
+          accent={[3]}
+          intro="No es solo para uñas. Mira la misma atención en un food truck un viernes por la noche: responde dónde está, muestra la carta, toma el pedido y lo deja listo para retirar."
+        />
+        <div className="zv-ft-grid" data-reveal>
+          <div className="zv-phone zv-ft-phone" data-reveal-item>
+            <div className="zv-ft-head">
+              <span className="zv-ft-name">{FOODTRUCK.name}</span>
+              <span className="zv-ft-place">{FOODTRUCK.place}</span>
+            </div>
+            <div className="zv-chat">
+              {FOODTRUCK.messages.map((m, i) => (
+                <div key={i} className="zv-msg" data-who={m.who}>
+                  <div className="zv-msg-in">
+                    <div className="zv-bubble">{m.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="zv-ft-side" data-reveal-item>
+            <p className="zv-ft-kick">Qué hizo el agente</p>
+            <ol className="zv-ft-steps">
+              {FOODTRUCK.steps.map((s, i) => (
+                <li key={i}>
+                  <span className="zv-list-n">{pad(i + 1)}</span>
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="zv-ft-note">Conversación de demostración · food truck ficticio «{FOODTRUCK.name}».</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Integraciones() {
   return (
     <section id="integraciones" className="zv-sec zv-integra" data-section="integraciones" aria-labelledby="zv-integra-title">
@@ -325,6 +371,7 @@ export default function Home() {
           <StaticStory />
         </div>
         <Rubros />
+        <FoodTruck />
         <Negocios />
         <Limites />
         <Integraciones />

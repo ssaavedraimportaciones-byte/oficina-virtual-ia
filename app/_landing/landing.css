@@ -1395,6 +1395,89 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Food truck: segundo ejemplo, con el chat en un teléfono y los pasos al lado */
+.zv-foodtruck::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 5, 12, 0.78) 0%, rgba(3, 5, 12, 0.58) 50%, rgba(3, 5, 12, 0.72) 100%);
+  pointer-events: none;
+}
+.zv-ft-grid {
+  margin-top: 2.2rem;
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 2.4rem;
+  align-items: start;
+}
+.zv-ft-phone {
+  max-width: 22rem;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+.zv-ft-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(239, 231, 216, 0.12);
+  background: rgba(239, 231, 216, 0.04);
+}
+.zv-ft-name {
+  font-family: var(--zv-sans);
+  font-stretch: 108%;
+  font-size: 0.95rem;
+  color: var(--zv-bone);
+}
+.zv-ft-place {
+  font-family: var(--zv-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--zv-dim);
+}
+.zv-ft-side {
+  padding-top: 0.5rem;
+}
+.zv-ft-kick {
+  font-family: var(--zv-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zv-amber);
+}
+.zv-ft-steps {
+  list-style: none;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.zv-ft-steps li {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  align-items: baseline;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--zv-soft);
+}
+.zv-ft-steps .zv-list-n {
+  color: var(--zv-amber);
+}
+.zv-ft-note {
+  margin-top: 1.4rem;
+  font-size: 0.76rem;
+  color: var(--zv-dim);
+}
+@media (max-width: 899px) {
+  .zv-ft-grid {
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+  }
+  .zv-ft-phone {
+    max-width: 100%;
+  }
+}
 .zv-head .zv-label {
   margin-bottom: 1.4rem;
 }

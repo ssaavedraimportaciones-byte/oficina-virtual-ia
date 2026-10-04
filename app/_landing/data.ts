@@ -325,10 +325,40 @@ export const RAIL = [
 export const NAV = [
   { id: 'noche', label: 'Una noche' },
   { id: 'rubros', label: 'Rubros' },
+  { id: 'foodtruck', label: 'Food truck' },
   { id: 'negocios', label: 'Negocios' },
   { id: 'integraciones', label: 'Integraciones' },
   { id: 'empieza', label: 'Cómo empieza' },
 ]
+
+/**
+ * Segundo ejemplo, de otro rubro, para que se entienda que la app no es solo
+ * para un tipo de negocio: la misma atención en un food truck. Conversación de
+ * demostración; el negocio es ficticio. Todo lo que hace el agente acá es lo que
+ * de verdad hace (carta/catálogo, pedido, hora de retiro, aviso de listo).
+ */
+export const FOODTRUCK = {
+  name: 'Pancho Rodante',
+  place: 'Food truck · Plaza Ñuñoa · viernes 21:34',
+  messages: [
+    { who: 'contact', text: 'Hola! siguen abiertos? dónde están hoy?' },
+    { who: 'agent', text: '¡Hola! Sí, hasta las 23:00 🔥 Hoy estamos en Plaza Ñuñoa, por Jorge Washington. ¿Te paso la carta?' },
+    { who: 'contact', text: 'dale' },
+    { who: 'agent', text: 'Va 👇\n• Completo italiano — $3.500\n• Churrasco palta — $5.900\n• Papas fritas (M) — $2.500\n• Bebida en lata — $1.500\n¿Qué te sirvo?' },
+    { who: 'contact', text: 'un italiano y papas medianas pa llevar' },
+    { who: 'agent', text: 'Anotado 🌭🍟\n1× Completo italiano — $3.500\n1× Papas (M) — $2.500\nTotal $6.000. ¿A qué nombre y para qué hora lo dejo listo?' },
+    { who: 'contact', text: 'Nico, lo paso a buscar en 20 min' },
+    { who: 'agent', text: 'Listo Nico 🙌 Tu pedido queda para las 21:55. Te aviso apenas salga.' },
+    { who: 'agent', text: '¡Nico, tu pedido está listo! 🔥 Te esperamos en Plaza Ñuñoa, Jorge Washington.' },
+  ] as { who: Who; text: string }[],
+  steps: [
+    'Respondió dónde está y hasta qué hora — con tus datos.',
+    'Mostró la carta con precios — tu catálogo.',
+    'Tomó el pedido y calculó el total.',
+    'Lo dejó agendado para una hora de retiro.',
+    'Le avisó al cliente cuando estuvo listo.',
+  ],
+}
 
 export const STEPS = [
   { title: 'Elige tu rubro', text: 'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.' },

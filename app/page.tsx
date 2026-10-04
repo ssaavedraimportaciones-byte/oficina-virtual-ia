@@ -9,7 +9,7 @@ import Rail from './_landing/Rail'
 import Stage, { SplitWords } from './_landing/Stage'
 import StaticStory from './_landing/Static'
 import World from './_landing/World'
-import { FACTS, GUARDRAILS, MULTI, STEPS, STREET } from './_landing/data'
+import { FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
 import '@fontsource-variable/archivo/wdth.css'
 import '@fontsource-variable/fraunces/index.css'
 import '@fontsource-variable/fraunces/wght-italic.css'
@@ -185,6 +185,46 @@ function Limites() {
   )
 }
 
+function Integraciones() {
+  return (
+    <section id="integraciones" className="zv-sec zv-integra" data-section="integraciones" aria-labelledby="zv-integra-title">
+      <div className="zv-col zv-col--wide">
+        <SectionHead
+          id="zv-integra-title"
+          n="∞"
+          label="Se conecta con lo que ya usas"
+          title="Toda tu operación, dentro del chat."
+          accent={[2]}
+          intro="Hoy atiende por WhatsApp e Instagram. Estas son las integraciones que vienen, para que el agente agende, cobre y venda sin que tu cliente salga de la conversación."
+        />
+        <ul className="zv-integra-grid" data-reveal>
+          {INTEGRATIONS.map((it) => (
+            <li key={it.name} className="zv-integra-card" data-reveal-item data-tilt data-status={it.status}>
+              <div className="zv-tilt">
+                <span className="zv-integra-ico" aria-hidden="true">
+                  {it.emoji}
+                </span>
+                <div className="zv-integra-body">
+                  <p className="zv-integra-name">
+                    {it.name}
+                    <span className={`zv-integra-badge zv-integra-badge--${it.status}`}>
+                      {it.status === 'live' ? 'Ya conectas' : 'En camino'}
+                    </span>
+                  </p>
+                  <p className="zv-integra-text">{it.text}</p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className="zv-integra-note" data-reveal-item>
+          ¿Usas otra herramienta? Escríbenos y la sumamos a la lista.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 function Empieza() {
   return (
     <section id="empieza" className="zv-sec zv-empieza" data-section="empieza" aria-labelledby="zv-empieza-title">
@@ -287,6 +327,7 @@ export default function Home() {
         <Rubros />
         <Negocios />
         <Limites />
+        <Integraciones />
         <Empieza />
         <Final />
       </main>

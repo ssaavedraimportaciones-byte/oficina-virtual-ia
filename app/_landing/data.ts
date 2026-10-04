@@ -326,6 +326,7 @@ export const NAV = [
   { id: 'noche', label: 'Una noche' },
   { id: 'rubros', label: 'Rubros' },
   { id: 'negocios', label: 'Negocios' },
+  { id: 'integraciones', label: 'Integraciones' },
   { id: 'empieza', label: 'Cómo empieza' },
 ]
 
@@ -350,4 +351,27 @@ export const MULTI = [
   { title: 'Cada negocio, lo suyo', text: 'Conversaciones, agenda, catálogo, canales y conocimiento viven separados por negocio. Lo de uno nunca se mezcla con lo de otro.' },
   { title: 'Dueños y equipo', text: 'Invita a tu gente con el rol que corresponde. El dueño administra; el equipo atiende las conversaciones.' },
   { title: 'Un solo ingreso', text: 'Si tienes más de un negocio, los ves todos desde la misma cuenta y cambias de uno a otro con un clic.' },
+]
+
+/**
+ * Integraciones: la idea es que cada negocio conecte lo que ya usa para que la
+ * atención sea completa. Honestidad ante todo (como el resto del landing): hoy
+ * solo están conectados WhatsApp e Instagram (`live`); el resto es la hoja de
+ * ruta, marcada «En camino» (`soon`). Son los servicios más usados en Chile.
+ * Se nombran por su nombre (sin sus logos, para no usar marcas de terceros).
+ */
+export type IntegrationStatus = 'live' | 'soon'
+export const INTEGRATIONS: { name: string; emoji: string; text: string; group: string; status: IntegrationStatus }[] = [
+  { name: 'WhatsApp Business', emoji: '💬', text: 'Atiende donde ya te escriben.', group: 'Canales', status: 'live' },
+  { name: 'Instagram', emoji: '📸', text: 'Responde los mensajes directos.', group: 'Canales', status: 'live' },
+  { name: 'Google Calendar', emoji: '📅', text: 'Agenda y bloquea las horas solo.', group: 'Agenda', status: 'soon' },
+  { name: 'Google Sheets', emoji: '📊', text: 'Catálogo y datos en una planilla.', group: 'Agenda', status: 'soon' },
+  { name: 'Jumpseller', emoji: '🛒', text: 'Tu tienda online, con productos y stock.', group: 'Tienda', status: 'soon' },
+  { name: 'Bsale', emoji: '🧾', text: 'Boletas, stock y ventas al día.', group: 'Tienda', status: 'soon' },
+  { name: 'WooCommerce', emoji: '🧩', text: 'Tu tienda en WordPress.', group: 'Tienda', status: 'soon' },
+  { name: 'Transbank Webpay', emoji: '💳', text: 'Cobros con tarjeta en el chat.', group: 'Pagos', status: 'soon' },
+  { name: 'Mercado Pago', emoji: '🔗', text: 'Links de pago, sin salir de la conversación.', group: 'Pagos', status: 'soon' },
+  { name: 'Flow', emoji: '🏦', text: 'Pagos y transferencias online.', group: 'Pagos', status: 'soon' },
+  { name: 'Boleta electrónica (SII)', emoji: '📄', text: 'Documentos tributarios del cliente.', group: 'Documentos', status: 'soon' },
+  { name: 'Notas de voz', emoji: '🎤', text: 'Procesa los audios que manda el cliente.', group: 'Documentos', status: 'soon' },
 ]

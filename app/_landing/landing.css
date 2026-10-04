@@ -1309,6 +1309,90 @@
   background: radial-gradient(90% 70% at 30% 52%, rgba(3, 5, 12, 0.55), rgba(3, 5, 12, 0) 72%);
   pointer-events: none;
 }
+/* Integraciones: una capa de atardecer sobre el mundo, para que la grilla se lea */
+.zv-integra::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 5, 12, 0.72) 0%, rgba(3, 5, 12, 0.52) 48%, rgba(3, 5, 12, 0.66) 100%);
+  pointer-events: none;
+}
+.zv-integra-grid {
+  list-style: none;
+  margin: 2.4rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.zv-integra-card .zv-tilt {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  height: 100%;
+  padding: 1rem 1.1rem 1.05rem;
+  border: 1px solid var(--zv-line);
+  border-radius: 12px;
+  background: rgba(5, 9, 19, 0.62);
+}
+.zv-integra-card[data-status='live'] .zv-tilt {
+  border-color: rgba(255, 179, 71, 0.4);
+  background: rgba(24, 16, 6, 0.6);
+}
+.zv-integra-ico {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.zv-integra-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--zv-sans);
+  font-stretch: 108%;
+  font-size: 0.98rem;
+  color: var(--zv-bone);
+}
+.zv-integra-badge {
+  font-family: var(--zv-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.16rem 0.42rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.zv-integra-badge--live {
+  color: #10140a;
+  background: var(--zv-amber);
+}
+.zv-integra-badge--soon {
+  color: var(--zv-dim);
+  border: 1px solid var(--zv-line);
+}
+.zv-integra-text {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--zv-soft);
+}
+.zv-integra-note {
+  margin-top: 1.6rem;
+  font-size: 0.86rem;
+  color: var(--zv-soft);
+}
+@media (max-width: 899px) {
+  .zv-integra-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+}
+@media (min-width: 900px) and (max-width: 1200px) {
+  .zv-integra-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .zv-head .zv-label {
   margin-bottom: 1.4rem;
 }

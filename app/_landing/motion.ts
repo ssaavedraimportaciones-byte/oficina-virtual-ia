@@ -18,6 +18,8 @@ export async function initMotion(): Promise<() => void> {
   const root = document.documentElement
   const lenis = new Lenis({ lerp: 0.085 })
   lenis.on('scroll', ScrollTrigger.update)
+  // Hook de desarrollo: permite posicionar el scroll en las capturas (Lenis revierte scrollTo nativo).
+  if (process.env.NODE_ENV !== 'production') Object.assign(window as unknown as Record<string, unknown>, { __lenis: lenis, __bus: bus })
   const tick = (time: number) => lenis.raf(time * 1000)
   gsap.ticker.add(tick)
   gsap.ticker.lagSmoothing(0)

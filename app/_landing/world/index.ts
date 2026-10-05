@@ -8,6 +8,7 @@ import type { bus as Bus } from '../bus'
 import { ANA, OWNER, createCity, type Emitter } from './city'
 import { lightAt } from './palette'
 import { sampleRig, timeOfDay } from './rig'
+import { createFoodTruck } from './foodtruck'
 import { createShop } from './shop'
 import { createSky } from './sky'
 import { createStory } from './story'
@@ -55,6 +56,7 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   const shop = createShop(scene)
   const story = createStory(scene, shop.door)
   const street = createStreet(scene)
+  const foodTruck = lite ? null : createFoodTruck(scene)
   bus.load = 0.5
 
   const hemi = new THREE.HemisphereLight('#4d6aa8', '#1a1410', 0.55)
@@ -422,6 +424,7 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
     shop.update(L, bus.shop, bus.sold, t)
     story.update(bus, t, bus.hover)
     street.update(L, bus.signs, bus.beams, t, bus.hover)
+    foodTruck?.update(L, t)
     updateEnv(tod, L.lamps)
     updateReflections(L.wet)
 

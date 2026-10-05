@@ -1470,12 +1470,15 @@
   color: var(--zv-dim);
 }
 
-/* Dentista: otro ejemplo (agenda + urgencia), con un tinte apenas más frío */
+/* Dentista: otra escena. Atmósfera más fría y nocturna (clínica cerrada a las
+   diez) para que no se confunda con la calle cálida del food truck. */
 .zv-dentista::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(4, 7, 16, 0.8) 0%, rgba(4, 7, 16, 0.6) 50%, rgba(4, 7, 16, 0.74) 100%);
+  background:
+    linear-gradient(104deg, rgba(5, 9, 20, 0.92) 0%, rgba(5, 9, 20, 0.6) 46%, rgba(8, 13, 26, 0.36) 100%),
+    linear-gradient(180deg, rgba(4, 8, 18, 0.55) 0%, rgba(4, 8, 18, 0.72) 100%);
   pointer-events: none;
 }
 
@@ -1501,7 +1504,43 @@
   color: var(--zv-amber);
 }
 
+/* Cada ejemplo es su propia escena: ocupa la pantalla, con aire arriba y abajo.
+   Bajo el modo con scroll se estira para que la cámara llegue a su plano y se
+   asiente — así el food truck y el dentista no parecen la misma toma. */
+.zv-caso {
+  display: flex;
+  align-items: center;
+  min-height: 100svh;
+  padding-top: 8rem;
+  padding-bottom: 8rem;
+}
+.js-motion .zv-caso {
+  min-height: 140svh;
+}
+/* Quiebre claro entre un ejemplo y el siguiente */
+.zv-caso + .zv-caso {
+  margin-top: 12svh;
+  border-top: 1px solid rgba(239, 231, 216, 0.09);
+}
+.js-motion .zv-caso + .zv-caso {
+  margin-top: 30svh;
+}
+
 @media (max-width: 899px) {
+  .zv-caso {
+    min-height: auto;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+  .js-motion .zv-caso {
+    min-height: auto;
+  }
+  .zv-caso + .zv-caso {
+    margin-top: 3rem;
+  }
+  .js-motion .zv-caso + .zv-caso {
+    margin-top: 3rem;
+  }
   .zv-ft-grid {
     grid-template-columns: 1fr;
     gap: 1.6rem;

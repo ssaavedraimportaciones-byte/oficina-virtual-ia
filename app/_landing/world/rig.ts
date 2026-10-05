@@ -25,6 +25,10 @@ const WIDE: Shot[] = [
   // cae en el tercio derecho (la columna de texto está a la izquierda). Ver `bus.signs` en motion.ts.
   { u: 6, pos: [-2, 2.5, 7.4], tgt: [4.7, 3.5, -5.5], fov: 44 },
   { u: 6.9, pos: [64.1, 2.5, 7.4], tgt: [70.8, 3.5, -5.5], fov: 44 },
+  // Ejemplo food truck: la cámara se queda a nivel de calle, con el carro de hero
+  { u: 6.92, pos: [64.1, 2.5, 7.4], tgt: [70.8, 3.5, -5.5], fov: 44 },
+  // Ejemplo dentista: otra toma, elevada y abierta, para que sea otra escena
+  { u: 6.98, pos: [74, 22, 25], tgt: [74, 5, -6], fov: 46 },
   // Vista aérea: la calle queda en la mitad izquierda; la derecha es de la columna de texto
   { u: 7, pos: [80.3, 52, 30.4], tgt: [76.4, 0, -6], fov: 42 },
   { u: 8, pos: [36, 14, 32], tgt: [10, 34, -320], fov: 42 },
@@ -41,6 +45,8 @@ const TALL: Shot[] = [
   { u: 5, pos: [0, 22, 44], tgt: [6, 25, -220], fov: 52 },
   { u: 6, pos: [9.6, 3, 8.6], tgt: [9.6, 3.8, -5.5], fov: 62 },
   { u: 6.9, pos: [76.8, 3, 8.6], tgt: [76.8, 3.8, -5.5], fov: 62 },
+  { u: 6.92, pos: [76.8, 3, 8.6], tgt: [76.8, 3.8, -5.5], fov: 62 },
+  { u: 6.98, pos: [76.8, 22, 27], tgt: [76.8, 6, -6], fov: 58 },
   // En el celular las tarjetas ocupan el centro: la cámara levanta la vista y la calle queda abajo
   { u: 7, pos: [43, 52, 46], tgt: [43, 26.6, -8.4], fov: 52 },
   { u: 8, pos: [30, 14, 36], tgt: [10, 34, -320], fov: 52 },

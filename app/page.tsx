@@ -190,31 +190,55 @@ function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) 
   const phone = (
     <div className="zv-phone zv-ft-phone" data-reveal-item>
       <div className="zv-ft-head">
-        <span className="zv-ft-name">{caso.name}</span>
-        <span className="zv-ft-place">{caso.place}</span>
+        <div className="zv-ft-id">
+          <span className="zv-ft-name">{caso.name}</span>
+          <span className="zv-ft-place">{caso.place}</span>
+        </div>
+        <button type="button" className="zv-replay" data-replay aria-label="Ver la conversación de nuevo" title="Ver de nuevo">
+          <span aria-hidden="true">↻</span>
+        </button>
       </div>
-      <div className="zv-chat">
-        {caso.messages.map((m, i) => (
-          <div key={i} className="zv-msg" data-who={m.who}>
-            <div className="zv-msg-in">
-              <div className="zv-bubble">{m.text}</div>
+      <p className="zv-ft-status" data-status>
+        <i aria-hidden="true" />
+        <span data-status-text>Agente IA · en línea</span>
+      </p>
+      <div className="zv-chat zv-chat--caso" data-chat>
+        <div className="zv-chat-track" data-track>
+          {caso.messages.map((m, i) => (
+            <div key={i} className="zv-msg" data-who={m.who} data-msg={i}>
+              {m.who === 'agent' && (
+                <span className="zv-typing" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              )}
+              <div className="zv-msg-in">
+                <div className="zv-bubble">{m.text}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )
   const side = (
     <div className="zv-ft-side" data-reveal-item>
       <p className="zv-ft-kick">Qué hizo el agente</p>
-      <ol className="zv-ft-steps">
+      <ol className="zv-ft-steps" data-steps>
         {caso.steps.map((s, i) => (
-          <li key={i}>
+          <li key={i} data-at={caso.marks[i]}>
             <span className="zv-list-n">{pad(i + 1)}</span>
             <span>{s}</span>
           </li>
         ))}
       </ol>
+      <p className="zv-caso-done" data-done>
+        <span className="zv-caso-check" aria-hidden="true">
+          ✓
+        </span>
+        {caso.done}
+      </p>
       <p className="zv-ft-note">Conversación de demostración · negocio ficticio «{caso.name}».</p>
     </div>
   )
@@ -223,6 +247,7 @@ function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) 
       id={caso.id}
       className={`zv-sec zv-foodtruck zv-caso${flip ? ' zv-caso--flip' : ''}`}
       data-section={caso.id}
+      data-caso
       aria-labelledby={`${caso.id}-title`}
     >
       <div className="zv-col zv-col--wide">

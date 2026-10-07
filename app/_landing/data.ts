@@ -348,6 +348,10 @@ export interface Caso {
   place: string
   messages: { who: Who; text: string }[]
   steps: string[]
+  /** Mensaje (índice) en el que se cumple cada paso: lo enciende la animación. */
+  marks: number[]
+  /** Resultado de la conversación: el sello que cierra la escena. */
+  done: string
 }
 
 export const CASES: Caso[] = [
@@ -379,6 +383,8 @@ export const CASES: Caso[] = [
       'Lo dejó agendado para una hora de retiro.',
       'Le avisó al cliente cuando estuvo listo.',
     ],
+    marks: [1, 3, 5, 7, 8],
+    done: 'Pedido listo · retiro 21:55',
   },
   {
     id: 'dentista',
@@ -407,6 +413,8 @@ export const CASES: Caso[] = [
       'Agendó la hora con el profesional.',
       'Avisó al equipo para priorizar la urgencia.',
     ],
+    marks: [1, 3, 5, 7, 7],
+    done: 'Hora agendada · mañana 9:30 · con prioridad',
   },
 ]
 

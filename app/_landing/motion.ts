@@ -260,6 +260,108 @@ export async function initMotion(): Promise<() => void> {
         })
       })
 
+      // Casos en vivo (food truck, dentista): la conversación se actúa sola al llegar.
+      // El teléfono pasa a ser una pantalla fija que hace scroll a medida que entran los
+      // mensajes; antes de cada respuesta del agente aparece «escribiendo…», y los pasos de
+      // «Qué hizo el agente» se encienden en el mensaje en que se cumplen. Los estados
+      // discretos se derivan del tiempo de la línea: funcionan igual al saltar o retroceder.
+      $$<HTMLElement>('[data-caso]').forEach((caso) => {
+        const chat = caso.querySelector<HTMLElement>('[data-chat]')
+        const track = caso.querySelector<HTMLElement>('[data-track]')
+        const grid = caso.querySelector<HTMLElement>('.zv-ft-grid')
+        if (!chat || !track || !grid) return
+        gsap.set(caso, { attr: { 'data-play': '' } })
+        const msgs = Array.from(track.querySelectorAll<HTMLElement>('[data-msg]'))
+        const stepsEl = caso.querySelector<HTMLElement>('[data-steps]')
+        const steps = Array.from(caso.querySelectorAll<HTMLElement>('[data-steps] li'))
+        const status = caso.querySelector<HTMLElement>('[data-status]')
+        const statusText = caso.querySelector<HTMLElement>('[data-status-text]')
+        const done = caso.querySelector<HTMLElement>('[data-done]')
+        const replay = caso.querySelector<HTMLButtonElement>('[data-replay]')
+        const viewH = chat.clientHeight
+        // Desplazamiento de la pista para que el borde inferior `bottom` quede a la vista
+        const yFor = (bottom: number) => Math.min(0, viewH - bottom - 18)
+
+        const stepAt = steps.map(() => Infinity)
+        const typing: [number, number][] = []
+        const sync = () => {
+          const now = tl.time()
+          let on = 0
+          steps.forEach((li, k) => {
+            const s = now >= stepAt[k] ? 'on' : 'off'
+            if (s === 'on') on += 1
+            if (li.dataset.state !== s) li.dataset.state = s
+          })
+          stepsEl?.style.setProperty('--p', String(on / Math.max(1, steps.length)))
+          const busy = typing.some(([a, b]) => now >= a && now < b)
+          const st = busy ? 'typing' : 'online'
+          if (status && status.dataset.state !== st) {
+            status.dataset.state = st
+            if (statusText) statusText.textContent = busy ? 'Agente IA · respondiendo…' : 'Agente IA · en línea'
+          }
+        }
+        const tl = gsap.timeline({ paused: true, onUpdate: sync })
+
+        let t = 0.55
+        msgs.forEach((m, i) => {
+          const bubble = m.querySelector('.zv-msg-in')
+          const dots = m.querySelector('.zv-typing')
+          const len = m.textContent?.length ?? 0
+          const agent = m.dataset.who === 'agent'
+          if (agent && dots) {
+            // «escribiendo…»: la pista baja para mostrar los puntos, que laten un rato
+            const think = 0.5 + Math.min(0.4, len * 0.003)
+            tl.to(track, { y: yFor(m.offsetTop + 46), duration: 0.45, ease: 'power2.out' }, t)
+            tl.fromTo(dots, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.24, ease: 'back.out(2.2)' }, t)
+            typing.push([t, t + think])
+            t += think
+            tl.to(dots, { autoAlpha: 0, scale: 0.7, duration: 0.14 }, t)
+          }
+          if (bubble) {
+            tl.fromTo(
+              bubble,
+              { autoAlpha: 0, y: 14, scale: 0.92, transformOrigin: agent ? '100% 100%' : '0% 100%' },
+              { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: 'back.out(1.6)' },
+              t,
+            )
+          }
+          tl.to(track, { y: yFor(m.offsetTop + m.offsetHeight), duration: 0.5, ease: 'power2.out' }, t)
+          steps.forEach((li, k) => {
+            if (Number(li.dataset.at) === i) stepAt[k] = Math.min(stepAt[k], t + 0.3)
+          })
+          t += agent ? 0.55 + Math.min(0.45, len * 0.004) : 0.45 + Math.min(0.35, len * 0.005)
+        })
+        if (done) tl.fromTo(done, { autoAlpha: 0, y: 18, scale: 0.88 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: 'back.out(1.9)' }, t)
+        tl.to({}, { duration: 0.4 })
+        sync()
+
+        ScrollTrigger.create({
+          trigger: grid,
+          start: 'top 72%',
+          onEnter: () => {
+            if (tl.progress() === 0) tl.play(0)
+          },
+          // Volviendo desde abajo: si no se alcanzó a ver, queda resuelta
+          onEnterBack: () => {
+            if (!tl.isActive() && tl.progress() < 1) {
+              tl.progress(1)
+              sync()
+            }
+          },
+          // Volviendo arriba del todo: se reinicia, para que al bajar se actúe de nuevo
+          onLeaveBack: () => {
+            tl.pause(0)
+            sync()
+          },
+        })
+        if (replay) replay.onclick = () => tl.restart()
+        // Desarrollo: permite congelar la escena en un instante exacto para las capturas
+        if (process.env.NODE_ENV !== 'production') {
+          const w = window as unknown as { __zvCasos?: Record<string, (s: number) => number> }
+          w.__zvCasos = { ...w.__zvCasos, [caso.id]: (s: number) => (tl.pause(s), sync(), tl.duration()) }
+        }
+      })
+
       // El conductor: corre en cada scroll, después de los demás disparadores
       ScrollTrigger.create({
         start: 0,

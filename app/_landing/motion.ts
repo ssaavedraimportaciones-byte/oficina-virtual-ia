@@ -16,7 +16,7 @@ export async function initMotion(): Promise<() => void> {
   if (document.fonts?.ready) await document.fonts.ready
 
   const root = document.documentElement
-  const lenis = new Lenis({ lerp: 0.085 })
+  const lenis = new Lenis({ lerp: 0.11 })
   lenis.on('scroll', ScrollTrigger.update)
   // Hook de desarrollo: permite posicionar el scroll en las capturas (Lenis revierte scrollTo nativo).
   if (process.env.NODE_ENV !== 'production') Object.assign(window as unknown as Record<string, unknown>, { __lenis: lenis, __bus: bus })
@@ -285,8 +285,12 @@ export async function initMotion(): Promise<() => void> {
 
         const stepAt = steps.map(() => Infinity)
         const typing: [number, number][] = []
+        // El ejemplo del food truck también mueve la escena 3D del carro (world/foodtruck.ts)
+        const isTruck = caso.id === 'foodtruck'
+        const msgAt: number[] = []
         const sync = () => {
           const now = tl.time()
+          if (isTruck) bus.truck.t = now
           let on = 0
           steps.forEach((li, k) => {
             const s = now >= stepAt[k] ? 'on' : 'off'
@@ -318,6 +322,7 @@ export async function initMotion(): Promise<() => void> {
             t += think
             tl.to(dots, { autoAlpha: 0, scale: 0.7, duration: 0.14 }, t)
           }
+          msgAt.push(t)
           if (bubble) {
             tl.fromTo(
               bubble,
@@ -333,7 +338,9 @@ export async function initMotion(): Promise<() => void> {
           t += agent ? 0.55 + Math.min(0.45, len * 0.004) : 0.45 + Math.min(0.35, len * 0.005)
         })
         if (done) tl.fromTo(done, { autoAlpha: 0, y: 18, scale: 0.88 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: 'back.out(1.9)' }, t)
-        tl.to({}, { duration: 0.4 })
+        // Cola: deja tiempo para que el cliente cruce a buscar su pedido en la escena 3D
+        tl.to({}, { duration: isTruck ? 3.6 : 0.4 })
+        if (isTruck) Object.assign(bus.truck, { t: 0, msgAt, who: msgs.map((m) => m.dataset.who ?? '') })
         sync()
 
         ScrollTrigger.create({

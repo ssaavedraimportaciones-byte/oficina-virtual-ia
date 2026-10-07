@@ -56,7 +56,9 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   const shop = createShop(scene)
   const story = createStory(scene, shop.door)
   const street = createStreet(scene)
-  const foodTruck = lite ? null : createFoodTruck(scene)
+  // El carro es liviano (pocas mallas y texturas pintadas): va también en celulares
+  const foodTruck = createFoodTruck(scene)
+  if (process.env.NODE_ENV !== 'production') Object.assign(window as unknown as Record<string, unknown>, { __zvScene: scene, __zvCam: camera })
   bus.load = 0.5
 
   const hemi = new THREE.HemisphereLight('#4d6aa8', '#1a1410', 0.55)
@@ -280,7 +282,9 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   let composer: EffectComposer | null = null
   let bloom: UnrealBloomPass | null = null
   let grade: ShaderPass | null = null
-  if (!lite) {
+  // Siempre hay post-proceso, también en celulares: el grado de lente es una sola pasada
+  // barata y es lo que le da el carácter de cine. El brillo (bloom) sí depende del equipo.
+  {
     composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
     bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.42, 0.7, 0.86)
@@ -329,13 +333,22 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   let height = 1
   // En desarrollo se puede fijar la calidad (para capturas en un navegador sin GPU).
   const dev = process.env.NODE_ENV !== 'production' ? (window as unknown as { __zvQuality?: number; __zvShadows?: boolean }) : {}
-  let quality = dev.__zvQuality ?? 2
+  // Escalones de calidad (el gobernador baja de a uno si el equipo no da la talla):
+  //   3 completo · 2 sin sombras y menos resolución · 1 sin brillo · 0 resolución mínima.
+  // El grado de cine (grano, viñeta, aberración) se mantiene en todos.
+  let quality = dev.__zvQuality ?? 3
+  const applyQuality = () => {
+    if (quality < 3) renderer.shadowMap.enabled = false
+    if (bloom) bloom.enabled = quality >= 2 && !lite
+  }
   if (dev.__zvShadows === false) renderer.shadowMap.enabled = false
+  applyQuality()
   let tall = false
   const resize = () => {
     width = canvas.clientWidth || window.innerWidth
     height = canvas.clientHeight || window.innerHeight
-    const cap = quality >= 2 ? (lite ? 1.25 : 1.75) : quality === 1 ? 1 : 0.7
+    // Tope de resolución: en pantallas Retina 1,5x se ve nítido (con el grano) y pesa bastante menos que 2x
+    const cap = quality >= 3 ? (lite ? 1.25 : 1.5) : quality === 2 ? (lite ? 1.1 : 1.25) : quality === 1 ? 1 : 0.75
     const dpr = Math.min(window.devicePixelRatio || 1, cap)
     renderer.setPixelRatio(dpr)
     renderer.setSize(width, height, false)
@@ -381,7 +394,7 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
 
     // Para grabar el recorrido cuadro a cuadro en desarrollo: la cámara salta al plano exacto.
     const snap = process.env.NODE_ENV !== 'production' && (window as unknown as { __zvSnap?: boolean }).__zvSnap
-    us = snap ? target() : us + (target() - us) * (1 - Math.exp(-dt * 3.2))
+    us = snap ? target() : us + (target() - us) * (1 - Math.exp(-dt * 4.2))
     pointer.sx += (pointer.nx - pointer.sx) * (1 - Math.exp(-dt * 2.4))
     pointer.sy += (pointer.ny - pointer.sy) * (1 - Math.exp(-dt * 2.4))
 
@@ -418,13 +431,13 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
     key.intensity = L.keyIntensity
     key.position.copy(tgt).addScaledVector(sunUp ? sky.sunDir : moonDir, 90)
     key.target.position.copy(tgt)
-    key.castShadow = renderer.shadowMap.enabled && quality >= 2 && sunUp && L.keyIntensity > 0.8
+    key.castShadow = renderer.shadowMap.enabled && quality >= 3 && sunUp && L.keyIntensity > 0.8
 
     city.update(L, t)
     shop.update(L, bus.shop, bus.sold, t)
     story.update(bus, t, bus.hover)
     street.update(L, bus.signs, bus.beams, t, bus.hover)
-    foodTruck?.update(L, t)
+    foodTruck.update(L, t, bus.truck)
     updateEnv(tod, L.lamps)
     updateReflections(L.wet)
 
@@ -471,15 +484,17 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
     } else if (rawDt < 2.5 && !document.hidden) {
       heavy += 1
     }
-    if (dev.__zvQuality === undefined && quality > 0 && ((frames > 90 && slow > 38) || heavy >= 4)) {
+    // Baja un escalón si el promedio pasa de ~33 ms por cuadro (bajo ~30 fps). Cada escalón
+    // abarata el dibujo sin apagar el look de cine; ver `applyQuality`.
+    if (dev.__zvQuality === undefined && quality > 0 && ((frames > 90 && slow > 33) || heavy >= 4)) {
       quality -= 1
       frames = 0
       heavy = 0
       slow = 16
-      if (quality < 2) renderer.shadowMap.enabled = false
+      applyQuality()
       resize()
     }
-    if (composer && quality >= 2) composer.render()
+    if (composer) composer.render()
     else renderer.render(scene, camera)
     if (firstFrame) {
       firstFrame = false

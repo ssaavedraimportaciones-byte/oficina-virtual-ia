@@ -246,7 +246,7 @@ function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) 
   return (
     <section
       id={caso.id}
-      className={`zv-sec zv-foodtruck zv-caso${flip ? ' zv-caso--flip' : ''}`}
+      className={`zv-sec zv-caso zv-${caso.id}${flip ? ' zv-caso--flip' : ''}`}
       data-section={caso.id}
       data-caso
       aria-labelledby={`${caso.id}-title`}

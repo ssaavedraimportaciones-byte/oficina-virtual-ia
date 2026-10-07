@@ -29,6 +29,12 @@ export const bus = {
   signs: 0,
   /** Haces de luz de la vista aérea (0 a 1). */
   beams: 0,
+  /**
+   * Escena del carro de completos, amarrada a la conversación del ejemplo food
+   * truck: segundo en que va (0 = no empieza) y en qué segundo aparece cada
+   * mensaje y de quién es. La pone motion.ts; la dibuja world/foodtruck.ts.
+   */
+  truck: { t: 0, msgAt: [] as number[], who: [] as string[] },
   /** Carga del mundo, para la precarga (0 a 1). */
   load: 0,
   /** Lo que está bajo el mouse en la escena ('' si nada). */

@@ -9,7 +9,8 @@ import Rail from './_landing/Rail'
 import Stage, { SplitWords } from './_landing/Stage'
 import StaticStory from './_landing/Static'
 import World from './_landing/World'
-import { CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
+import Ahorro from './_landing/Ahorro'
+import { BENEFITS, CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
 import '@fontsource-variable/archivo/wdth.css'
 import '@fontsource-variable/fraunces/index.css'
 import '@fontsource-variable/fraunces/wght-italic.css'
@@ -310,6 +311,38 @@ function Integraciones() {
   )
 }
 
+function Resuelve() {
+  return (
+    <section id="ahorro" className="zv-sec zv-ahorro" data-section="ahorro" aria-labelledby="zv-ahorro-title">
+      <div className="zv-col zv-col--wide">
+        <SectionHead
+          id="zv-ahorro-title"
+          n="$"
+          label="Lo que resuelve"
+          title="Menos horas contestando. Más tiempo para tu negocio."
+          accent={[4]}
+          intro="Cada pregunta que el agente contesta solo es tiempo que tu equipo recupera. Esto es lo que resuelve en el día a día, y abajo, la cuenta con tus propios números."
+          big
+        />
+        <ul className="zv-benefit-grid" data-reveal>
+          {BENEFITS.map((b) => (
+            <li key={b.title} className="zv-benefit" data-reveal-item>
+              <span className="zv-benefit-ico" aria-hidden="true">
+                {b.emoji}
+              </span>
+              <h3 className="zv-benefit-title">{b.title}</h3>
+              <p className="zv-benefit-text">{b.text}</p>
+            </li>
+          ))}
+        </ul>
+        <div data-reveal>
+          <Ahorro />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Empieza() {
   return (
     <section id="empieza" className="zv-sec zv-empieza" data-section="empieza" aria-labelledby="zv-empieza-title">
@@ -416,6 +449,7 @@ export default function Home() {
         <Negocios />
         <Limites />
         <Integraciones />
+        <Resuelve />
         <Empieza />
         <Final />
       </main>

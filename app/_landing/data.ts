@@ -328,7 +328,46 @@ export const NAV = [
   { id: 'foodtruck', label: 'Food truck' },
   { id: 'negocios', label: 'Negocios' },
   { id: 'integraciones', label: 'Integraciones' },
+  { id: 'ahorro', label: 'Ahorro' },
   { id: 'empieza', label: 'Cómo empieza' },
+]
+
+/**
+ * Lo que resuelve en el día a día. Cada punto describe algo que la app hace hoy
+ * (responder con tus datos, agendar, tomar pedidos, derivar a una persona): no
+ * hay cifras inventadas; el ahorro se calcula con los números de cada uno.
+ */
+export const BENEFITS = [
+  {
+    emoji: '🧑‍💼',
+    title: 'Ahorro de personal',
+    text: 'Las preguntas de siempre —precio, horario, dirección, stock— las contesta el agente. Tu equipo deja de vivir pegado al teléfono.',
+  },
+  {
+    emoji: '🌙',
+    title: 'Ventas fuera de horario',
+    text: 'Responde de noche, fines de semana y feriados. El cliente que escribe a las 23:47 no se va con la competencia.',
+  },
+  {
+    emoji: '⚡',
+    title: 'Respuesta al tiro',
+    text: 'Contesta en segundos, no en horas. Menos clientes que se aburren de esperar y le escriben a otro.',
+  },
+  {
+    emoji: '📅',
+    title: 'Agenda y pedidos en orden',
+    text: 'Las horas y los pedidos quedan registrados en tu panel. Nada de libretas, capturas de pantalla ni mensajes perdidos.',
+  },
+  {
+    emoji: '🎯',
+    title: 'Misma información para todos',
+    text: 'Responde con tus datos y tu catálogo: los mismos precios y condiciones para cada cliente, sin errores al copiar.',
+  },
+  {
+    emoji: '🙋',
+    title: 'Tu equipo, solo en lo importante',
+    text: 'Cuando hace falta una persona —un reclamo, un caso delicado— te pasa la conversación con todo el contexto.',
+  },
 ]
 
 /**

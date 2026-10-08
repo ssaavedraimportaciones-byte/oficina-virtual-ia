@@ -571,7 +571,7 @@ function boardTexture(state: 'open' | 'cooking' | 'ready') {
 }
 
 /** Burbuja de chat con puntitos: blanca (mensaje de Nico) o ámbar (respuesta del agente). */
-function bubbleTexture(kind: 'contact' | 'agent') {
+export function bubbleTexture(kind: 'contact' | 'agent') {
   return canvasTexture(160, 120, (g) => {
     const fill = kind === 'agent' ? '#ffb347' : '#f2f5ff'
     g.shadowColor = kind === 'agent' ? 'rgba(255, 170, 70, 0.9)' : 'rgba(190, 215, 255, 0.9)'

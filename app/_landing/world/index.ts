@@ -5,7 +5,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import type { bus as Bus } from '../bus'
-import { ANA, OWNER, createCity, type Emitter } from './city'
+import { ANA, CAMILA, OWNER, ROJAS, createCity, type Emitter } from './city'
+import { createDental } from './dental'
 import { lightAt } from './palette'
 import { sampleRig, timeOfDay } from './rig'
 import { createFoodTruck } from './foodtruck'
@@ -52,12 +53,13 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
 
   // --- El mundo ----------------------------------------------------------------
   const sky = createSky(scene, { lite })
-  const city = createCity(scene, { lite, reserved: [{ x: ANA.x, y: ANA.y }, { x: OWNER.x, y: OWNER.y }] })
+  const city = createCity(scene, { lite, reserved: [ANA, OWNER, CAMILA, ROJAS].map((p) => ({ x: p.x, y: p.y })) })
   const shop = createShop(scene)
   const story = createStory(scene, shop.door)
   const street = createStreet(scene)
   // El carro es liviano (pocas mallas y texturas pintadas): va también en celulares
   const foodTruck = createFoodTruck(scene)
+  const dental = createDental(scene)
   if (process.env.NODE_ENV !== 'production') Object.assign(window as unknown as Record<string, unknown>, { __zvScene: scene, __zvCam: camera })
   bus.load = 0.5
 
@@ -438,6 +440,7 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
     story.update(bus, t, bus.hover)
     street.update(L, bus.signs, bus.beams, t, bus.hover)
     foodTruck.update(L, t, bus.truck)
+    dental.update(L, t, bus.dental, us)
     updateEnv(tod, L.lamps)
     updateReflections(L.wet)
 

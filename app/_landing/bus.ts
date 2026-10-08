@@ -35,6 +35,8 @@ export const bus = {
    * mensaje y de quién es. La pone motion.ts; la dibuja world/foodtruck.ts.
    */
   truck: { t: 0, msgAt: [] as number[], who: [] as string[] },
+  /** Lo mismo para la urgencia dental (world/dental.ts). */
+  dental: { t: 0, msgAt: [] as number[], who: [] as string[] },
   /** Carga del mundo, para la precarga (0 a 1). */
   load: 0,
   /** Lo que está bajo el mouse en la escena ('' si nada). */

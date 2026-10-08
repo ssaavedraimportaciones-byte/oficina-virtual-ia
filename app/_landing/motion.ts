@@ -285,12 +285,12 @@ export async function initMotion(): Promise<() => void> {
 
         const stepAt = steps.map(() => Infinity)
         const typing: [number, number][] = []
-        // El ejemplo del food truck también mueve la escena 3D del carro (world/foodtruck.ts)
-        const isTruck = caso.id === 'foodtruck'
+        // Los ejemplos mueven su escena 3D: el carro (world/foodtruck.ts) y la clínica (world/dental.ts)
+        const scene3d = caso.id === 'foodtruck' ? bus.truck : caso.id === 'dentista' ? bus.dental : null
         const msgAt: number[] = []
         const sync = () => {
           const now = tl.time()
-          if (isTruck) bus.truck.t = now
+          if (scene3d) scene3d.t = now
           let on = 0
           steps.forEach((li, k) => {
             const s = now >= stepAt[k] ? 'on' : 'off'
@@ -338,9 +338,10 @@ export async function initMotion(): Promise<() => void> {
           t += agent ? 0.55 + Math.min(0.45, len * 0.004) : 0.45 + Math.min(0.35, len * 0.005)
         })
         if (done) tl.fromTo(done, { autoAlpha: 0, y: 18, scale: 0.88 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: 'back.out(1.9)' }, t)
-        // Cola: deja tiempo para que el cliente cruce a buscar su pedido en la escena 3D
-        tl.to({}, { duration: isTruck ? 3.6 : 0.4 })
-        if (isTruck) Object.assign(bus.truck, { t: 0, msgAt, who: msgs.map((m) => m.dataset.who ?? '') })
+        // Cola: deja tiempo para el final de la escena 3D (Nico cruza a buscar su pedido;
+        // el Dr. Rojas recibe el aviso y Camila apaga la luz)
+        tl.to({}, { duration: scene3d ? 4.2 : 0.4 })
+        if (scene3d) Object.assign(scene3d, { t: 0, msgAt, who: msgs.map((m) => m.dataset.who ?? '') })
         sync()
 
         ScrollTrigger.create({

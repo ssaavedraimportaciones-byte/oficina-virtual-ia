@@ -1790,9 +1790,15 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(104deg, rgba(5, 9, 20, 0.92) 0%, rgba(5, 9, 20, 0.6) 46%, rgba(8, 13, 26, 0.36) 100%),
-    linear-gradient(180deg, rgba(4, 8, 18, 0.55) 0%, rgba(4, 8, 18, 0.72) 100%);
+    linear-gradient(104deg, rgba(5, 9, 20, 0.9) 0%, rgba(5, 9, 20, 0.68) 40%, rgba(8, 13, 26, 0.2) 62%, rgba(8, 13, 26, 0.1) 100%),
+    linear-gradient(180deg, rgba(4, 8, 18, 0.28) 0%, rgba(4, 8, 18, 0.12) 40%, rgba(4, 8, 18, 0.5) 100%);
   pointer-events: none;
+}
+/* En el celular el texto va encima de la escena: velo parejo, como en el food truck */
+@media (max-width: 899px) {
+  .zv-dentista::before {
+    background: linear-gradient(180deg, rgba(4, 8, 18, 0.74) 0%, rgba(4, 8, 18, 0.5) 50%, rgba(4, 8, 18, 0.74) 100%);
+  }
 }
 
 /* Caso volteado: los pasos quedan a la izquierda y el teléfono a la derecha

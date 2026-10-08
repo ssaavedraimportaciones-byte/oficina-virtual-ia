@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BRAND } from '@/lib/brand'
+import { BrandLockup } from '@/app/BrandMark'
 
 export default function RegisterForm() {
   const router = useRouter()
@@ -38,7 +39,7 @@ export default function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
       <div>
-        <span className="font-mono text-lg font-semibold text-amber-400">{BRAND.name}</span>
+        <BrandLockup />
         <h1 className="mt-1 text-xl font-bold text-white">Crea tu cuenta</h1>
         <p className="mt-1 text-sm text-gray-500">{BRAND.tagline}. Pruébalo gratis con tu negocio.</p>
       </div>

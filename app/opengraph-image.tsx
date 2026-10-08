@@ -21,7 +21,13 @@ export default function OpengraphImage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, color: '#ffb347', fontSize: 34, letterSpacing: 2 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 26, background: '#ffb347', display: 'flex' }} />
+          <svg width={52} height={52} viewBox="142 142 740 740">
+            <rect x={262} y={196} width={440} height={632} rx={220} fill="none" stroke="#ffb347" strokeWidth={96} />
+            <g fill="none" stroke="#2dd4a6" strokeWidth={58} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M480 570 L550 640 L780 352" />
+              <path d="M318 548 L410 640 L640 352" />
+            </g>
+          </svg>
           {BRAND.name}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>

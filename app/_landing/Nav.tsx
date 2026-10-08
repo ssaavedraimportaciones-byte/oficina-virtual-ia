@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import BrandMark from '@/app/BrandMark'
 import { BRAND } from '@/lib/brand'
 import { NAV } from './data'
 
@@ -25,11 +26,7 @@ export default function Nav() {
   return (
     <header className="zv-nav" data-open={open ? 'true' : 'false'}>
       <Link href="/" className="zv-brand" aria-label={`${BRAND.name}, inicio`} data-cursor="Inicio">
-        <svg className="zv-mark" viewBox="0 0 48 48" width="28" height="28" aria-hidden="true">
-          <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M13 25.5l5.2 5.2L30 19" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M21 30.7L33 19" fill="none" stroke="#53bdeb" strokeWidth="2.6" strokeLinecap="round" />
-        </svg>
+        <BrandMark size={30} className="zv-mark" />
         <span className="zv-brand-t">
           <span className="zv-brand-n">{BRAND.name}</span>
           <span className="zv-brand-s">{BRAND.tagline}</span>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import BrandMark from '@/app/BrandMark'
 import { bus } from './bus'
 
 /**
@@ -49,11 +50,7 @@ export default function Preloader() {
   return (
     <div ref={ref} className="zv-pre" aria-hidden="true">
       <div className="zv-pre-in">
-        <svg className="zv-mark" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
-          <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M13 25.5l5.2 5.2L30 19" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M21 30.7L33 19" fill="none" stroke="#53bdeb" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
+        <BrandMark size={40} className="zv-mark" />
         <p className="zv-pre-word">ZEROVISTO</p>
         <div className="zv-pre-line">
           <span className="zv-pre-bar" data-pre-bar />

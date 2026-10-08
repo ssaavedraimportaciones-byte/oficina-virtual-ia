@@ -1,5 +1,5 @@
-import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
+import { BrandLockup } from '@/app/BrandMark'
 import { notFound, redirect } from 'next/navigation'
 import { canAccessBusiness, getCurrentUser } from '@/lib/auth'
 import { getBusiness } from '@/lib/store'
@@ -39,8 +39,8 @@ export default async function BusinessLayout({
   return (
     <div className="flex min-h-screen">
       <aside className="w-60 shrink-0 border-r border-gray-800 bg-gray-900/40 p-6">
-        <Link href="/" className="font-mono text-lg font-semibold text-amber-400">
-          {BRAND.name}
+        <Link href="/">
+          <BrandLockup />
         </Link>
 
         <Link

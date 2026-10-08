@@ -326,7 +326,21 @@
   justify-content: space-between;
   gap: 1.5rem;
   padding: 0 var(--zv-gut);
-  background: linear-gradient(180deg, rgba(3, 5, 12, 0.86) 0%, rgba(3, 5, 12, 0.55) 62%, rgba(3, 5, 12, 0) 100%);
+}
+/* No baja hasta transparente y desenfoca lo de atrás: más abajo en la página
+   hay texto real (p.ej. las tarjetas de "Cómo empieza") que de otro modo se
+   filtra, a medio camino entre visible y tapado, y se mezcla con los links
+   del menú. Va en un pseudo-elemento porque un backdrop-filter en .zv-nav
+   encerraría al menú móvil (position: fixed) dentro de sus 74px. */
+.zv-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(3, 5, 12, 0.92) 0%, rgba(3, 5, 12, 0.86) 68%, rgba(3, 5, 12, 0.8) 100%);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
 }
 .zv-brand {
   position: relative;
@@ -858,11 +872,11 @@
 .zv-shade--left,
 .zv-shade--right {
   width: min(64vw, 1020px);
-  background: linear-gradient(90deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
+  background: linear-gradient(90deg, rgba(3, 5, 12, 0.88) 0%, rgba(3, 5, 12, 0.76) 60%, rgba(3, 5, 12, 0) 100%);
 }
 .zv-shade--right {
   left: auto;
-  background: linear-gradient(270deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
+  background: linear-gradient(270deg, rgba(3, 5, 12, 0.88) 0%, rgba(3, 5, 12, 0.76) 60%, rgba(3, 5, 12, 0) 100%);
 }
 .zv-veil {
   position: absolute;
@@ -1287,7 +1301,7 @@
   bottom: 0;
   left: calc(-1 * var(--zv-gut));
   width: min(64vw, 1020px);
-  background: linear-gradient(90deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
+  background: linear-gradient(90deg, rgba(3, 5, 12, 0.88) 0%, rgba(3, 5, 12, 0.76) 60%, rgba(3, 5, 12, 0) 100%);
   pointer-events: none;
 }
 /* Con movimiento, la sombra la pone la capa fija (.zv-shade); esta queda para la versión estática */
@@ -1300,7 +1314,7 @@
 .zv-negocios .zv-sticky::before {
   left: auto;
   right: calc(-1 * var(--zv-gut));
-  background: linear-gradient(270deg, rgba(3, 5, 12, 0.82) 0%, rgba(3, 5, 12, 0.62) 46%, rgba(3, 5, 12, 0) 100%);
+  background: linear-gradient(270deg, rgba(3, 5, 12, 0.88) 0%, rgba(3, 5, 12, 0.76) 60%, rgba(3, 5, 12, 0) 100%);
 }
 .zv-limites::before,
 .zv-empieza::before,

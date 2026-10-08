@@ -340,6 +340,8 @@
   background: linear-gradient(180deg, rgba(3, 5, 12, 0.92) 0%, rgba(3, 5, 12, 0.86) 68%, rgba(3, 5, 12, 0.8) 100%);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 16px), transparent);
   pointer-events: none;
 }
 .zv-brand {
@@ -1158,7 +1160,7 @@
 /* Insertos: capturas reales del panel */
 .zv-inserts {
   position: absolute;
-  inset: calc(var(--zv-bar) + 1rem) var(--zv-gut) calc(var(--zv-bar) + 8.5rem);
+  inset: calc(var(--zv-bar) + 1rem) var(--zv-gut) calc(var(--zv-bar) + 10.5rem);
   display: grid;
   place-items: center;
   pointer-events: none;
@@ -1170,7 +1172,7 @@
   pointer-events: auto;
 }
 .zv-inserts .zv-shot img {
-  max-height: calc(100svh - 2 * var(--zv-bar) - 13rem);
+  max-height: calc(100svh - 2 * var(--zv-bar) - 15rem);
   object-fit: contain;
   object-position: top;
 }
@@ -1198,7 +1200,8 @@
 .zv-shot figcaption {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
   padding: 0 0.2rem 0.7rem;
   font-family: var(--zv-mono);
   font-size: 0.6rem;
@@ -1285,6 +1288,20 @@
 .zv-final .zv-col {
   text-shadow: 0 2px 28px rgba(3, 5, 12, 0.75);
 }
+/* Texto chico sobre el mundo 3D: sombra corta que perfila cada letra, más una difusa de apoyo */
+.zv-sec .zv-intro,
+.zv-sec .zv-label,
+.zv-list p,
+.zv-list h3,
+.zv-ft-steps li,
+.zv-ft-kick,
+.zv-ft-note,
+.zv-index-l,
+.zv-index-d {
+  text-shadow:
+    0 1px 2px rgba(3, 5, 12, 0.9),
+    0 0 16px rgba(3, 5, 12, 0.6);
+}
 /* En los títulos partidos por palabra, la máscara de cada palabra recortaría la sombra del texto
    en un rectángulo: ahí la sombra se calcula sobre el título entero. */
 .zv-wm {
@@ -1322,8 +1339,14 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(90% 70% at 30% 52%, rgba(3, 5, 12, 0.55), rgba(3, 5, 12, 0) 72%);
+  background: radial-gradient(95% 75% at 30% 52%, rgba(3, 5, 12, 0.64), rgba(3, 5, 12, 0) 80%);
   pointer-events: none;
+}
+/* Límites cae en la vista aérea de día, la más clara del recorrido: velo parejo en toda la sección */
+.zv-limites::before {
+  background:
+    linear-gradient(180deg, rgba(3, 5, 12, 0.5) 0%, rgba(3, 5, 12, 0.66) 18%, rgba(3, 5, 12, 0.7) 100%),
+    radial-gradient(90% 70% at 30% 52%, rgba(3, 5, 12, 0.35), rgba(3, 5, 12, 0) 75%);
 }
 /* Integraciones: una capa de atardecer sobre el mundo, para que la grilla se lea */
 .zv-integra::before {
@@ -1674,7 +1697,7 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(3, 5, 12, 0.84) 0%, rgba(3, 5, 12, 0.66) 34%, rgba(3, 5, 12, 0.3) 60%, rgba(3, 5, 12, 0.06) 100%),
+    linear-gradient(90deg, rgba(3, 5, 12, 0.86) 0%, rgba(3, 5, 12, 0.78) 40%, rgba(3, 5, 12, 0.6) 58%, rgba(3, 5, 12, 0.12) 76%, rgba(3, 5, 12, 0.04) 100%),
     linear-gradient(180deg, rgba(3, 5, 12, 0.55) 0%, rgba(3, 5, 12, 0) 20%, rgba(3, 5, 12, 0) 80%, rgba(3, 5, 12, 0.5) 100%);
   pointer-events: none;
 }
@@ -1916,7 +1939,7 @@
   transition: opacity 0.5s, color 0.5s;
 }
 .zv-caso[data-play] .zv-ft-steps li[data-state='off'] {
-  opacity: 0.34;
+  opacity: 0.52;
 }
 .zv-caso[data-play] .zv-ft-steps .zv-list-n {
   position: relative;

@@ -73,6 +73,8 @@ export async function initMotion(): Promise<() => void> {
       [M.top.rubros + Math.max(1, M.h.rubros - M.vh), 6.9],
       [center('foodtruck'), 6.92],
       [center('dentista'), 6.98],
+      // La toma de la clínica se mantiene mientras se lee la conversación; recién después se abre a la vista aérea
+      [M.top.dentista + Math.max(1, M.h.dentista - M.vh), 6.98],
       [M.top.negocios, 7],
       [M.top.negocios + Math.max(1, M.h.negocios - M.vh), 7],
       [center('limites'), 8],

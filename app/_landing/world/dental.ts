@@ -205,7 +205,7 @@ export function createDental(scene: THREE.Scene) {
     update(light: Light, t: number, stage: { t: number; msgAt: number[]; who: string[] }, u: number) {
       const night = Math.min(1, light.lamps)
       // Peso del plano de la clínica: rótulos y vuelos solo se ven aquí
-      const focus = clamp01(1 - Math.abs(u - 6.976) / 0.03)
+      const focus = clamp01(1 - Math.abs(u - 6.98) / 0.02)
       const s = stage.t
       const M = stage.msgAt
       const ready = M.length >= 8

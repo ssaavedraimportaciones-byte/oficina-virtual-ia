@@ -1,17 +1,17 @@
 import * as THREE from 'three'
-import { CAMILA, CLINIC_BLOCK, FACE_Z, ROJAS } from './city'
-import { bubbleTexture } from './foodtruck'
+import { CLINIC_BLOCK, FACE_Z, ROJAS } from './city'
+import { bubbleTexture, personTexture } from './foodtruck'
 import type { Light } from './palette'
 import { canvasTexture, glowTexture, roomTexture, silhouetteTexture } from './textures'
 
 /**
  * La urgencia dental: Clínica Sonrisa, cerrada a las diez de la noche, en el
  * primer piso del edificio que sigue a la calle de rubros. Adentro está oscuro,
- * pero la pantalla de la agenda sigue viva (es el agente). Camila escribe con
- * dolor desde la ventana de su departamento, en el edificio de al lado; cada
- * mensaje viaja entre su teléfono y la clínica. Cuando queda agendada, el
- * agente le avisa al Dr. Rojas (se enciende su ventana) y Camila, tranquila,
- * apaga la luz.
+ * pero la pantalla de la agenda sigue viva (es el agente). Camila llega con
+ * dolor, encuentra la puerta cerrada y escribe desde la vereda; cada mensaje
+ * viaja entre su teléfono y la clínica, como Nico con el carro. Cuando queda
+ * agendada, el agente le avisa al Dr. Rojas (se enciende su ventana, arriba) y
+ * Camila se va tranquila.
  *
  * Igual que el carro de completos, todo sale del segundo de la conversación
  * (bus.dental), así el chat de la página y la escena cuentan lo mismo, hacia
@@ -98,7 +98,7 @@ export function createDental(scene: THREE.Scene) {
   badgeGlow.scale.set(2.2, 2.2, 1)
   group.add(badgeGlow)
 
-  // --- Ventanas: Camila (la paciente) y el Dr. Rojas (el equipo) ---------------
+  // --- La ventana del Dr. Rojas (el equipo), arriba de la clínica ---------------
   const frameMat = new THREE.MeshStandardMaterial({ color: '#0d0f16', roughness: 0.6 })
   const homeWindow = (at: THREE.Vector3, pose: 'phone' | 'standing', warm: string, deep: string) => {
     const g = new THREE.Group()
@@ -130,30 +130,48 @@ export function createDental(scene: THREE.Scene) {
     group.add(g)
     return { roomMat, personMat, phone, halo }
   }
-  const camila = homeWindow(CAMILA, 'phone', '#ffcf8a', '#b8662c')
   const rojas = homeWindow(ROJAS, 'standing', '#cfe3ff', '#4d6b99')
+
+  // --- Camila, la paciente: escribe desde la vereda, frente a la puerta cerrada --
+  const PERSON_H = 1.75
+  const stand = new THREE.Vector3(cx - 4.8, 0, front + 6.2)
+  const leave = stand.clone().add(new THREE.Vector3(3.6, 0, -1.4)) // se va por la vereda, hacia la derecha
+  const rim = 'rgba(120, 230, 215, 0.8)' // la luz fría del letrero
+  const frames = {
+    phone: personTexture('phone', { rim, hair: true }),
+    a: personTexture('walkA', { rim, hair: true }),
+    b: personTexture('walkB', { rim, hair: true }),
+  }
+  const camilaMat = new THREE.SpriteMaterial({ map: frames.phone, transparent: true, depthWrite: false })
+  const camila = new THREE.Sprite(camilaMat)
+  camila.scale.set(PERSON_H * 0.4, PERSON_H, 1)
+  camila.position.set(stand.x, PERSON_H / 2, stand.z)
+  group.add(camila)
+  const phoneOff = new THREE.Vector3(0.2, PERSON_H * 0.66, 0.1)
+  const camilaPhoneGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: '#b9dcff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }))
+  camilaPhoneGlow.scale.set(0.9, 0.9, 1)
+  group.add(camilaPhoneGlow)
 
   // Rótulos pintados junto a cada ventana (solo se ven en este plano)
   const tag = (title: string, sub: string) => new THREE.SpriteMaterial({ map: tagTexture(title, sub), transparent: true, opacity: 0, depthWrite: false, depthTest: false })
   const camilaTagMats = { pain: tag('Camila', 'dolor de muela · 22:10'), calm: tag('Camila', 'agendada 9:30 ✓') }
   const camilaTag = new THREE.Sprite(camilaTagMats.pain)
-  camilaTag.position.copy(CAMILA).add(new THREE.Vector3(0, -1.55, 0.4))
-  camilaTag.scale.set(2.5, 0.68, 1)
+  camilaTag.scale.set(1.5, 0.41, 1)
   camilaTag.renderOrder = 10
   const rojasTag = new THREE.Sprite(tag('Dr. Rojas', 'el equipo, avisado'))
   rojasTag.position.copy(ROJAS).add(new THREE.Vector3(0, -1.55, 0.4))
-  rojasTag.scale.set(2.5, 0.68, 1)
+  rojasTag.scale.set(2, 0.54, 1)
   rojasTag.renderOrder = 10
   group.add(camilaTag, rojasTag)
 
   // --- Mensajes en vuelo --------------------------------------------------------
   const monitorAt = new THREE.Vector3(monX, 1.55, front + 0.6)
-  const camilaPhone = CAMILA.clone().add(new THREE.Vector3(0.14, -0.25, 0.35))
+  const camilaPhone = stand.clone().add(phoneOff)
   const rojasPhone = ROJAS.clone().add(new THREE.Vector3(-0.45, -0.6, 0.35))
   const arc = (a: THREE.Vector3, b: THREE.Vector3, lift: number) =>
-    new THREE.QuadraticBezierCurve3(a, a.clone().add(b).multiplyScalar(0.5).add(new THREE.Vector3(0, lift, 2.4)), b)
-  const toClinic = arc(camilaPhone, monitorAt, 2.2)
-  const toCamila = arc(monitorAt, camilaPhone, 2.2)
+    new THREE.QuadraticBezierCurve3(a, a.clone().add(b).multiplyScalar(0.5).add(new THREE.Vector3(0, lift, 0.8)), b)
+  const toClinic = arc(camilaPhone, monitorAt, 1.5)
+  const toCamila = arc(monitorAt, camilaPhone, 1.5)
   const toRojas = arc(monitorAt, rojasPhone, 1.8)
   const FLIGHT = 0.75
   const ALERT = 1.15
@@ -214,7 +232,8 @@ export function createDental(scene: THREE.Scene) {
       const bookAt = ready ? M[7] : Infinity
       const alertStart = bookAt + 0.55
       const alertEnd = alertStart + ALERT
-      const sleepAt = alertEnd + 1.1
+      const leaveAt = alertEnd + 1.1
+      const WALK = 3.2
 
       for (const e of lit) e.mat.color.setScalar(e.base * (0.72 + night * 0.7))
       signMat.color.setScalar(1.05 * (0.72 + night * 0.7) * (1 - 0.04 * (0.5 + 0.5 * Math.sin(t * 5.1))))
@@ -248,21 +267,29 @@ export function createDental(scene: THREE.Scene) {
       badgeGlow.material.color.set(solved ? '#3ddc84' : '#ff4d4d')
       badgeGlow.material.opacity = urgent ? 0.25 + beat * 0.35 : solved ? 0.3 : 0
 
-      // Camila: despierta con dolor; cuando queda agendada, apaga la luz
-      const off = clamp01((s - sleepAt) / 1.6)
-      const roomLv = 1.1 - off * 0.98
-      camila.roomMat.color.setScalar(roomLv)
-      camila.personMat.opacity = 1 - off * 0.85
-      camila.halo.material.opacity = (0.22 + 0.08 * night) * (1 - off)
+      // Camila: escribe frente a la puerta y, cuando queda agendada, se va tranquila
+      const w = clamp01((s - leaveAt) / WALK)
+      const e = w * w * (3 - 2 * w)
+      const walking = w > 0 && w < 1
+      camila.position.lerpVectors(stand, leave, e)
+      camila.position.y = PERSON_H / 2 + (walking ? Math.abs(Math.sin(t * 9)) * 0.04 : 0)
+      const frame = walking ? (Math.floor(t * 3.4) % 2 ? frames.a : frames.b) : w >= 1 ? frames.a : frames.phone
+      if (camilaMat.map !== frame) {
+        camilaMat.map = frame
+        camilaMat.needsUpdate = true
+      }
+      camilaMat.opacity = 1 - clamp01((w - 0.7) / 0.3)
       let pulse = 0
       for (let i = 0; i < M.length; i += 1) {
         const d = s - M[i]
         if (stage.who[i] === 'contact' && d > -FLIGHT && d < 0.1) pulse = 1
         if (stage.who[i] === 'agent' && d >= 0 && d < 0.6) pulse = Math.max(pulse, 1 - d / 0.6)
       }
-      camila.phone.material.opacity = (1 - off) * Math.max(s > 0 ? 0.45 : 0.25, pulse) * (0.75 + 0.25 * Math.sin(t * 3))
+      camilaPhoneGlow.position.copy(stand).add(phoneOff)
+      camilaPhoneGlow.material.opacity = w > 0 ? 0 : Math.max(s > 0 ? 0.55 : 0.3, pulse) * (0.75 + 0.25 * night)
       if (camilaTag.material !== (s >= bookAt ? camilaTagMats.calm : camilaTagMats.pain)) camilaTag.material = s >= bookAt ? camilaTagMats.calm : camilaTagMats.pain
-      camilaTag.material.opacity = focus * 0.95
+      camilaTag.position.set(camila.position.x + 0.55, 0.12, camila.position.z + 0.3)
+      camilaTag.material.opacity = focus * 0.95 * camilaMat.opacity
 
       // Dr. Rojas: a oscuras hasta que llega el aviso
       const on = clamp01((s - alertEnd) / 0.6)

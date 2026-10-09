@@ -186,8 +186,9 @@ function Limites() {
   )
 }
 
-function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) {
-  const flip = index % 2 === 1
+// Los dos casos usan el mismo orden (teléfono a la izquierda): la derecha queda
+// libre para su escena 3D, el carro con Nico o la clínica con Camila.
+function Caso({ caso }: { caso: (typeof CASES)[number] }) {
   const phone = (
     <div className="zv-phone zv-ft-phone" data-reveal-item>
       <div className="zv-ft-head">
@@ -246,7 +247,7 @@ function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) 
   return (
     <section
       id={caso.id}
-      className={`zv-sec zv-caso zv-${caso.id}${flip ? ' zv-caso--flip' : ''}`}
+      className={`zv-sec zv-caso zv-${caso.id}`}
       data-section={caso.id}
       data-caso
       aria-labelledby={`${caso.id}-title`}
@@ -254,17 +255,8 @@ function Caso({ caso, index }: { caso: (typeof CASES)[number]; index: number }) 
       <div className="zv-col zv-col--wide">
         <SectionHead id={`${caso.id}-title`} n={caso.tag} label={caso.label} title={caso.title} accent={caso.accent} intro={caso.intro} big />
         <div className="zv-ft-grid" data-reveal>
-          {flip ? (
-            <>
-              {side}
-              {phone}
-            </>
-          ) : (
-            <>
-              {phone}
-              {side}
-            </>
-          )}
+          {phone}
+          {side}
         </div>
       </div>
     </section>
@@ -443,8 +435,8 @@ export default function Home() {
           <StaticStory />
         </div>
         <Rubros />
-        {CASES.map((caso, i) => (
-          <Caso key={caso.id} caso={caso} index={i} />
+        {CASES.map((caso) => (
+          <Caso key={caso.id} caso={caso} />
         ))}
         <Negocios />
         <Limites />

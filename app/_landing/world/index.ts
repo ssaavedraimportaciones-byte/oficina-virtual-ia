@@ -5,7 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import type { bus as Bus } from '../bus'
-import { ANA, CAMILA, OWNER, ROJAS, createCity, type Emitter } from './city'
+import { ANA, OWNER, ROJAS, createCity, type Emitter } from './city'
 import { createDental } from './dental'
 import { lightAt } from './palette'
 import { sampleRig, timeOfDay } from './rig'
@@ -53,7 +53,7 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
 
   // --- El mundo ----------------------------------------------------------------
   const sky = createSky(scene, { lite })
-  const city = createCity(scene, { lite, reserved: [ANA, OWNER, CAMILA, ROJAS].map((p) => ({ x: p.x, y: p.y })) })
+  const city = createCity(scene, { lite, reserved: [ANA, OWNER, ROJAS].map((p) => ({ x: p.x, y: p.y })) })
   const shop = createShop(scene)
   const story = createStory(scene, shop.door)
   const street = createStreet(scene)

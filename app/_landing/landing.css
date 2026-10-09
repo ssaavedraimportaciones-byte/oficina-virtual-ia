@@ -1783,15 +1783,17 @@
   color: var(--zv-dim);
 }
 
-/* Dentista: otra escena. Atmósfera más fría y nocturna (clínica cerrada a las
-   diez) para que no se confunda con la calle cálida del food truck. */
+/* Dentista: otra escena, mismo orden que el food truck. Atmósfera más fría y
+   nocturna (clínica cerrada a las diez) para que no se confunda con la calle
+   cálida del carro: oscuro detrás del teléfono y los pasos, despejado a la
+   derecha, donde Camila escribe frente a la clínica. */
 .zv-dentista::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(104deg, rgba(5, 9, 20, 0.9) 0%, rgba(5, 9, 20, 0.68) 40%, rgba(8, 13, 26, 0.2) 62%, rgba(8, 13, 26, 0.1) 100%),
-    linear-gradient(180deg, rgba(4, 8, 18, 0.28) 0%, rgba(4, 8, 18, 0.12) 40%, rgba(4, 8, 18, 0.5) 100%);
+    linear-gradient(90deg, rgba(4, 8, 18, 0.88) 0%, rgba(4, 8, 18, 0.8) 40%, rgba(4, 8, 18, 0.6) 56%, rgba(6, 10, 22, 0.12) 74%, rgba(6, 10, 22, 0.04) 100%),
+    linear-gradient(180deg, rgba(4, 8, 18, 0.55) 0%, rgba(4, 8, 18, 0) 20%, rgba(4, 8, 18, 0) 80%, rgba(4, 8, 18, 0.5) 100%);
   pointer-events: none;
 }
 /* En el celular el texto va encima de la escena: velo parejo, como en el food truck */
@@ -1799,15 +1801,6 @@
   .zv-dentista::before {
     background: linear-gradient(180deg, rgba(4, 8, 18, 0.74) 0%, rgba(4, 8, 18, 0.5) 50%, rgba(4, 8, 18, 0.74) 100%);
   }
-}
-
-/* Caso volteado: los pasos quedan a la izquierda y el teléfono a la derecha
-   para dar ritmo entre un ejemplo y el siguiente */
-.zv-caso--flip .zv-ft-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
-}
-.zv-caso--flip .zv-ft-phone {
-  margin-left: auto;
 }
 
 /* Títulos destacables de los casos: más grandes y con un kicker en ámbar */
@@ -2064,14 +2057,8 @@
     grid-template-columns: 1fr;
     gap: 1.6rem;
   }
-  .zv-caso--flip .zv-ft-grid {
-    grid-template-columns: 1fr;
-  }
   .zv-ft-phone {
     max-width: 100%;
-  }
-  .zv-caso--flip .zv-ft-phone {
-    margin-left: 0;
   }
 }
 .zv-head .zv-label {

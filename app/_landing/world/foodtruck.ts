@@ -478,8 +478,13 @@ function contactShadow() {
 }
 
 
-/** Nico, de cuerpo entero, de perfil hacia la derecha (hacia el carro). Luz de borde cálida. */
-function personTexture(pose: 'walkA' | 'walkB' | 'phone' | 'bag') {
+/**
+ * Una persona de cuerpo entero, de perfil hacia la derecha, con luz de borde.
+ * Por defecto es Nico (luz cálida del carro); la urgencia dental la usa para
+ * Camila, con pelo largo y la luz fría de la clínica.
+ */
+export function personTexture(pose: 'walkA' | 'walkB' | 'phone' | 'bag', opts: { rim?: string; hair?: boolean } = {}) {
+  const rim = opts.rim ?? 'rgba(255, 170, 80, 0.75)'
   return canvasTexture(160, 400, (g) => {
     const draw = (fill: string, dx: number) => {
       g.fillStyle = fill
@@ -490,6 +495,17 @@ function personTexture(pose: 'walkA' | 'walkB' | 'phone' | 'bag') {
       g.arc(84, 48, 25, 0, Math.PI * 2)
       g.fill()
       g.fillRect(76, 66, 16, 18)
+      // Pelo largo, cayendo por la espalda (a la izquierda: mira hacia la derecha)
+      if (opts.hair) {
+        g.beginPath()
+        g.moveTo(96, 30)
+        g.quadraticCurveTo(80, 14, 60, 30)
+        g.quadraticCurveTo(52, 70, 56, 122)
+        g.lineTo(76, 118)
+        g.quadraticCurveTo(72, 80, 86, 52)
+        g.closePath()
+        g.fill()
+      }
       // Torso con chaqueta
       g.beginPath()
       g.moveTo(50, 92)
@@ -538,7 +554,7 @@ function personTexture(pose: 'walkA' | 'walkB' | 'phone' | 'bag') {
       }
       g.restore()
     }
-    draw('rgba(255, 170, 80, 0.75)', 3) // luz de borde, del lado del carro
+    draw(rim, 3) // luz de borde, del lado del local
     draw('#05070d', 0)
   })
 }

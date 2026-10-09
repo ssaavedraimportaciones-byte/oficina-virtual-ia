@@ -26,11 +26,10 @@ export const FACE_Z = FRONT_Z + 3.5 + 0.03
 export const ANA = new THREE.Vector3(-7.9, 6.2, FACE_Z)
 export const OWNER = new THREE.Vector3(8.3, 8.6, FACE_Z)
 /** Ejemplo de la urgencia dental, al final de la calle de rubros: el edificio de
- *  la clínica, el de Camila (la paciente) y sus ventanas (ver world/dental.ts). */
+ *  la clínica, el de al lado y la ventana del Dr. Rojas (ver world/dental.ts). */
 export const CLINIC_BLOCK = { x: 80, w: 9, h: 12.4 }
 export const HOME_BLOCK = { x: 88.2, w: 7, h: 10.6 }
-export const CAMILA = new THREE.Vector3(86.1, 6.4, FACE_Z)
-export const ROJAS = new THREE.Vector3(77.6, 6.4, FACE_Z)
+export const ROJAS = new THREE.Vector3(82.4, 6.2, FACE_Z)
 
 /** Una fuente de luz que se refleja en la calle mojada. */
 export interface Emitter {

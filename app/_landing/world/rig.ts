@@ -27,9 +27,9 @@ const WIDE: Shot[] = [
   { u: 6.9, pos: [64.1, 2.5, 7.4], tgt: [70.8, 3.5, -5.5], fov: 44 },
   // Ejemplo food truck: a nivel de calle; el carro queda en el tercio derecho (libre de texto) y Nico abajo, en primer plano
   { u: 6.92, pos: [62, 2.5, 7.4], tgt: [66.5, 3.5, -5.5], fov: 44 },
-  // Ejemplo dentista: frente a Clínica Sonrisa (world/dental.ts), con la ventana de Camila
-  // arriba a la derecha y la del Dr. Rojas arriba a la izquierda, sobre la columna de texto
-  { u: 6.98, pos: [79.2, 2.9, 10.5], tgt: [79.2, 2.6, -5.5], fov: 58 },
+  // Ejemplo dentista: igual que el carro, a nivel de calle; Clínica Sonrisa (world/dental.ts)
+  // ocupa la mitad derecha y Camila escribe en la vereda, junto a la columna de texto
+  { u: 6.98, pos: [73.4, 2.4, 10.8], tgt: [73.4, 2.9, -5.5], fov: 55 },
   // Vista aérea: la calle queda en la mitad izquierda; la derecha es de la columna de texto
   { u: 7, pos: [80.3, 52, 30.4], tgt: [76.4, 0, -6], fov: 42 },
   { u: 8, pos: [36, 14, 32], tgt: [10, 34, -320], fov: 42 },
@@ -47,7 +47,7 @@ const TALL: Shot[] = [
   { u: 6, pos: [9.6, 3, 8.6], tgt: [9.6, 3.8, -5.5], fov: 62 },
   { u: 6.9, pos: [76.8, 3, 8.6], tgt: [76.8, 3.8, -5.5], fov: 62 },
   { u: 6.92, pos: [65, 2.8, 11.5], tgt: [67, 1.8, -2], fov: 62 },
-  { u: 6.98, pos: [83, 4.2, 10.5], tgt: [83, 5.2, -5.5], fov: 64 },
+  { u: 6.98, pos: [77, 3.2, 11], tgt: [78, 3.8, -5.5], fov: 72 },
   // En el celular las tarjetas ocupan el centro: la cámara levanta la vista y la calle queda abajo
   { u: 7, pos: [43, 52, 46], tgt: [43, 26.6, -8.4], fov: 52 },
   { u: 8, pos: [30, 14, 36], tgt: [10, 34, -320], fov: 52 },

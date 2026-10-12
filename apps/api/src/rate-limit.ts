@@ -27,11 +27,19 @@ return {n, ttl}`;
 
 /** Ventana fija en Redis, compartida por todas las réplicas de la API. */
 export class RedisRateLimiter implements RateLimiter {
-  constructor(private redis: Redis, private prefix = "pronex:rl:") {}
+  private fallback = new MemoryRateLimiter();
+
+  constructor(private redis: Redis, private prefix = "pronex:rl:", private onError: (err: Error) => void = () => {}) {}
 
   async hit(key: string, rule: RateLimitRule): Promise<RateLimitResult> {
-    const [count, ttl] = (await this.redis.eval(SCRIPT, 1, this.prefix + key, rule.windowMs)) as [number, number];
-    return { allowed: count <= rule.limit, remaining: Math.max(0, rule.limit - count), resetMs: ttl };
+    try {
+      const [count, ttl] = (await this.redis.eval(SCRIPT, 1, this.prefix + key, rule.windowMs)) as [number, number];
+      return { allowed: count <= rule.limit, remaining: Math.max(0, rule.limit - count), resetMs: ttl };
+    } catch (err) {
+      // Si Redis cae, la API sigue respondiendo con límites en memoria (por réplica) en vez de fallar.
+      this.onError(err as Error);
+      return this.fallback.hit(key, rule);
+    }
   }
 }
 

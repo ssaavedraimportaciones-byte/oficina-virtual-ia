@@ -17,9 +17,20 @@ function required(name: string): string {
 
 const pool = new pg.Pool({ connectionString: required("APP_DATABASE_URL"), max: 20 });
 const verifyOidc = createOidcVerifier({ issuer: required("OIDC_ISSUER"), audience: required("OIDC_AUDIENCE") });
-const rateLimiter = process.env.REDIS_URL
-  ? new RedisRateLimiter(new Redis(process.env.REDIS_URL))
-  : new MemoryRateLimiter();
+// keepAlive evita que la red privada de Railway corte la conexión inactiva (ETIMEDOUT);
+// el listener de error impide el volcado de trazas de ioredis y deja un solo aviso por falla.
+const redisClient = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL, { keepAlive: 10_000, maxRetriesPerRequest: 2, enableOfflineQueue: false })
+  : undefined;
+let lastRedisWarn = 0;
+const warnRedis = (err: Error) => {
+  if (Date.now() - lastRedisWarn > 60_000) {
+    lastRedisWarn = Date.now();
+    console.warn(`Redis no disponible (${err.message}): rate limiting en memoria hasta que vuelva`);
+  }
+};
+redisClient?.on("error", warnRedis);
+const rateLimiter = redisClient ? new RedisRateLimiter(redisClient, undefined, warnRedis) : new MemoryRateLimiter();
 if (!process.env.REDIS_URL) console.warn("REDIS_URL no definido: rate limiting en memoria (solo 1 réplica)");
 
 // Con Temporal configurado, cada inbound despierta el workflow de su conversación.

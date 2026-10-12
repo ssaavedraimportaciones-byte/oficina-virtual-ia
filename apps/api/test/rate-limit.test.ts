@@ -43,6 +43,19 @@ describe("RedisRateLimiter", () => {
   });
 });
 
+describe("RedisRateLimiter con Redis caído", () => {
+  it("no falla: avisa y sigue limitando en memoria", async () => {
+    const broken = { eval: async () => { throw new Error("ETIMEDOUT"); } } as unknown as Redis;
+    const errors: string[] = [];
+    const rl = new RedisRateLimiter(broken, "t:", (e) => errors.push(e.message));
+    const rule = { limit: 2, windowMs: 60_000 };
+    const results = [];
+    for (let i = 0; i < 3; i++) results.push((await rl.hit("k", rule)).allowed);
+    expect(results).toEqual([true, true, false]);
+    expect(errors).toHaveLength(3);
+  });
+});
+
 describe("rate limiting en la API", () => {
   let admin: pg.Client;
   let pool: pg.Pool;

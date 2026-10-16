@@ -67,6 +67,33 @@ interface MeBusinessesResponse {
   }>
 }
 
+interface DebugTokenResponse {
+  data?: {
+    granular_scopes?: Array<{ scope: string; target_ids?: string[] }>
+  }
+}
+
+/**
+ * Las cuentas de WhatsApp (WABA) a las que da acceso el token, leídas desde
+ * el propio token en vez de desde `me/businesses`. `me/businesses` exige el
+ * permiso `business_management`, que Meta no siempre deja marcar al generar
+ * un token de usuario del sistema (solo deja elegir los permisos de
+ * WhatsApp). Esto evita depender de ese permiso: el token conoce sus propios
+ * alcances, y de ahí se sacan los ID de las cuentas que sí puede leer con
+ * `whatsapp_business_management`.
+ */
+async function wabaIdsFromToken(token: string): Promise<string[]> {
+  const data = await graph<DebugTokenResponse>(`debug_token?input_token=${encodeURIComponent(token)}`, token)
+  const scopes = data.data?.granular_scopes ?? []
+  const ids = new Set<string>()
+  for (const scope of scopes) {
+    if (scope.scope === 'whatsapp_business_management' || scope.scope === 'whatsapp_business_messaging') {
+      for (const id of scope.target_ids ?? []) ids.add(id)
+    }
+  }
+  return [...ids]
+}
+
 /**
  * Lista los números de WhatsApp a los que da acceso el token, para que el
  * usuario elija de una lista en vez de tener que buscar el phone number ID a
@@ -75,16 +102,39 @@ interface MeBusinessesResponse {
 export async function discoverWhatsAppNumbers(
   token: string,
 ): Promise<DiscoveredWhatsAppNumber[]> {
-  const fields =
-    'owned_whatsapp_business_accounts{phone_numbers{id,display_phone_number,verified_name}}'
-  const data = await graph<MeBusinessesResponse>(
-    `me/businesses?fields=${encodeURIComponent(fields)}`,
-    token,
-  )
-
   const numbers: DiscoveredWhatsAppNumber[] = []
-  for (const business of data.data ?? []) {
-    for (const waba of business.owned_whatsapp_business_accounts?.data ?? []) {
+
+  // Camino normal: funciona cuando el token tiene business_management.
+  try {
+    const fields =
+      'owned_whatsapp_business_accounts{phone_numbers{id,display_phone_number,verified_name}}'
+    const data = await graph<MeBusinessesResponse>(
+      `me/businesses?fields=${encodeURIComponent(fields)}`,
+      token,
+    )
+    for (const business of data.data ?? []) {
+      for (const waba of business.owned_whatsapp_business_accounts?.data ?? []) {
+        for (const phone of waba.phone_numbers?.data ?? []) {
+          numbers.push({
+            id: phone.id,
+            displayPhoneNumber: phone.display_phone_number ?? phone.id,
+            verifiedName: phone.verified_name ?? '',
+          })
+        }
+      }
+    }
+  } catch {
+    // Sin business_management: se sigue con el camino de abajo.
+  }
+  if (numbers.length > 0) return numbers
+
+  // Camino alterno: directo a las cuentas que el propio token sabe que puede leer.
+  const wabaIds = await wabaIdsFromToken(token)
+  for (const wabaId of wabaIds) {
+    try {
+      const waba = await graph<{
+        phone_numbers?: { data?: Array<{ id: string; display_phone_number?: string; verified_name?: string }> }
+      }>(`${wabaId}?fields=phone_numbers{id,display_phone_number,verified_name}`, token)
       for (const phone of waba.phone_numbers?.data ?? []) {
         numbers.push({
           id: phone.id,
@@ -92,6 +142,8 @@ export async function discoverWhatsAppNumbers(
           verifiedName: phone.verified_name ?? '',
         })
       }
+    } catch {
+      // Esta cuenta en particular no se pudo leer; se sigue con las demás.
     }
   }
   return numbers
@@ -192,10 +244,29 @@ export async function subscribeWhatsAppWebhooks(
         break
       }
     }
-  } catch (error) {
-    return {
-      subscribed: false,
-      reason: `No se pudo leer la cuenta de WhatsApp Business del número (${error instanceof Error ? error.message : 'error desconocido'}).`,
+  } catch {
+    // Sin business_management: se sigue con el camino de abajo, directo desde el token.
+  }
+
+  // Camino alterno: igual que discoverWhatsAppNumbers, para tokens sin business_management.
+  if (!wabaId) {
+    try {
+      const wabaIds = await wabaIdsFromToken(token)
+      for (const id of wabaIds) {
+        const waba = await graph<{ phone_numbers?: { data?: Array<{ id: string }> } }>(
+          `${id}?fields=phone_numbers{id}`,
+          token,
+        ).catch(() => null)
+        if (waba?.phone_numbers?.data?.some((phone) => phone.id === phoneNumberId)) {
+          wabaId = id
+          break
+        }
+      }
+    } catch (error) {
+      return {
+        subscribed: false,
+        reason: `No se pudo leer la cuenta de WhatsApp Business del número (${error instanceof Error ? error.message : 'error desconocido'}).`,
+      }
     }
   }
 

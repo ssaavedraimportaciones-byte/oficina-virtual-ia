@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: `${BRAND.name} — ${BRAND.tagline}. Agentes de IA para WhatsApp e Instagram`,
   description:
     'Un agente de IA que atiende tu WhatsApp e Instagram al tiro: responde, agenda horas, toma pedidos y te pasa el caso cuando hace falta una persona. Para cualquier rubro.',
+  // Verificación del dominio zerovistochile.com en Meta Business (Configuración del negocio → Dominios).
+  other: {
+    'facebook-domain-verification': 'lkyhapp8ek24xh2qsluntbfx9r6zqr',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

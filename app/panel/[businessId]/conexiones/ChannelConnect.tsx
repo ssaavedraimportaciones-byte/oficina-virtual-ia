@@ -11,32 +11,43 @@ interface DiscoveredAccount {
 }
 
 /**
- * Guía paso a paso para conseguir el token, en español llano: el link a los docs
- * de Meta (en inglés, pensado para desarrolladores) no alcanza para alguien que
- * nunca entró a Meta for Developers. Esto no reemplaza la verificación de Meta
- * (eso lo exige Meta, no nosotros), pero evita que el dueño del negocio se
- * pierda en el camino.
+ * Guía paso a paso para conseguir el token, en español llano y bien de a poco:
+ * el link a los docs de Meta (en inglés, pensado para desarrolladores) no
+ * alcanza para alguien que nunca entró a Meta for Developers. Cada paso dice
+ * exactamente qué botón apretar y qué letrero buscar, porque "configura tu
+ * app" sin más detalle es donde la gente se pierde. Esto no reemplaza la
+ * verificación de Meta (eso lo exige Meta, no nosotros), pero evita que el
+ * dueño del negocio quede dando vueltas.
  */
-const STEPS: Record<'whatsapp' | 'instagram', { title: string; items: string[]; note: string }> = {
+const STEPS: Record<'whatsapp' | 'instagram', { title: string; intro: string; items: string[]; note: string }> = {
   whatsapp: {
     title: 'Cómo conseguir el token de WhatsApp',
+    intro:
+      'Tranquilo 🙂 Parece largo, pero es solo ir apretando botones en orden, uno por uno. No te saltes ningún paso y va a salir bien.',
     items: [
-      'Entra a developers.facebook.com → "Mis apps" → "Crear app" → elige el tipo "Negocio".',
-      'Dentro de la app, agrega el producto "WhatsApp" (botón "Configurar").',
-      'En Configuración de la empresa → "Usuarios del sistema" → "Agregar", crea uno con rol Administrador.',
-      'Con ese usuario, clic en "Generar nuevo token": elige tu app y marca los permisos whatsapp_business_messaging y whatsapp_business_management. Elige que no expire.',
-      'Copia ese token y pégalo abajo.',
+      'Abre developers.facebook.com en el computador (en el celular es más incómodo) y entra con tu cuenta de Facebook.',
+      'Arriba a la derecha, aprieta "Mis apps".',
+      'Aprieta el botón "Crear app". Cuando pregunte qué tipo de app es, elige "Negocio".',
+      'Dentro de tu app nueva, busca el cuadro que dice "WhatsApp" y aprieta "Configurar".',
+      'Antes de seguir: ve a "Configuración de la empresa" → "Información del negocio" y completa tu nombre, dirección y teléfono. Si saltas este paso, Meta no te deja avanzar más adelante.',
+      'Vuelve a "Configuración de la empresa" → "Usuarios del sistema" → "Agregar". Ponle un nombre (por ejemplo "mi-bot") y elige el rol "Administrador".',
+      'Con ese usuario ya elegido, aprieta "Asignar activos" DOS veces, una por una: la primera vez elige tu app y dale "Acceso total"; la segunda vez elige tu cuenta de WhatsApp y dale también "Acceso total". Si las dos quedan en una sola pasada, de todos modos revisa que ambas aparezcan asignadas antes de seguir.',
+      'Ahora sí, aprieta "Generar token". Elige tu app, elige que el token no expire nunca ("Nunca" en vez de "60 días"), y marca los permisos de WhatsApp que te deje marcar (no todas las apps dejan marcar los mismos; está bien si solo aparecen un par).',
+      'Te va a aparecer un código largo que empieza con "EAA". Cópialo completo, sin dejar nada afuera.',
+      'Pégalo aquí abajo, en el primer cuadro ("1. Pega tu token de acceso de Meta"), y aprieta "Buscar mis cuentas".',
+      'Si tu número aparece en una lista, apriétalo y listo. Si no aparece nada: no es un error, es normal. Más abajo hay un cuadrito chico que dice "O pega el Phone number ID" — ahí va el número de identificación de tu WhatsApp (lo encuentras en Meta, en la página de tu cuenta de WhatsApp), nunca el token. Pégalo ahí y aprieta el botón "Conectar" que está al lado de ese cuadrito, no el de "Buscar mis cuentas".',
     ],
-    note: 'Con el número de prueba que da Meta solo pueden escribirte hasta 5 contactos verificados. Para atender clientes reales hay que agregar tu propio número de WhatsApp Business y verificar el negocio ante Meta — eso puede tardar unos días y lo hace Meta, no nosotros.',
+    note: 'Con el número de prueba que da Meta solo pueden escribirte hasta 5 contactos que tú agregues a mano. Para que te escriba cualquier cliente, hace falta tu propio número de WhatsApp y que Meta verifique tu negocio — eso lo hace Meta, no nosotros, y puede tardar hasta 5 días. Mientras tanto puedes seguir probando el sistema con el simulador de conversación del panel.',
   },
   instagram: {
     title: 'Cómo conseguir el token de Instagram',
+    intro: 'Tranquilo 🙂 Son los mismos pasos que con WhatsApp, solo cambian algunos nombres.',
     items: [
       'La cuenta de Instagram tiene que ser "Profesional" (Business o Creador) y estar vinculada a una página de Facebook — si no, Instagram no deja conectar nada por fuera de la app oficial.',
       'En developers.facebook.com, en tu app (o en una nueva tipo "Negocio") agrega el producto "Instagram".',
-      'En Configuración de la empresa → "Cuentas" → "Instagram", vincula tu página de Facebook y tu cuenta de Instagram.',
+      'En "Configuración de la empresa" → "Cuentas" → "Instagram", vincula tu página de Facebook y tu cuenta de Instagram.',
       'En "Usuarios del sistema" → "Generar nuevo token", marca los permisos instagram_basic, instagram_manage_messages y pages_messaging. Elige que no expire.',
-      'Copia ese token y pégalo abajo.',
+      'Copia ese token completo y pégalo abajo.',
     ],
     note: 'Igual que con WhatsApp, Meta pide verificar el negocio antes de que puedas responder mensajes de cualquier persona — eso puede tardar unos días.',
   },
@@ -183,7 +194,8 @@ export default function ChannelConnect({
                 <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-amber-400">
                   ¿Cómo consigo el token? — {STEPS[channel].title.replace('Cómo conseguir el token de ', '')}
                 </summary>
-                <ol className="mx-4 mt-1 list-decimal space-y-2 pl-4 text-xs leading-relaxed text-gray-400">
+                <p className="mx-4 mt-1 text-xs leading-relaxed text-gray-300">{STEPS[channel].intro}</p>
+                <ol className="mx-4 mt-3 list-decimal space-y-2 pl-4 text-xs leading-relaxed text-gray-400">
                   {STEPS[channel].items.map((step, i) => (
                     <li key={i}>{step}</li>
                   ))}

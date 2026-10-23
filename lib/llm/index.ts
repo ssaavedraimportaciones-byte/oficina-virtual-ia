@@ -1,4 +1,5 @@
 import { createAnthropicProvider } from './anthropic'
+import { env } from './env'
 import { createOpenAiProvider } from './openai'
 import type { LlmProvider } from './types'
 
@@ -12,30 +13,30 @@ export function providerStatus(): {
   id: 'anthropic' | 'openai' | null
   model: string | null
 } {
-  const preferred = process.env.LLM_PROVIDER
-  const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY)
+  const preferred = env('LLM_PROVIDER')
+  const hasAnthropic = Boolean(env('ANTHROPIC_API_KEY'))
   // Con OPENAI_BASE_URL (modelo local o servicio compatible) no hace falta clave.
-  const hasOpenAi = Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.OPENAI_BASE_URL)
+  const hasOpenAi = Boolean(env('OPENAI_API_KEY')) || Boolean(env('OPENAI_BASE_URL'))
 
   if (preferred === 'openai' && hasOpenAi) {
-    return { configured: true, id: 'openai', model: process.env.OPENAI_MODEL || 'gpt-4o' }
+    return { configured: true, id: 'openai', model: env('OPENAI_MODEL') || 'gpt-4o' }
   }
   if (preferred === 'anthropic' && hasAnthropic) {
     return {
       configured: true,
       id: 'anthropic',
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5',
+      model: env('ANTHROPIC_MODEL') || 'claude-sonnet-5',
     }
   }
   if (hasAnthropic) {
     return {
       configured: true,
       id: 'anthropic',
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5',
+      model: env('ANTHROPIC_MODEL') || 'claude-sonnet-5',
     }
   }
   if (hasOpenAi) {
-    return { configured: true, id: 'openai', model: process.env.OPENAI_MODEL || 'gpt-4o' }
+    return { configured: true, id: 'openai', model: env('OPENAI_MODEL') || 'gpt-4o' }
   }
   return { configured: false, id: null, model: null }
 }
@@ -56,8 +57,8 @@ export function getProvider(): LlmProvider {
 
   cached =
     status.id === 'openai'
-      ? createOpenAiProvider(process.env.OPENAI_API_KEY ?? '')
-      : createAnthropicProvider(process.env.ANTHROPIC_API_KEY as string)
+      ? createOpenAiProvider(env('OPENAI_API_KEY') ?? '')
+      : createAnthropicProvider(env('ANTHROPIC_API_KEY') as string)
 
   return cached
 }

@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { env } from './env'
 import type { LlmCompletion, LlmMessage, LlmProvider, LlmRequest } from './types'
 
 const DEFAULT_MODEL = 'gpt-4o'
@@ -46,9 +47,9 @@ function toMessages(system: string, messages: LlmMessage[]): ChatMessage[] {
  * puede ser cualquier texto si el servidor no la pide.
  */
 export function createOpenAiProvider(apiKey: string): LlmProvider {
-  const baseURL = process.env.OPENAI_BASE_URL || undefined
+  const baseURL = env('OPENAI_BASE_URL')
   const client = new OpenAI({ apiKey: apiKey || 'sin-clave', baseURL })
-  const model = process.env.OPENAI_MODEL || DEFAULT_MODEL
+  const model = env('OPENAI_MODEL') || DEFAULT_MODEL
   // Los servidores compatibles entienden `max_tokens`; `max_completion_tokens`
   // es más nuevo y no todos lo aceptan.
   const limitParam = baseURL ? 'max_tokens' : 'max_completion_tokens'

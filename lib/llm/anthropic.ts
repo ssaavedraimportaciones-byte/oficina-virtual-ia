@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { env } from './env'
 import type { LlmCompletion, LlmMessage, LlmProvider, LlmRequest } from './types'
 
 const DEFAULT_MODEL = 'claude-sonnet-5'
@@ -59,7 +60,7 @@ function toSystem(request: LlmRequest): Anthropic.TextBlockParam[] {
 
 export function createAnthropicProvider(apiKey: string): LlmProvider {
   const client = new Anthropic({ apiKey })
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL
+  const model = env('ANTHROPIC_MODEL') || DEFAULT_MODEL
 
   return {
     id: 'anthropic',

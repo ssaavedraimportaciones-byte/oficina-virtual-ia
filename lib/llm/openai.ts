@@ -15,6 +15,18 @@ const RETIRED_GROQ_MODELS: Record<string, string> = {
   'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
 }
 
+/**
+ * Los modelos gpt-oss de Groq razonan antes de contestar y por defecto lo
+ * hacen a nivel medio. Un pedido en el chat encadena varias llamadas (armar el
+ * pedido, anotarlo, confirmarlo) y el cliente llegó a esperar cerca de un
+ * minuto. Para conversar con clientes alcanza el nivel bajo y responde mucho
+ * más rápido. Solo se manda donde Groq lo acepta: otro servidor puede
+ * rechazar un parámetro que no conoce.
+ */
+export function modelOptions(host: string, model: string): { reasoning_effort?: 'low' } {
+  return host === 'api.groq.com' && model.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low' } : {}
+}
+
 export function resolveModel(requested: string, host: string): string {
   const successor = host === 'api.groq.com' ? RETIRED_GROQ_MODELS[requested] : undefined
   if (!successor) return requested
@@ -81,6 +93,7 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
       const system = request.context ? `${request.system}\n\n${request.context}` : request.system
       const response = await client.chat.completions.create({
         model,
+        ...modelOptions(host, model),
         [limitParam]: request.maxTokens,
         messages: toMessages(system, request.messages),
         ...(request.tools?.length

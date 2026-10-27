@@ -4,6 +4,24 @@ import type { LlmCompletion, LlmMessage, LlmProvider, LlmRequest } from './types
 
 const DEFAULT_MODEL = 'gpt-4o'
 
+/**
+ * Modelos que Groq ya retiró de su capa gratuita y su sucesor recomendado
+ * (https://console.groq.com/docs/deprecations). Una clave cargada cuando el
+ * modelo aún existía sigue apuntando al nombre viejo, y el agente deja de
+ * responder con "el modelo no está disponible" sin que nadie haya tocado nada.
+ * Se reemplaza solo en Groq y solo con la correspondencia que Groq publica.
+ */
+const RETIRED_GROQ_MODELS: Record<string, string> = {
+  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+}
+
+export function resolveModel(requested: string, host: string): string {
+  const successor = host === 'api.groq.com' ? RETIRED_GROQ_MODELS[requested] : undefined
+  if (!successor) return requested
+  console.warn(`[llm] Groq retiró "${requested}": se usa "${successor}". Actualiza OPENAI_MODEL.`)
+  return successor
+}
+
 type ChatMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam
 
 function toMessages(system: string, messages: LlmMessage[]): ChatMessage[] {
@@ -49,11 +67,11 @@ function toMessages(system: string, messages: LlmMessage[]): ChatMessage[] {
 export function createOpenAiProvider(apiKey: string): LlmProvider {
   const baseURL = env('OPENAI_BASE_URL')
   const client = new OpenAI({ apiKey: apiKey || 'sin-clave', baseURL })
-  const model = env('OPENAI_MODEL') || DEFAULT_MODEL
+  const host = baseURL ? new URL(baseURL).host : 'api.openai.com'
+  const model = resolveModel(env('OPENAI_MODEL') || DEFAULT_MODEL, host)
   // Los servidores compatibles entienden `max_tokens`; `max_completion_tokens`
   // es más nuevo y no todos lo aceptan.
   const limitParam = baseURL ? 'max_tokens' : 'max_completion_tokens'
-  const host = baseURL ? new URL(baseURL).host : 'api.openai.com'
 
   return {
     id: 'openai',

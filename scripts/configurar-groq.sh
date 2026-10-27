@@ -45,7 +45,7 @@ cargar() {
 cargar LLM_PROVIDER openai
 cargar OPENAI_BASE_URL "https://api.groq.com/openai/v1"
 cargar OPENAI_API_KEY "$KEY"
-cargar OPENAI_MODEL llama-3.3-70b-versatile
+cargar OPENAI_MODEL openai/gpt-oss-120b
 
 echo
 echo "Variables cargadas. Publicando (tarda 2 o 3 minutos, no cierres la ventana)..."

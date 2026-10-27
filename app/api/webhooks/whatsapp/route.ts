@@ -3,6 +3,7 @@ import { handleIncomingMessage } from '@/lib/agentPipeline'
 import { decryptCredentials, findBusinessByChannelId } from '@/lib/store'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
 import { verifyMetaSignature } from '@/lib/webhookSignature'
+import { recordWebhook, type WebhookChangeOutcome } from '@/lib/webhookLog'
 
 // Handshake de verificación que pide Meta al configurar el webhook.
 export async function GET(request: NextRequest) {
@@ -29,10 +30,12 @@ interface WhatsAppMessage {
 interface WhatsAppWebhookBody {
   entry?: Array<{
     changes?: Array<{
+      field?: string
       value?: {
         metadata?: { phone_number_id?: string }
         contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>
         messages?: WhatsAppMessage[]
+        statuses?: unknown[]
       }
     }>
   }>
@@ -68,19 +71,31 @@ function messageText(message: WhatsAppMessage): string | null {
 // Da margen al debounce de ráfagas más la respuesta del modelo con herramientas.
 export const maxDuration = 60
 
-async function processWebhook(body: WhatsAppWebhookBody): Promise<void> {
+async function processWebhook(body: WhatsAppWebhookBody): Promise<WebhookChangeOutcome[]> {
+  const outcomes: WebhookChangeOutcome[] = []
   for (const entry of body.entry ?? []) {
     for (const change of entry.changes ?? []) {
       const value = change.value
       const contact = value?.contacts?.[0]
       // El número al que le escribieron define de qué negocio es el mensaje.
       const phoneNumberId = value?.metadata?.phone_number_id
+      const messages = value?.messages ?? []
+      const outcome: WebhookChangeOutcome = {
+        field: change.field ?? 'desconocido',
+        phoneNumberId: phoneNumberId ?? null,
+        matched: false,
+        messages: messages.length,
+        statuses: value?.statuses?.length ?? 0,
+        types: messages.map((message) => message.type),
+      }
+      outcomes.push(outcome)
       if (!phoneNumberId) continue
 
       const business = await findBusinessByChannelId('whatsapp', phoneNumberId)
       if (!business) continue
+      outcome.matched = true
 
-      for (const message of value?.messages ?? []) {
+      for (const message of messages) {
         const text = messageText(message)
         if (!text) continue
 
@@ -108,6 +123,7 @@ async function processWebhook(body: WhatsAppWebhookBody): Promise<void> {
       }
     }
   }
+  return outcomes
 }
 
 export async function POST(request: NextRequest) {
@@ -117,6 +133,7 @@ export async function POST(request: NextRequest) {
   const signature = verifyMetaSignature(rawBody, request.headers.get('x-hub-signature-256'))
   if (!signature.ok) {
     console.error('[webhook whatsapp] rechazado:', signature.reason)
+    await recordWebhook(`rechazado: ${signature.reason}`)
     return NextResponse.json({ error: signature.reason }, { status: signature.status })
   }
 
@@ -124,12 +141,21 @@ export async function POST(request: NextRequest) {
   try {
     body = JSON.parse(rawBody) as WhatsAppWebhookBody
   } catch {
+    await recordWebhook('rechazado: cuerpo inválido')
     return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
   }
 
   // Se le contesta a Meta enseguida y el trabajo sigue después: si tarda en
   // recibir el 200, reintenta el webhook. Los reintentos que igual lleguen los
   // descarta el pipeline por el ID del mensaje.
-  after(() => processWebhook(body))
+  after(async () => {
+    // Se anota aunque el procesamiento falle: justo ese caso es el que hay
+    // que poder ver después.
+    const outcomes = await processWebhook(body).catch((error) => {
+      console.error('[webhook whatsapp] falló el procesamiento:', error)
+      return null
+    })
+    await recordWebhook(outcomes ? 'ok' : 'error al procesar', outcomes ?? [])
+  })
   return NextResponse.json({ ok: true })
 }

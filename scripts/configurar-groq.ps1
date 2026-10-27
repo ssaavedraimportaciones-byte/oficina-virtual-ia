@@ -30,7 +30,7 @@ $vars = [ordered]@{
   LLM_PROVIDER    = 'openai'
   OPENAI_BASE_URL = 'https://api.groq.com/openai/v1'
   OPENAI_API_KEY  = $key
-  OPENAI_MODEL    = 'llama-3.3-70b-versatile'
+  OPENAI_MODEL    = 'openai/gpt-oss-120b'
 }
 
 foreach ($name in $vars.Keys) {

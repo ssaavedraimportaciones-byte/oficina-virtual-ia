@@ -1,6 +1,6 @@
 import type { ChannelCredentials } from './types'
 
-const GRAPH_VERSION = 'v20.0'
+export const GRAPH_VERSION = 'v20.0'
 
 /**
  * Resuelve las credenciales a usar: primero las propias del negocio, y si no
@@ -8,7 +8,7 @@ const GRAPH_VERSION = 'v20.0'
  * con una sola app de Meta para todos sus clientes como negocios con su propia
  * cuenta conectada.
  */
-function resolveCredentials(credentials?: ChannelCredentials) {
+export function resolveCredentials(credentials?: ChannelCredentials) {
   return {
     token: credentials?.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN,
     phoneNumberId: credentials?.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID,

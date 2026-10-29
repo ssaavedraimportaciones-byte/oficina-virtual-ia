@@ -81,7 +81,8 @@ export default function PrivacidadPage() {
         <li>
           <strong>El proveedor de inteligencia artificial configurado</strong> (Anthropic, OpenAI o
           un servicio compatible): recibe el contenido de la conversación para generar la respuesta
-          del agente.
+          del agente. Si un cliente manda una nota de voz, el audio también se envía a ese
+          proveedor para transcribirlo a texto; el audio no se guarda, solo su transcripción.
         </li>
         <li>
           <strong>Meta Platforms</strong> (WhatsApp Business Platform e Instagram Messaging): es el

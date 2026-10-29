@@ -2,8 +2,10 @@ import { after, NextRequest, NextResponse } from 'next/server'
 import { handleIncomingMessage } from '@/lib/agentPipeline'
 import { decryptCredentials, findBusinessByChannelId } from '@/lib/store'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import type { Business } from '@/lib/types'
 import { verifyMetaSignature } from '@/lib/webhookSignature'
 import { recordWebhook, type WebhookChangeOutcome } from '@/lib/webhookLog'
+import { audioMessageText } from '@/lib/incomingMedia'
 
 // Handshake de verificación que pide Meta al configurar el webhook.
 export async function GET(request: NextRequest) {
@@ -23,6 +25,7 @@ interface WhatsAppMessage {
   from: string
   type: string
   text?: { body: string }
+  audio?: { id?: string }
   button?: { text?: string }
   interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } }
 }
@@ -68,6 +71,23 @@ function messageText(message: WhatsAppMessage): string | null {
   return label ? `[El contacto envió ${label}]` : null
 }
 
+/**
+ * El texto del mensaje. Las notas de voz se transcriben para que el agente
+ * pueda responderlas; si no se puede (sin servicio de voz, falla de red), queda
+ * el aviso de siempre y el agente le pide al cliente que lo escriba.
+ */
+async function resolveText(message: WhatsAppMessage, business: Business): Promise<string | null> {
+  if (message.type === 'audio' && message.audio?.id) {
+    try {
+      const transcript = await audioMessageText(message.audio.id, decryptCredentials(business.credentials))
+      if (transcript) return transcript
+    } catch (error) {
+      console.error('[webhook whatsapp] no se pudieron leer las credenciales para el audio:', error)
+    }
+  }
+  return messageText(message)
+}
+
 // Da margen al debounce de ráfagas más la respuesta del modelo con herramientas.
 export const maxDuration = 60
 
@@ -96,7 +116,7 @@ async function processWebhook(body: WhatsAppWebhookBody): Promise<WebhookChangeO
       outcome.matched = true
 
       for (const message of messages) {
-        const text = messageText(message)
+        const text = await resolveText(message, business)
         if (!text) continue
 
         // Si falla la generación o el envío, el mensaje del cliente ya quedó

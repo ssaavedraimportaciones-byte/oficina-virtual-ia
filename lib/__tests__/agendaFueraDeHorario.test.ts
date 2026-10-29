@@ -61,3 +61,21 @@ describe('primer horario libre cuando escriben con el negocio cerrado', () => {
     expect(slots[0]).toEqual({ date: '2026-11-03', time: '17:30' })
   })
 })
+
+describe('fotos: el agente deriva a las redes del negocio', () => {
+  it('le pide pasar las redes sociales cuando piden fotos y no inventar direcciones', () => {
+    const prompt = buildSystemPrompt({
+      agentName: 'Rodri',
+      businessName: 'Pancho Rodante',
+      industry: 'i',
+      description: 'd',
+      goals: 'g',
+      tone: 'cercano',
+      channels: ['whatsapp'],
+      configuredAt: '',
+    })
+    expect(prompt).toContain('pide fotos')
+    expect(prompt).toContain('redes sociales')
+    expect(prompt).toContain('Nunca inventes usuarios ni direcciones')
+  })
+})

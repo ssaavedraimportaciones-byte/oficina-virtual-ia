@@ -84,6 +84,12 @@ export interface Product {
   stock: number | null
   /** Permite dar de baja un producto sin borrarlo ni tocar el stock. */
   active: boolean
+  /**
+   * Cuándo se subió la foto (ms desde epoch), o `null` si no tiene. Sirve para
+   * saber si hay foto y como `?v=` de la dirección, así el navegador no usa una
+   * foto vieja después de cambiarla.
+   */
+  imageVersion: number | null
 }
 
 export interface OrderItem {

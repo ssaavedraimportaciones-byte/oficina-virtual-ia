@@ -25,6 +25,8 @@ const SESSION_COOKIE = 'agentsapp_session'
 const PUBLIC_API = [
   '/api/health',
   '/api/webhooks/',
+  // Fotos de productos: las piden los <img> y Meta (sin sesión) al mandarlas por WhatsApp.
+  '/api/imagenes/',
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/forgot-password',

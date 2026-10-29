@@ -5,7 +5,7 @@ import { checkOrder, isOrderable, isSoldOut } from '../catalog'
 import type { Business, Conversation, Product } from '../types'
 
 function product(over: Partial<Product> = {}): Product {
-  return { id: 'p', businessId: 'b', name: 'Torta', price: 1000, stock: 5, active: true, ...over }
+  return { id: 'p', businessId: 'b', name: 'Torta', price: 1000, stock: 5, active: true, imageVersion: null, ...over }
 }
 
 describe('reglas de stock', () => {

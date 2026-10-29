@@ -189,9 +189,14 @@ function mapProduct(row: {
   price: number
   stock: number | null
   active: boolean
+  image?: { updatedAt: Date } | null
 }): Product {
-  return { ...row }
+  const { image, ...rest } = row
+  return { ...rest, imageVersion: image ? image.updatedAt.getTime() : null }
 }
+
+/** Sin los bytes: listar el catálogo solo necesita saber si hay foto y de cuándo es. */
+const WITH_IMAGE_VERSION = { image: { select: { updatedAt: true } } } as const
 
 function mapOrder(row: {
   id: string
@@ -575,14 +580,17 @@ export async function cancelAppointment(id: string): Promise<Appointment> {
 // --- Catálogo y pedidos ---
 
 export async function listProducts(businessId: string): Promise<Product[]> {
-  const rows = await prisma.product.findMany({ where: { businessId } })
+  const rows = await prisma.product.findMany({ where: { businessId }, include: WITH_IMAGE_VERSION })
   return rows.map(mapProduct)
 }
 
 export async function addProduct(
   input: Pick<Product, 'businessId' | 'name' | 'price' | 'stock'>,
 ): Promise<Product> {
-  const row = await prisma.product.create({ data: { ...input, active: true } })
+  const row = await prisma.product.create({
+    data: { ...input, active: true },
+    include: WITH_IMAGE_VERSION,
+  })
   return mapProduct(row)
 }
 
@@ -590,8 +598,38 @@ export async function updateProduct(
   id: string,
   update: Partial<Pick<Product, 'name' | 'price' | 'stock' | 'active'>>,
 ): Promise<Product> {
-  const row = await prisma.product.update({ where: { id }, data: update })
+  const row = await prisma.product.update({ where: { id }, data: update, include: WITH_IMAGE_VERSION })
   return mapProduct(row)
+}
+
+// --- Fotos de productos ---
+
+export interface ProductImageData {
+  contentType: string
+  data: Buffer
+  updatedAt: Date
+}
+
+export async function getProductImage(productId: string): Promise<ProductImageData | null> {
+  const row = await prisma.productImage.findUnique({ where: { productId } })
+  return row ? { contentType: row.contentType, data: Buffer.from(row.data), updatedAt: row.updatedAt } : null
+}
+
+export async function setProductImage(
+  productId: string,
+  image: { contentType: string; data: Buffer },
+): Promise<number> {
+  const bytes = new Uint8Array(image.data)
+  const row = await prisma.productImage.upsert({
+    where: { productId },
+    create: { productId, contentType: image.contentType, data: bytes },
+    update: { contentType: image.contentType, data: bytes },
+  })
+  return row.updatedAt.getTime()
+}
+
+export async function deleteProductImage(productId: string): Promise<void> {
+  await prisma.productImage.delete({ where: { productId } }).catch(() => {})
 }
 
 export async function deleteProduct(id: string): Promise<void> {

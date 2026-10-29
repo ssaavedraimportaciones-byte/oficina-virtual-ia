@@ -288,10 +288,25 @@ model Product {
   stock      Int?
   active     Boolean @default(true)
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  image    ProductImage?
 
   @@index([businessId])
   @@map("products")
+}
+
+/// Foto de un producto. Va en su propia tabla para que listar el catálogo no
+/// arrastre los bytes de las imágenes. Se guardan ya reducidas (el navegador las
+/// achica antes de subirlas), así que cabe en la base sin servicio aparte.
+model ProductImage {
+  productId   String   @id
+  contentType String
+  data        Bytes
+  updatedAt   DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
 }
 
 model Order {

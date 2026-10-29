@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { formatPrice, isSoldOut } from '@/lib/catalog'
+import { resizeForUpload } from '@/lib/imageResize'
 import type { Order, OrderStatus, Product } from '@/lib/types'
 import ImportCatalog from './ImportCatalog'
 
@@ -24,6 +25,9 @@ export default function PedidosPage() {
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('')
   const [saving, setSaving] = useState(false)
+  // Foto en curso (id del producto) y último error, para mostrar algo útil si falla.
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/businesses/${businessId}/catalogo`)
@@ -45,6 +49,30 @@ export default function PedidosPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(update),
     })
+    await load()
+  }
+
+  async function uploadImage(productId: string, file: File) {
+    setUploading(productId)
+    setImageError(null)
+    try {
+      const blob = await resizeForUpload(file)
+      const form = new FormData()
+      form.append('file', blob, 'foto')
+      const res = await fetch(`/api/products/${productId}/image`, { method: 'POST', body: form })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setImageError(data.error ?? 'No se pudo subir la foto.')
+      }
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : 'No se pudo subir la foto.')
+    }
+    setUploading(null)
+    await load()
+  }
+
+  async function removeImage(productId: string) {
+    await fetch(`/api/products/${productId}/image`, { method: 'DELETE' })
     await load()
   }
 
@@ -133,6 +161,12 @@ export default function PedidosPage() {
           Deja el stock vacío si no quieres llevar control: ese producto nunca se agota solo.
         </p>
 
+        <p className="mt-1 text-xs text-gray-500">
+          Puedes subir una foto de cada producto (desde el celular o el computador): se reduce sola
+          para que cargue rápido.
+        </p>
+        {imageError && <p className="mt-2 text-sm text-danger">{imageError}</p>}
+
         {products.length > 0 && (
           <div className="mt-4 flex flex-col divide-y divide-gray-800 rounded-md border border-gray-800">
             {products.map((product) => {
@@ -142,6 +176,38 @@ export default function PedidosPage() {
                   key={product.id}
                   className={`flex flex-wrap items-center gap-3 px-4 py-3 ${product.active ? '' : 'opacity-50'}`}
                 >
+                  <label
+                    title={product.imageVersion ? 'Cambiar foto' : 'Subir foto'}
+                    className="relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-dashed border-gray-700 text-center text-[10px] leading-tight text-gray-500 hover:border-amber-500 hover:text-amber-400"
+                  >
+                    {product.imageVersion ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/imagenes/producto/${product.id}?v=${product.imageVersion}`}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span>{uploading === product.id ? 'Subiendo…' : '+ Foto'}</span>
+                    )}
+                    {uploading === product.id && product.imageVersion && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-gray-950/70 text-[10px] text-white">
+                        Subiendo…
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploading !== null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (file) uploadImage(product.id, file)
+                      }}
+                    />
+                  </label>
+
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-white">{product.name}</span>
@@ -175,6 +241,14 @@ export default function PedidosPage() {
                     />
                   </label>
 
+                  {product.imageVersion && (
+                    <button
+                      onClick={() => removeImage(product.id)}
+                      className="text-xs text-gray-500 hover:text-danger"
+                    >
+                      Quitar foto
+                    </button>
+                  )}
                   <button
                     onClick={() => patchProduct(product.id, { active: !product.active })}
                     className="text-xs text-gray-400 hover:text-amber-400"

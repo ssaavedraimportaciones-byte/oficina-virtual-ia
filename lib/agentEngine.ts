@@ -60,6 +60,9 @@ const MAX_TOOL_ROUNDS = 4
  */
 const REPLY_MAX_TOKENS = 8000
 
+/** Presupuesto total de una respuesta: la función serverless corta a los 60 s y no puede quedar sin contestar. */
+const REPLY_BUDGET_MS = 40_000
+
 export async function generateAgentReply(
   config: AgentConfig,
   knowledge: KnowledgeEntry[],
@@ -93,7 +96,9 @@ export async function generateAgentReply(
   const system = buildSystemPrompt(config, knowledge, services, products)
   const context = buildConversationContext(businessNow(), options?.contactNotes)
 
+  const startedAt = Date.now()
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+    if (round > 0 && Date.now() - startedAt > REPLY_BUDGET_MS) return FALLBACK_REPLY
     const completion = await provider.complete({
       system,
       context,

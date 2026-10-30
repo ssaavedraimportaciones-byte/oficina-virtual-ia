@@ -78,7 +78,7 @@ function toMessages(system: string, messages: LlmMessage[]): ChatMessage[] {
  */
 export function createOpenAiProvider(apiKey: string): LlmProvider {
   const baseURL = env('OPENAI_BASE_URL')
-  const client = new OpenAI({ apiKey: apiKey || 'sin-clave', baseURL })
+  const client = new OpenAI({ apiKey: apiKey || 'sin-clave', baseURL, timeout: 15_000, maxRetries: 1 })
   const host = baseURL ? new URL(baseURL).host : 'api.openai.com'
   const model = resolveModel(env('OPENAI_MODEL') || DEFAULT_MODEL, host)
   // Los servidores compatibles entienden `max_tokens`; `max_completion_tokens`

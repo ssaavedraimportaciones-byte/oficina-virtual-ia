@@ -127,11 +127,12 @@ export async function generateAgentReply(
       raw: completion.raw,
     })
 
-    const results = []
-    for (const call of completion.toolCalls) {
-      const content = await runAgentTool(toolContext, call.name, call.input)
-      results.push({ id: call.id, content })
-    }
+    const results = await Promise.all(
+      completion.toolCalls.map(async (call) => ({
+        id: call.id,
+        content: await runAgentTool(toolContext, call.name, call.input),
+      })),
+    )
 
     messages.push({ role: 'tool_results', results })
   }

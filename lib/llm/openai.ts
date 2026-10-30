@@ -11,6 +11,8 @@ const DEFAULT_MODEL = 'gpt-4o'
  * responder con "el modelo no está disponible" sin que nadie haya tocado nada.
  * Se reemplaza solo en Groq y solo con la correspondencia que Groq publica.
  */
+const GROQ_FALLBACK_MODEL = 'openai/gpt-oss-20b'
+
 const RETIRED_GROQ_MODELS: Record<string, string> = {
   'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
 }
@@ -91,9 +93,9 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
 
     async complete(request: LlmRequest): Promise<LlmCompletion> {
       const system = request.context ? `${request.system}\n\n${request.context}` : request.system
-      const response = await client.chat.completions.create({
-        model,
-        ...modelOptions(host, model),
+      const create = (useModel: string) => client.chat.completions.create({
+        model: useModel,
+        ...modelOptions(host, useModel),
         [limitParam]: request.maxTokens,
         messages: toMessages(system, request.messages),
         ...(request.tools?.length
@@ -109,6 +111,21 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
             }
           : {}),
       })
+
+      // Si el modelo principal se queda sin cupo de Groq (429) o no contesta a
+      // tiempo, se prueba una vez con el modelo chico, que tiene su propio cupo
+      // y responde más rápido, en vez de dejar esperando al cliente.
+      let response
+      try {
+        response = await create(model)
+      } catch (error) {
+        const fallback = host === 'api.groq.com' ? GROQ_FALLBACK_MODEL : null
+        const status = (error as { status?: number }).status
+        const retryable = status === 429 || status === undefined || status >= 500
+        if (!fallback || fallback === model || !retryable) throw error
+        console.error('[llm] falló el modelo principal, se usa el de respaldo:', status ?? error)
+        response = await create(fallback)
+      }
 
       const choice = response.choices[0]?.message
       const finishReason = response.choices[0]?.finish_reason

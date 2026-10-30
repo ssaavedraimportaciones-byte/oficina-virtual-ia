@@ -75,12 +75,12 @@ function buildCatalogSection(products: Product[]): string {
   return `
 
 # Pedidos
-Catálogo (el stock cambia, así que confírmalo con consultar_catalogo antes de cerrar):
+Catálogo con el stock actual:
 ${list}${soldOutLine}
 
 Tienes herramientas para tomar pedidos de verdad:
-- Consulta el catálogo con consultar_catalogo antes de confirmar precio o disponibilidad. Nunca
-  digas que hay stock sin haberlo consultado.
+- El catálogo de arriba ya trae precios y stock: respóndelos directo, sin llamar herramientas.
+  Usa consultar_catalogo solo si el producto que piden no aparece en esa lista.
 - Si algo está agotado, dilo con naturalidad y ofrece una alternativa del catálogo.
 - Registra el pedido con crear_pedido solo cuando el cliente confirmó qué lleva y en qué
   cantidad, y sabes su nombre. Si no te lo dijo, pregúntaselo antes.

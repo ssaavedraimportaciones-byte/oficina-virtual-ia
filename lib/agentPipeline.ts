@@ -55,7 +55,7 @@ export type IncomingResult =
  */
 function defaultDebounceMs(): number {
   const configured = Number(process.env.AGENT_DEBOUNCE_MS)
-  return Number.isFinite(configured) && configured >= 0 ? configured : 2500
+  return Number.isFinite(configured) && configured >= 0 ? configured : 1200
 }
 
 function lastContactMessageId(conversation: Conversation): string | undefined {

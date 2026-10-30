@@ -1,9 +1,11 @@
-import AlturaDemo from './AlturaDemo'
+import AlturaCaso from './AlturaCaso'
+import { RESERVA_CASO as caso } from './data'
 import { SplitWords } from './Stage'
 
 /**
- * Reservas de mesa para restaurantes. El ejemplo (Altura Bistró en 3D, su
- * croquis y el chat) está en `AlturaDemo`; acá va el texto de la sección.
+ * Reservas de mesa para restaurantes, actuado como los otros ejemplos en vivo
+ * (`data-caso`): el chat avanza con el scroll y Altura Bistró en 3D lo sigue
+ * (`AlturaCaso`). Debajo, cómo funciona para cualquier restaurante.
  */
 
 const POINTS = [
@@ -31,36 +33,33 @@ const POINTS = [
 
 export default function Mesas() {
   return (
-    <section id="mesas" className="zv-sec zv-mesas" data-section="mesas" aria-labelledby="zv-mesas-title">
+    <section id="mesas" className="zv-sec zv-caso zv-mesas" data-section="mesas" data-caso aria-labelledby="zv-mesas-title">
       <div className="zv-col zv-col--wide">
-        <header className="zv-head" data-reveal>
+        <header className="zv-head zv-head--big" data-reveal>
           <p className="zv-label" data-reveal-item>
-            <span>Nuevo</span> — Restaurantes
+            <span>{caso.tag}</span> — {caso.label}
           </p>
-          <h2 id="zv-mesas-title" className="zv-h2">
-            <SplitWords text="Tu salón, mesa por mesa, dentro del chat." accent={[1]} />
+          <h2 id="zv-mesas-title" className="zv-h2 zv-h2--case">
+            <SplitWords text={caso.title} accent={caso.accent} />
           </h2>
           <p className="zv-intro" data-reveal-item>
-            Dibuja cada piso de tu restaurante y el agente reserva solo, a cualquier hora. Al cliente le dice exactamente
-            dónde se va a sentar: frente al ventanal con vista a la torre, al sol o a la sombra, en la terraza.
+            {caso.intro}
           </p>
         </header>
 
-        <div className="zv-mesas-grid">
-          <ul className="zv-mesas-points" data-reveal>
-            {POINTS.map((p, i) => (
-              <li key={p.title} data-reveal-item>
-                <span className="zv-mesas-n">{String(i + 1).padStart(2, '0')}</span>
-                <div>
-                  <h3>{p.title}</h3>
-                  <p>{p.text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <AlturaCaso caso={caso} />
 
-          <AlturaDemo />
-        </div>
+        <ul className="zv-mesas-points" data-reveal>
+          {POINTS.map((p, i) => (
+            <li key={p.title} data-reveal-item>
+              <span className="zv-mesas-n">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                <h3>{p.title}</h3>
+                <p>{p.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )

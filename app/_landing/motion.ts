@@ -290,9 +290,17 @@ export async function initMotion(): Promise<() => void> {
         // Los ejemplos mueven su escena 3D: el carro (world/foodtruck.ts) y la clínica (world/dental.ts)
         const scene3d = caso.id === 'foodtruck' ? bus.truck : caso.id === 'dentista' ? bus.dental : null
         const msgAt: number[] = []
+        // Avisa cuántos mensajes van a la vista: así una escena que vive fuera del mundo
+        // (Altura Bistró, en AlturaCaso.tsx) puede seguir la conversación.
+        let lastShown = -1
         const sync = () => {
           const now = tl.time()
           if (scene3d) scene3d.t = now
+          const shown = msgAt.filter((at) => now >= at).length
+          if (shown !== lastShown) {
+            lastShown = shown
+            caso.dispatchEvent(new CustomEvent('zv:caso', { detail: { shown, total: msgs.length } }))
+          }
           let on = 0
           steps.forEach((li, k) => {
             const s = now >= stepAt[k] ? 'on' : 'off'

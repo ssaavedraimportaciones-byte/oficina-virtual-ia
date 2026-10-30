@@ -26,6 +26,8 @@ export type AlturaView = { kind: 'orbit' } | { kind: 'table'; label: string } | 
 
 export interface AlturaScene {
   setView(view: AlturaView): void
+  /** La mesa elegida ya quedó reservada: el anillo pasa de ámbar a verde. */
+  setReserved(reserved: boolean): void
   setVisible(visible: boolean): void
   dispose(): void
 }
@@ -884,8 +886,15 @@ export function createAlturaScene(canvas: HTMLCanvasElement, opts: { motion: boo
   moveCars(0)
   draw()
 
+  const CHOSEN_COLOR = new THREE.Color('#fde68a').multiplyScalar(2.5)
+  const RESERVED_COLOR = new THREE.Color('#5eead4').multiplyScalar(2.5)
+
   return {
     setView,
+    setReserved(reserved) {
+      ringMat.color.copy(reserved ? RESERVED_COLOR : CHOSEN_COLOR)
+      if (!opts.motion) draw()
+    },
     setVisible(v) {
       visible = v
       if (v) start()

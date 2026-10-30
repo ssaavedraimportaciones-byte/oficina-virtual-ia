@@ -458,6 +458,51 @@ export const CASES: Caso[] = [
   },
 ]
 
+/**
+ * El ejemplo de reservas: se actúa igual que los de arriba (chat que avanza con
+ * el scroll y pasos que se encienden), pero su escena 3D es Altura Bistró
+ * (`AlturaCaso.tsx`), que sigue la conversación. No va en `CASES` porque su
+ * sección tiene su propio diseño.
+ */
+export const RESERVA_CASO: Caso = {
+  id: 'mesas',
+  tag: 'Nuevo',
+  label: 'Restaurantes',
+  title: 'Tu salón, mesa por mesa, dentro del chat.',
+  accent: [1],
+  intro:
+    'Dibuja cada piso de tu restaurante y el agente reserva solo, a cualquier hora. Al cliente le dice exactamente dónde se va a sentar —frente al ventanal con vista a la torre, al sol o a la sombra, en la terraza— y le avisa hasta cuándo se le guarda la mesa.',
+  name: 'Altura Bistró',
+  place: 'Restaurante · pisos 11 y 12 · jueves 18:42',
+  messages: [
+    { who: 'contact', text: 'Hola! ¿tienen mesa para 4 el sábado a las 20:30? 🙏' },
+    {
+      who: 'agent',
+      text: '¡Hola! Sí, hay lugar 🙌 ¿Tienen alguna preferencia? Tenemos ventanal con vista a la Torre Titanium, ventanal hacia la cordillera o la terraza del piso 12.',
+    },
+    { who: 'contact', text: 'con vista a la torre porfa, es un cumpleaños 🎂' },
+    {
+      who: 'agent',
+      text: 'Te dejo la Mesa 3 del piso 11, junto al ventanal frente a la Torre Titanium 🌇 A esa hora te toca el atardecer de frente. ¿A nombre de quién la reservo?',
+    },
+    { who: 'contact', text: 'Camila Soto' },
+    { who: 'agent', text: 'Listo, Camila ✨ Sábado 20:30, 4 personas, Mesa 3 frente a la Torre Titanium. Anoté que es un cumpleaños.' },
+    {
+      who: 'agent',
+      text: 'Te la guardamos hasta las 20:45 (15 minutos de tolerancia). Si no alcanzas a llegar, se libera para otros clientes. ¡Te esperamos!',
+    },
+  ],
+  steps: [
+    'Preguntó la preferencia: torre, cordillera o terraza.',
+    'Revisó el croquis y las reservas: la Mesa 3 estaba libre.',
+    'Le contó dónde queda la mesa, no solo el número.',
+    'Reservó a su nombre, con la nota del cumpleaños.',
+    'Avisó la tolerancia: la mesa se guarda 15 minutos.',
+  ],
+  marks: [1, 3, 3, 5, 6],
+  done: 'Mesa 3 reservada · sábado 20:30 · se guarda hasta 20:45',
+}
+
 export const STEPS = [
   { title: 'Elige tu rubro', text: 'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.' },
   {

@@ -14,10 +14,11 @@ import {
   findTables,
   SUN_SIDES,
   suggestTimes,
+  holdUntil,
   type SunSide,
   type TablePrefs,
 } from './mesas'
-import { getReservationMinutes, listFloors, listReservations, reserveTable } from './mesasStore'
+import { getReservationSettings, listFloors, listReservations, reserveTable } from './mesasStore'
 import { notifyHandoff } from './notifications'
 import {
   addAppointment,
@@ -402,10 +403,10 @@ async function runConsultarMesas(
   if (!partySize) return 'Falta cuántas personas van. Pregúntaselo al cliente.'
 
   const now = businessNow()
-  const [floors, reservations, durationMinutes] = await Promise.all([
+  const [floors, reservations, { durationMinutes }] = await Promise.all([
     listFloors(ctx.business.id),
     listReservations(ctx.business.id, now.date),
-    getReservationMinutes(ctx.business.id),
+    getReservationSettings(ctx.business.id),
   ])
   const search = { date: input.fecha, time: input.hora, partySize, durationMinutes, prefs: parsePrefs(input) }
   const result = findTables(floors, reservations, ctx.business.hours, search, now)
@@ -447,6 +448,7 @@ async function runReservarMesa(
   if (option === 'ambigua') return `Hay más de una "${input.mesa}": dime en qué piso.`
   if (!option) return `No encontré la mesa "${input.mesa}". Usa consultar_mesas para ver cuáles hay libres.`
 
+  const settings = await getReservationSettings(ctx.business.id)
   const result = await reserveTable({
     businessId: ctx.business.id,
     hours: ctx.business.hours,
@@ -454,7 +456,7 @@ async function runReservarMesa(
     date: input.fecha,
     time: input.hora,
     partySize,
-    durationMinutes: await getReservationMinutes(ctx.business.id),
+    durationMinutes: settings.durationMinutes,
     contactName: input.nombre_cliente,
     contactHandle: ctx.conversation.contactHandle,
     conversationId: ctx.conversation.id,
@@ -464,7 +466,7 @@ async function runReservarMesa(
   })
   if (!result.ok) return `No se pudo reservar: ${result.reason} Consulta de nuevo con consultar_mesas y ofrécele otra.`
 
-  return `Mesa reservada: ${describeTable(option)}, el ${formatDateLabel(input.fecha)} a las ${input.hora}, para ${partySize}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente.`
+  return `Mesa reservada: ${describeTable(option)}, el ${formatDateLabel(input.fecha)} a las ${input.hora}, para ${partySize}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente y avísale, con amabilidad, que la mesa se le guarda hasta ${settings.graceMinutes} minutos después de la hora (hasta las ${holdUntil(input.hora, settings.graceMinutes)}): si no llega, se libera para otros clientes.`
 }
 
 export async function runAgentTool(

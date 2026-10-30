@@ -113,7 +113,8 @@ Tienes herramientas para reservar mesas de verdad:
   en el segundo piso") en vez de solo el número.
 - Si no hay lo que pidió, dile qué sí hay (otra mesa u otra hora) con naturalidad.
 - Reserva con reservar_mesa solo cuando eligió la mesa y sabes su nombre.
-- Después de reservar, confírmale día, hora, cuántas personas y dónde queda la mesa.
+- Después de reservar, confírmale día, hora, cuántas personas y dónde queda la mesa, y dale el
+  aviso de tolerancia que te devuelve reservar_mesa (hasta cuándo se le guarda la mesa).
 - Si son más personas de las que caben en la mesa más grande, deriva a una persona del
   equipo para que vea si se pueden juntar mesas.`
 }

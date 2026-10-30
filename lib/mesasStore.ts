@@ -6,6 +6,7 @@ import {
   type ElementKind,
   type Floor,
   type FloorElement,
+  type ReservationSettings,
   type ReservationStatus,
   type SunSide,
   type TableOption,
@@ -163,13 +164,26 @@ export async function cancelReservation(id: string): Promise<TableReservation> {
   )
 }
 
-export async function getReservationMinutes(businessId: string): Promise<number> {
-  const row = await prisma.business.findUnique({ where: { id: businessId }, select: { reservationMinutes: true } })
-  return row?.reservationMinutes ?? 120
+export async function getReservationSettings(businessId: string): Promise<ReservationSettings> {
+  const row = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { reservationMinutes: true, reservationGraceMinutes: true },
+  })
+  return { durationMinutes: row?.reservationMinutes ?? 120, graceMinutes: row?.reservationGraceMinutes ?? 15 }
 }
 
-export async function setReservationMinutes(businessId: string, minutes: number): Promise<void> {
-  await prisma.business.update({ where: { id: businessId }, data: { reservationMinutes: minutes } })
+export async function setReservationSettings(businessId: string, settings: ReservationSettings): Promise<void> {
+  await prisma.business.update({
+    where: { id: businessId },
+    data: { reservationMinutes: settings.durationMinutes, reservationGraceMinutes: settings.graceMinutes },
+  })
+}
+
+/** El cliente no llegó: la reserva queda en el historial y la mesa vuelve a estar libre. */
+export async function markNoShow(id: string): Promise<TableReservation> {
+  return mapReservation(
+    await prisma.tableReservation.update({ where: { id }, data: { status: 'no_llego' } }),
+  )
 }
 
 export interface ReserveInput {

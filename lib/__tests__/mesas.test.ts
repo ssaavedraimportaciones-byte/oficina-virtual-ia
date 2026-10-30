@@ -5,6 +5,7 @@ import { buildSystemPrompt } from '../agentPrompt'
 import {
   findTableByLabel,
   findTables,
+  holdUntil,
   reservableTables,
   suggestTimes,
   summarizeFloors,
@@ -16,9 +17,12 @@ import {
 import {
   createFloor,
   listFloors,
+  getReservationSettings,
   listReservations,
+  markNoShow,
   reserveTable,
   saveFloorLayout,
+  setReservationSettings,
 } from '../mesasStore'
 import * as store from '../store'
 import type { AgentConfig, Business, Conversation, WeekHours } from '../types'
@@ -267,6 +271,8 @@ describe('mesas guardadas y el agente reservando', () => {
       nota: 'Cumpleaños',
     })
     expect(out).toContain('Mesa reservada')
+    // Avisa la tolerancia al confirmar
+    expect(out).toContain('hasta 15 minutos después de la hora (hasta las 20:15)')
     const [r] = (await listReservations(business.id)).filter((x) => x.tableLabel === 'Mesa 2')
     expect(r).toMatchObject({ startsAt: `${DAY}T20:00`, partySize: 3, contactName: 'Ana Pérez', note: 'Cumpleaños', durationMinutes: 120 })
 
@@ -318,5 +324,54 @@ describe('mesas guardadas y el agente reservando', () => {
     expect(prompt).toContain('# Reservas de mesa')
     expect(prompt).toContain('2 ventanas')
     expect(prompt).not.toContain('no cargó su agenda')
+  })
+
+  it('la tolerancia se configura y el agente la avisa con el valor nuevo', async () => {
+    await setReservationSettings(business.id, { durationMinutes: 90, graceMinutes: 20 })
+    expect(await getReservationSettings(business.id)).toEqual({ durationMinutes: 90, graceMinutes: 20 })
+    const out = await runAgentTool({ business, conversation }, 'reservar_mesa', {
+      mesa: 'Mesa 4',
+      fecha: DAY,
+      hora: '19:50',
+      personas: 6,
+      nombre_cliente: 'Grupo Soto',
+    })
+    expect(out).toContain('hasta 20 minutos después de la hora (hasta las 20:10)')
+    await setReservationSettings(business.id, { durationMinutes: 120, graceMinutes: 15 })
+  })
+
+  it('si el cliente no llegó, marcarlo libera la mesa', async () => {
+    const floors = await listFloors(business.id)
+    const option = reservableTables(floors).find((o) => o.table.label === 'Mesa 1')!
+    const made = await reserveTable({
+      businessId: business.id,
+      hours: HOURS,
+      option,
+      date: DAY,
+      time: '13:00',
+      partySize: 2,
+      durationMinutes: 120,
+      contactName: 'No vino',
+      contactHandle: '',
+      conversationId: null,
+      enforceHours: true,
+    })
+    expect(made.ok).toBe(true)
+    const search = { date: DAY, time: '13:30', partySize: 2, durationMinutes: 120 }
+    const taken = findTables(floors, await listReservations(business.id), HOURS, search)
+    expect(taken.ok && taken.matches.map((o) => o.table.label)).not.toContain('Mesa 1')
+
+    if (!made.ok) return
+    const marked = await markNoShow(made.reservation.id)
+    expect(marked.status).toBe('no_llego')
+    const free = findTables(floors, await listReservations(business.id), HOURS, search)
+    expect(free.ok && free.matches.map((o) => o.table.label)).toContain('Mesa 1')
+  })
+})
+
+describe('hasta cuándo se guarda la mesa', () => {
+  it('suma la tolerancia, también pasada la medianoche', () => {
+    expect(holdUntil('20:30', 15)).toBe('20:45')
+    expect(holdUntil('23:50', 15)).toBe('00:05')
   })
 })

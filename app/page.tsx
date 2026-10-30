@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { BRAND } from '@/lib/brand'
+import { COMPANY, COMPANY_WHATSAPP_URL } from '@/lib/legal'
 import Foreground from './_landing/Foreground'
 import Motion from './_landing/Motion'
 import Nav from './_landing/Nav'
@@ -378,6 +379,15 @@ function Final() {
             Ya tengo cuenta
           </Link>
         </div>
+        <div className="zv-contact" data-reveal-item>
+          <p>¿Prefieres hablar con una persona?</p>
+          <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" data-cursor="WhatsApp">
+            <span aria-hidden="true">💬</span> WhatsApp {COMPANY.phone}
+          </a>
+          <a href={`mailto:${COMPANY.email}`} data-cursor="Correo">
+            <span aria-hidden="true">✉️</span> {COMPANY.email}
+          </a>
+        </div>
       </div>
     </section>
   )
@@ -393,7 +403,11 @@ function Footer() {
         <span className="zv-label">
           {BRAND.name} · {BRAND.tagline}
         </span>
-        <nav aria-label="Legal" className="zv-foot-nav">
+        <nav aria-label="Contacto y legal" className="zv-foot-nav">
+          <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+            WhatsApp {COMPANY.phone}
+          </a>
+          <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
           <Link href="/terminos">Términos</Link>
           <Link href="/privacidad">Privacidad</Link>
           <Link href="/panel">Ingresar</Link>

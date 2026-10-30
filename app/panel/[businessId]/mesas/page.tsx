@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { formatDateLabel } from '@/lib/agenda'
+import { addDays, formatDateLabel } from '@/lib/agenda'
 import {
   describeTable,
+  holdUntil,
   isTableFree,
   reservableTables,
   tableTraits,
   type ElementKind,
   type Floor,
   type FloorElement,
+  type ReservationSettings,
   type TableReservation,
 } from '@/lib/mesas'
 import type { WeekHours } from '@/lib/types'
@@ -81,9 +83,10 @@ export default function MesasPage() {
   const [tab, setTab] = useState<'croquis' | 'reservas'>('croquis')
   const [floors, setFloors] = useState<Floor[] | null>(null)
   const [reservations, setReservations] = useState<TableReservation[]>([])
-  const [reservationMinutes, setReservationMinutes] = useState(120)
+  const [settings, setSettings] = useState<ReservationSettings>({ durationMinutes: 120, graceMinutes: 15 })
   const [hours, setHours] = useState<WeekHours>([])
   const [today, setToday] = useState('')
+  const [nowTime, setNowTime] = useState('00:00')
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/businesses/${businessId}/mesas`)
@@ -91,9 +94,10 @@ export default function MesasPage() {
     const data = await res.json()
     setFloors(data.floors)
     setReservations(data.reservations)
-    setReservationMinutes(data.reservationMinutes)
+    setSettings(data.settings)
     setHours(data.hours)
     setToday(data.today)
+    setNowTime(data.now)
   }, [businessId])
 
   useEffect(() => {
@@ -140,9 +144,10 @@ export default function MesasPage() {
           businessId={businessId}
           floors={floors}
           reservations={reservations}
-          reservationMinutes={reservationMinutes}
+          settings={settings}
           hours={hours}
           today={today}
+          nowTime={nowTime}
           onChanged={load}
         />
       )}
@@ -576,23 +581,27 @@ function Reservations({
   businessId,
   floors,
   reservations,
-  reservationMinutes,
+  settings,
   hours,
   today,
+  nowTime,
   onChanged,
 }: {
   businessId: string
   floors: Floor[]
   reservations: TableReservation[]
-  reservationMinutes: number
+  settings: ReservationSettings
   hours: WeekHours
   today: string
+  /** Hora local del negocio al cargar: para saber qué reservas ya pasaron su hora. */
+  nowTime: string
   onChanged: () => Promise<void>
 }) {
   const [date, setDate] = useState(today)
   const [time, setTime] = useState(() => hours.find(Boolean)?.open ?? '20:00')
   const [floorId, setFloorId] = useState(floors[0]?.id ?? '')
-  const [minutes, setMinutes] = useState(String(reservationMinutes))
+  const [minutes, setMinutes] = useState(String(settings.durationMinutes))
+  const [grace, setGrace] = useState(String(settings.graceMinutes))
   const [form, setForm] = useState({ tableId: '', partySize: '2', contactName: '', contactHandle: '', note: '' })
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -610,10 +619,10 @@ function Reservations({
     const res = await fetch(`/api/businesses/${businessId}/mesas`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reservationMinutes: Number(minutes) }),
+      body: JSON.stringify({ durationMinutes: Number(minutes), graceMinutes: Number(grace) }),
     })
     const data = await res.json().catch(() => null)
-    setMessage(res.ok ? { ok: true, text: 'Duración guardada.' } : { ok: false, text: errorText(data, 'No se pudo guardar.') })
+    setMessage(res.ok ? { ok: true, text: 'Guardado.' } : { ok: false, text: errorText(data, 'No se pudo guardar.') })
     if (res.ok) await onChanged()
   }
 
@@ -639,6 +648,27 @@ function Reservations({
     if (!window.confirm('¿Cancelar esta reserva?')) return
     await fetch(`/api/reservas/${id}`, { method: 'DELETE' })
     await onChanged()
+  }
+
+  async function noShow(id: string) {
+    if (!window.confirm('¿Marcar que no llegó? La mesa queda libre para otra reserva.')) return
+    await fetch(`/api/reservas/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'no_llego' }),
+    })
+    await onChanged()
+  }
+
+  /** Ya pasó la tolerancia de una reserva: el local puede liberar la mesa. */
+  function pastGrace(r: TableReservation): boolean {
+    const [d, t] = r.startsAt.split('T')
+    const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+    const end = toMinutes(t) + settings.graceMinutes
+    if (d === today) return toMinutes(nowTime) >= end
+    // Una reserva de anoche cuya tolerancia cruza la medianoche.
+    if (d === addDays(today, -1)) return toMinutes(nowTime) + 24 * 60 >= end
+    return d < today
   }
 
   if (tables.length === 0) {
@@ -688,7 +718,7 @@ function Reservations({
         ) : (
           <ul className="mt-3 divide-y divide-gray-800 rounded-lg border border-gray-800">
             {ofDay.map((r) => (
-              <li key={r.id} className={`flex items-start justify-between gap-4 p-4 ${r.status === 'cancelado' ? 'opacity-50' : ''}`}>
+              <li key={r.id} className={`flex items-start justify-between gap-4 p-4 ${r.status !== 'confirmado' ? 'opacity-50' : ''}`}>
                 <div className="text-sm">
                   <p className="font-medium text-white">
                     {r.startsAt.slice(11, 16)} · {r.tableLabel} ({r.floorName}) · {r.partySize} personas
@@ -698,13 +728,26 @@ function Reservations({
                     {r.contactHandle ? ` · ${r.contactHandle}` : ''}
                     {r.conversationId ? ' · reservó el agente' : ' · anotada a mano'}
                     {r.status === 'cancelado' ? ' · cancelada' : ''}
+                    {r.status === 'no_llego' ? ' · no llegó (mesa liberada)' : ''}
                   </p>
+                  {r.status === 'confirmado' && (
+                    <p className="text-xs text-amber-400/80">
+                      Se le guarda hasta las {holdUntil(r.startsAt.slice(11, 16), settings.graceMinutes)}
+                    </p>
+                  )}
                   {r.note && <p className="text-gray-500">{r.note}</p>}
                 </div>
                 {r.status === 'confirmado' && (
-                  <button onClick={() => cancel(r.id)} className="text-xs text-red-400 hover:text-red-300">
-                    Cancelar
-                  </button>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    {pastGrace(r) && (
+                      <button onClick={() => noShow(r.id)} className="text-xs text-amber-400 hover:text-amber-300">
+                        No llegó · liberar mesa
+                      </button>
+                    )}
+                    <button onClick={() => cancel(r.id)} className="text-xs text-red-400 hover:text-red-300">
+                      Cancelar
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
@@ -760,14 +803,20 @@ function Reservations({
         </form>
 
         <div className="space-y-2 rounded-lg border border-gray-800 p-4">
-          <h3 className="text-sm font-semibold text-white">Duración de cada reserva</h3>
-          <p className="text-xs text-gray-500">Cuánto tiempo queda tomada la mesa. Después se puede volver a reservar.</p>
-          <div className="flex gap-2">
+          <h3 className="text-sm font-semibold text-white">Duración y tolerancia</h3>
+          <Field label="Cuánto queda tomada la mesa (minutos)">
             <input type="number" className={input} min={30} max={480} step={15} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
-            <button type="button" onClick={saveMinutes} className={btn}>
-              Guardar
-            </button>
-          </div>
+          </Field>
+          <Field label="Cuánto se espera al cliente (minutos)">
+            <input type="number" className={input} min={0} max={120} step={5} value={grace} onChange={(e) => setGrace(e.target.value)} />
+          </Field>
+          <p className="text-xs text-gray-500">
+            El agente avisa al confirmar que la mesa se guarda hasta esos minutos después de la hora. Pasado ese
+            tiempo, aquí puedes marcar &quot;No llegó&quot; y la mesa queda libre.
+          </p>
+          <button type="button" onClick={saveMinutes} className={btn}>
+            Guardar
+          </button>
         </div>
         {message && <p className={`text-sm ${message.ok ? 'text-emerald-400' : 'text-red-400'}`}>{message.text}</p>}
       </aside>

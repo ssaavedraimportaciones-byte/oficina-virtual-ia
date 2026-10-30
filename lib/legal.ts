@@ -29,5 +29,13 @@ export const COMPANY = {
   updated: '26 de octubre de 2026',
 } as const
 
+/**
+ * Link de WhatsApp para que un interesado escriba directo desde la web, con
+ * un saludo ya escrito. Sale del mismo `phone`, para no tener el número dos veces.
+ */
+export const COMPANY_WHATSAPP_URL = `https://wa.me/${COMPANY.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+  'Hola, quiero saber más de ZeroVisto.',
+)}`
+
 /** Domicilio en una línea, como lo pide Meta y como figura en el SII. */
 export const COMPANY_ADDRESS = `${COMPANY.street}, ${COMPANY.city}, ${COMPANY.region}, ${COMPANY.country}`

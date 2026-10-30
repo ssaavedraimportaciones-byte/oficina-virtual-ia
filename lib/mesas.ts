@@ -47,7 +47,22 @@ export interface Floor {
   elements: FloorElement[]
 }
 
-export type ReservationStatus = 'confirmado' | 'cancelado'
+/** `no_llego`: pasó la tolerancia y el local liberó la mesa. */
+export type ReservationStatus = 'confirmado' | 'cancelado' | 'no_llego'
+
+export interface ReservationSettings {
+  /** Cuánto queda tomada la mesa. */
+  durationMinutes: number
+  /** Cuánto se espera al cliente antes de liberar la mesa. */
+  graceMinutes: number
+}
+
+/** "20:30" + 15 → "20:45": hasta cuándo se guarda la mesa. */
+export function holdUntil(time: string, graceMinutes: number): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = (h * 60 + m + graceMinutes) % (24 * 60)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
 
 export interface TableReservation {
   id: string

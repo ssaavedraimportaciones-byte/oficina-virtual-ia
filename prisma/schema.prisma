@@ -180,6 +180,9 @@ model Business {
 
   /// Cuánto se guarda una mesa por reserva, en minutos.
   reservationMinutes Int @default(120)
+  /// Tolerancia: si el cliente no llegó pasados estos minutos de la hora
+  /// reservada, la mesa se libera. El agente se lo avisa al confirmar.
+  reservationGraceMinutes Int @default(15)
 
   @@map("businesses")
 }

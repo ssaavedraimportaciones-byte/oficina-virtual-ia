@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireBusinessAccess } from '@/lib/authz'
 import { reservableTables } from '@/lib/mesas'
-import { getReservationMinutes, listFloors, reserveTable } from '@/lib/mesasStore'
+import { getReservationSettings, listFloors, reserveTable } from '@/lib/mesasStore'
 import { getBusiness } from '@/lib/store'
 
 const reservationSchema = z.object({
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     date: parsed.data.date,
     time: parsed.data.time,
     partySize: parsed.data.partySize,
-    durationMinutes: await getReservationMinutes(id),
+    durationMinutes: (await getReservationSettings(id)).durationMinutes,
     contactName: parsed.data.contactName,
     contactHandle: parsed.data.contactHandle,
     conversationId: null,

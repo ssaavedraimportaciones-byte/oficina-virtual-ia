@@ -3,10 +3,10 @@ import { z } from 'zod'
 import { requireBusinessAccess } from '@/lib/authz'
 import {
   createFloor,
-  getReservationMinutes,
+  getReservationSettings,
   listFloors,
   listReservations,
-  setReservationMinutes,
+  setReservationSettings,
 } from '@/lib/mesasStore'
 import { getBusiness } from '@/lib/store'
 import { businessNow } from '@/lib/timezone'
@@ -19,16 +19,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const business = await getBusiness(id)
   if (!business) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
 
-  const today = businessNow().date
-  const [floors, reservations, reservationMinutes] = await Promise.all([
+  const now = businessNow()
+  const [floors, reservations, settings] = await Promise.all([
     listFloors(id),
-    listReservations(id, today),
-    getReservationMinutes(id),
+    listReservations(id, now.date),
+    getReservationSettings(id),
   ])
-  return NextResponse.json({ floors, reservations, reservationMinutes, hours: business.hours, today })
+  return NextResponse.json({ floors, reservations, settings, hours: business.hours, today: now.date, now: now.time })
 }
 
-const settingsSchema = z.object({ reservationMinutes: z.number().int().min(30).max(480) })
+const settingsSchema = z.object({
+  durationMinutes: z.number().int().min(30).max(480),
+  graceMinutes: z.number().int().min(0).max(120),
+})
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,10 +40,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const parsed = settingsSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
-    return NextResponse.json({ error: 'La duración tiene que ser de 30 a 480 minutos.' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'La duración va de 30 a 480 minutos y la tolerancia de 0 a 120.' },
+      { status: 400 },
+    )
   }
-  await setReservationMinutes(id, parsed.data.reservationMinutes)
-  return NextResponse.json({ reservationMinutes: parsed.data.reservationMinutes })
+  await setReservationSettings(id, parsed.data)
+  return NextResponse.json({ settings: parsed.data })
 }
 
 const floorSchema = z.object({ name: z.string().trim().min(1).max(60) })

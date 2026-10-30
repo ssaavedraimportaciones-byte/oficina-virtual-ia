@@ -1,6 +1,7 @@
 import type { AgentConfig, KnowledgeEntry, Message, Product, Service } from './types'
 import { buildConversationContext, buildSystemPrompt } from './agentPrompt'
-import { AGENDA_TOOLS, HANDOFF_TOOL, PEDIDO_TOOLS, runAgentTool, type ToolContext } from './agentTools'
+import { AGENDA_TOOLS, HANDOFF_TOOL, MESAS_TOOLS, PEDIDO_TOOLS, runAgentTool, type ToolContext } from './agentTools'
+import { reservableTables, type Floor } from './mesas'
 import { getProvider, type LlmMessage } from './llm'
 import { businessNow } from './timezone'
 
@@ -70,6 +71,7 @@ export async function generateAgentReply(
   options?: {
     services?: Service[]
     products?: Product[]
+    floors?: Floor[]
     toolContext?: ToolContext
     contactNotes?: string
   },
@@ -77,6 +79,8 @@ export async function generateAgentReply(
   const provider = getProvider()
   const services = options?.services ?? []
   const products = options?.products ?? []
+  const floors = options?.floors ?? []
+  const hasTables = reservableTables(floors).length > 0
   const toolContext = options?.toolContext
 
   // Cada juego de herramientas se habilita solo si el negocio cargó los datos
@@ -86,6 +90,7 @@ export async function generateAgentReply(
     ? [
         ...(services.length > 0 ? AGENDA_TOOLS : []),
         ...(products.length > 0 ? PEDIDO_TOOLS : []),
+        ...(hasTables ? MESAS_TOOLS : []),
         HANDOFF_TOOL,
       ]
     : []
@@ -93,7 +98,7 @@ export async function generateAgentReply(
   const messages = toLlmMessages(history)
   if (messages.length === 0) return FALLBACK_REPLY
 
-  const system = buildSystemPrompt(config, knowledge, services, products)
+  const system = buildSystemPrompt(config, knowledge, services, products, floors)
   const context = buildConversationContext(businessNow(), options?.contactNotes)
 
   const startedAt = Date.now()

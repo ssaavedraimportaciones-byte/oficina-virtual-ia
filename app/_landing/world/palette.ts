@@ -80,10 +80,10 @@ const DAWN: Light = {
 
 // Día de Santiago: cielo azul que se pone lechoso hacia el horizonte (el smog).
 const DAY: Light = {
-  skyTop: C('#3f6fb4'),
-  skyMid: C('#8db0d6'),
-  skyHorizon: C('#d8d6cc'),
-  fog: C('#b8bcc2'),
+  skyTop: C('#3a6fc0'),
+  skyMid: C('#89b2dc'),
+  skyHorizon: C('#d3dbe2'),
+  fog: C('#a9b8c8'),
   fogDensity: 0.0042,
   hemiSky: C('#d4e2ff'),
   hemiGround: C('#6f604e'),

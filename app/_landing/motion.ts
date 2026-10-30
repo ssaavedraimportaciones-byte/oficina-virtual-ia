@@ -30,7 +30,7 @@ export async function initMotion(): Promise<() => void> {
   const stage = $<HTMLElement>('[data-stage]')
   const hero = $<HTMLElement>('[data-hero]')
   const heroContent = $<HTMLElement>('[data-hero-content]')
-  const sections = Object.fromEntries(['rubros', 'foodtruck', 'dentista', 'negocios', 'limites', 'integraciones', 'ahorro', 'empieza', 'final'].map((id) => [id, document.getElementById(id)])) as Record<string, HTMLElement | null>
+  const sections = Object.fromEntries(['rubros', 'foodtruck', 'dentista', 'negocios', 'limites', 'integraciones', 'mesas', 'ahorro', 'empieza', 'final'].map((id) => [id, document.getElementById(id)])) as Record<string, HTMLElement | null>
   const navLinks = $$<HTMLElement>('[data-nav]')
   const railLinks = $$<HTMLElement>('[data-rail]')
   const fgLayers = $$<HTMLElement>('[data-fg]')
@@ -123,7 +123,7 @@ export async function initMotion(): Promise<() => void> {
     const mid = y + M.vh * 0.5
     let section = 'inicio'
     if (mid >= M.stageStart && y < M.stageEnd + M.vh * 0.5) section = 'noche'
-    for (const id of ['rubros', 'foodtruck', 'dentista', 'negocios', 'limites', 'integraciones', 'ahorro', 'empieza', 'final']) if (M.top[id] !== undefined && mid >= M.top[id]) section = id
+    for (const id of ['rubros', 'foodtruck', 'dentista', 'negocios', 'limites', 'integraciones', 'mesas', 'ahorro', 'empieza', 'final']) if (M.top[id] !== undefined && mid >= M.top[id]) section = id
     if (y < M.stageStart - M.vh * 0.5) section = 'inicio'
 
     let chapter = section

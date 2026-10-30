@@ -316,6 +316,13 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
           col.r = texture2D(tDiffuse, vUv - c * a).r;
           col.g = texture2D(tDiffuse, vUv).g;
           col.b = texture2D(tDiffuse, vUv + c * a).b;
+          // Color: un poco más de saturación (el render sale apagado bajo la
+          // niebla) y tono partido de cine: sombras hacia el azul de la noche,
+          // luces hacia el ámbar de los faroles.
+          float l0 = dot(col, vec3(0.2126, 0.7152, 0.0722));
+          col = mix(vec3(l0), col, 1.0 + 0.2 * uAmount);
+          vec3 tint = mix(vec3(0.94, 0.98, 1.08), vec3(1.05, 1.0, 0.93), smoothstep(0.02, 0.45, l0));
+          col *= mix(vec3(1.0), tint, uAmount);
           // Viñeta suave en las esquinas.
           float vig = smoothstep(1.15, 0.2, r2 * 1.9);
           col *= mix(1.0, vig, 0.5 * uAmount);

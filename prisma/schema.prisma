@@ -175,6 +175,11 @@ model Business {
   appointments  Appointment[]
   products      Product[]
   orders        Order[]
+  floors        Floor[]
+  reservations  TableReservation[]
+
+  /// Cuánto se guarda una mesa por reserva, en minutos.
+  reservationMinutes Int @default(120)
 
   @@map("businesses")
 }
@@ -275,6 +280,82 @@ model Appointment {
 
   @@index([businessId, startsAt])
   @@map("appointments")
+}
+
+// --- Mesas y reservas (restaurantes) ---
+
+/// Un piso o salón del local, con su croquis. Las coordenadas de los elementos
+/// van en unidades del lienzo (width x height), no en píxeles de pantalla.
+model Floor {
+  id         String @id @default(uuid())
+  businessId String
+  name       String
+  position   Int    @default(0)
+  width      Int    @default(1000)
+  height     Int    @default(600)
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  elements FloorElement[]
+
+  @@index([businessId])
+  @@map("floors")
+}
+
+/// Todo lo que se dibuja en un piso: mesas, ventanas, puertas, barra, muros
+/// y zonas (un área con nombre, como "Terraza"). Solo las mesas se reservan.
+model FloorElement {
+  /// Lo genera el navegador al dibujar: así el croquis se guarda entero de una.
+  id       String @id
+  floorId  String
+  kind     String
+  label    String
+  x        Int
+  y        Int
+  width    Int
+  height   Int
+  /// "rect" o "round" (solo mesas).
+  shape    String @default("rect")
+  seats    Int    @default(0)
+  /// "sol", "sombra" o null. En una mesa, null = el de la ventana más cercana.
+  sun      String?
+  /// Sector a mano ("Terraza", "Salón"). Vacío = la zona dibujada que la contiene.
+  zone     String @default("")
+  /// true/false fuerza "junto a ventana"; null = se calcula por cercanía.
+  nearWindow Boolean?
+  reservable Boolean @default(true)
+
+  floor        Floor              @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  reservations TableReservation[]
+
+  @@index([floorId])
+  @@map("floor_elements")
+}
+
+model TableReservation {
+  id             String   @id @default(uuid())
+  businessId     String
+  /// null si después se borró la mesa del croquis: la reserva queda igual.
+  tableId        String?
+  /// Copia del nombre de la mesa y del piso al reservar.
+  tableLabel     String
+  floorName      String
+  conversationId String?
+  contactName    String
+  contactHandle  String
+  partySize      Int
+  /// Hora local del negocio, igual que Appointment.startsAt.
+  startsAt        String
+  durationMinutes Int
+  status          String   @default("confirmado")
+  note            String   @default("")
+  createdAt       DateTime @default(now())
+
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  table    FloorElement? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, startsAt])
+  @@index([tableId])
+  @@map("table_reservations")
 }
 
 // --- Catálogo y pedidos ---

@@ -8,6 +8,16 @@ import {
   isSlotFree,
 } from './agenda'
 import { formatPrice, isOrderable, isSoldOut, stockLabel } from './catalog'
+import {
+  describeTable,
+  findTableByLabel,
+  findTables,
+  SUN_SIDES,
+  suggestTimes,
+  type SunSide,
+  type TablePrefs,
+} from './mesas'
+import { getReservationMinutes, listFloors, listReservations, reserveTable } from './mesasStore'
 import { notifyHandoff } from './notifications'
 import {
   addAppointment,
@@ -131,6 +141,55 @@ export const PEDIDO_TOOLS: LlmTool[] = [
         },
       },
       required: ['items', 'nombre_cliente'],
+    },
+  },
+]
+
+export const MESAS_TOOLS: LlmTool[] = [
+  {
+    name: 'consultar_mesas',
+    description:
+      'Devuelve las mesas libres para una fecha, hora y cantidad de personas, con su ubicación (piso, ventana, lado sol o sombra, sector). Úsalo SIEMPRE antes de ofrecer una mesa: nunca inventes mesas ni digas que hay lugar sin consultarlo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        fecha: { type: 'string', description: 'Fecha en formato YYYY-MM-DD.' },
+        hora: { type: 'string', description: 'Hora de llegada en formato HH:mm (24 horas).' },
+        personas: { type: 'number', description: 'Cuántas personas van a la mesa.' },
+        ventana: {
+          type: 'boolean',
+          description: 'Opcional. true si pide mesa junto a la ventana, false si pide lejos de la ventana. Omítelo si le da igual.',
+        },
+        lado: {
+          type: 'string',
+          enum: [...SUN_SIDES],
+          description: 'Opcional. "sol" o "sombra", si el cliente lo pide.',
+        },
+        piso: { type: 'string', description: 'Opcional. Piso o salón que pide ("primer piso", "segundo piso").' },
+        sector: { type: 'string', description: 'Opcional. Sector que pide ("terraza", "salón", "privado").' },
+      },
+      required: ['fecha', 'hora', 'personas'],
+    },
+  },
+  {
+    name: 'reservar_mesa',
+    description:
+      'Reserva una mesa. Úsalo solo cuando el cliente ya eligió una mesa que salió de consultar_mesas y sabes su nombre.',
+    parameters: {
+      type: 'object',
+      properties: {
+        mesa: { type: 'string', description: 'Nombre de la mesa tal como lo devolvió consultar_mesas.' },
+        piso: { type: 'string', description: 'Piso de la mesa, si hay mesas con el mismo nombre en distintos pisos.' },
+        fecha: { type: 'string', description: 'Fecha en formato YYYY-MM-DD.' },
+        hora: { type: 'string', description: 'Hora de llegada en formato HH:mm (24 horas).' },
+        personas: { type: 'number', description: 'Cuántas personas van.' },
+        nombre_cliente: {
+          type: 'string',
+          description: 'Nombre a quien queda la reserva. Si no lo sabes, pregúntaselo antes.',
+        },
+        nota: { type: 'string', description: 'Opcional: cumpleaños, silla de bebé, alergias, etc.' },
+      },
+      required: ['mesa', 'fecha', 'hora', 'personas', 'nombre_cliente'],
     },
   },
 ]
@@ -316,6 +375,98 @@ async function runDerivarAHumano(ctx: ToolContext, input: { motivo?: string }): 
   return 'Listo: la conversación quedó derivada al equipo y ya les avisamos. Dile al contacto, en una frase, que una persona le va a responder por acá. No hagas nada más en esta conversación.'
 }
 
+function parsePrefs(input: { ventana?: unknown; lado?: unknown; piso?: unknown; sector?: unknown }): TablePrefs {
+  const prefs: TablePrefs = {}
+  if (typeof input.ventana === 'boolean') prefs.ventana = input.ventana
+  if (typeof input.lado === 'string' && (SUN_SIDES as readonly string[]).includes(input.lado)) {
+    prefs.lado = input.lado as SunSide
+  }
+  if (typeof input.piso === 'string' && input.piso.trim()) prefs.piso = input.piso
+  if (typeof input.sector === 'string' && input.sector.trim()) prefs.sector = input.sector
+  return prefs
+}
+
+function parsePartySize(value: unknown): number | null {
+  const n = Number(value)
+  return Number.isInteger(n) && n > 0 && n <= 100 ? n : null
+}
+
+async function runConsultarMesas(
+  ctx: ToolContext,
+  input: { fecha?: string; hora?: string; personas?: unknown; ventana?: unknown; lado?: unknown; piso?: unknown; sector?: unknown },
+): Promise<string> {
+  if (!input.fecha || !input.hora || !DATE_RE.test(input.fecha) || !TIME_RE.test(input.hora)) {
+    return 'Necesito la fecha como YYYY-MM-DD y la hora como HH:mm (24 horas). Si el cliente no te dijo cuándo, pregúntaselo.'
+  }
+  const partySize = parsePartySize(input.personas)
+  if (!partySize) return 'Falta cuántas personas van. Pregúntaselo al cliente.'
+
+  const now = businessNow()
+  const [floors, reservations, durationMinutes] = await Promise.all([
+    listFloors(ctx.business.id),
+    listReservations(ctx.business.id, now.date),
+    getReservationMinutes(ctx.business.id),
+  ])
+  const search = { date: input.fecha, time: input.hora, partySize, durationMinutes, prefs: parsePrefs(input) }
+  const result = findTables(floors, reservations, ctx.business.hours, search, now)
+  if (!result.ok) return `No se puede reservar: ${result.reason}`
+
+  const when = `el ${formatDateLabel(input.fecha)} a las ${input.hora} para ${partySize}`
+  const list = (options: typeof result.matches) =>
+    options.slice(0, 6).map((o) => `- ${describeTable(o)}`).join('\n')
+
+  if (result.matches.length > 0) {
+    return `Mesas libres ${when} (la mesa queda reservada ${durationMinutes} min):\n${list(result.matches)}\nOfrécele una o dos, contándole dónde quedan.`
+  }
+
+  const times = suggestTimes(floors, reservations, ctx.business.hours, search, now)
+  const otherTimes = times.length
+    ? `\nCon lo que pidió hay mesa a estas otras horas: ${times.join(', ')}.`
+    : ''
+  if (result.others.length > 0) {
+    return `No hay ninguna mesa libre ${when} con lo que pidió. Libres a esa hora, pero sin todas sus preferencias:\n${list(result.others)}${otherTimes}\nCuéntale qué hay y que elija.`
+  }
+  return `No queda ninguna mesa libre ${when}.${otherTimes || ' Ofrécele otro día.'}`
+}
+
+async function runReservarMesa(
+  ctx: ToolContext,
+  input: { mesa?: string; piso?: string; fecha?: string; hora?: string; personas?: unknown; nombre_cliente?: string; nota?: string },
+): Promise<string> {
+  if (!input.mesa || !input.nombre_cliente) {
+    return 'Faltan datos para reservar: necesito la mesa y el nombre del cliente.'
+  }
+  if (!input.fecha || !input.hora || !DATE_RE.test(input.fecha) || !TIME_RE.test(input.hora)) {
+    return 'La fecha tiene que ir como YYYY-MM-DD y la hora como HH:mm (24 horas).'
+  }
+  const partySize = parsePartySize(input.personas)
+  if (!partySize) return 'Falta cuántas personas van.'
+
+  const floors = await listFloors(ctx.business.id)
+  const option = findTableByLabel(floors, input.mesa, input.piso)
+  if (option === 'ambigua') return `Hay más de una "${input.mesa}": dime en qué piso.`
+  if (!option) return `No encontré la mesa "${input.mesa}". Usa consultar_mesas para ver cuáles hay libres.`
+
+  const result = await reserveTable({
+    businessId: ctx.business.id,
+    hours: ctx.business.hours,
+    option,
+    date: input.fecha,
+    time: input.hora,
+    partySize,
+    durationMinutes: await getReservationMinutes(ctx.business.id),
+    contactName: input.nombre_cliente,
+    contactHandle: ctx.conversation.contactHandle,
+    conversationId: ctx.conversation.id,
+    note: input.nota,
+    enforceHours: true,
+    now: businessNow(),
+  })
+  if (!result.ok) return `No se pudo reservar: ${result.reason} Consulta de nuevo con consultar_mesas y ofrécele otra.`
+
+  return `Mesa reservada: ${describeTable(option)}, el ${formatDateLabel(input.fecha)} a las ${input.hora}, para ${partySize}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente.`
+}
+
 export async function runAgentTool(
   ctx: ToolContext,
   name: string,
@@ -336,6 +487,12 @@ export async function runAgentTool(
     }
     if (name === 'crear_pedido') {
       return await runCrearPedido(ctx, input as Parameters<typeof runCrearPedido>[1])
+    }
+    if (name === 'consultar_mesas') {
+      return await runConsultarMesas(ctx, input)
+    }
+    if (name === 'reservar_mesa') {
+      return await runReservarMesa(ctx, input)
     }
     if (name === 'derivar_a_humano') {
       return await runDerivarAHumano(ctx, input as { motivo?: string })

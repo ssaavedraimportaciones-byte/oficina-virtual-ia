@@ -10,6 +10,7 @@ import Stage, { SplitWords } from './_landing/Stage'
 import StaticStory from './_landing/Static'
 import World from './_landing/World'
 import Ahorro from './_landing/Ahorro'
+import Mesas from './_landing/Mesas'
 import { BENEFITS, CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
 import '@fontsource-variable/archivo/wdth.css'
 import '@fontsource-variable/fraunces/index.css'
@@ -273,7 +274,7 @@ function Integraciones() {
           label="Se conecta con lo que ya usas"
           title="Toda tu operación, dentro del chat."
           accent={[2]}
-          intro="Hoy atiende por WhatsApp e Instagram, e importa tu catálogo desde WooCommerce o Jumpseller. Estas son las demás integraciones que vienen, para que el agente agende, cobre y venda sin que tu cliente salga de la conversación."
+          intro="Hoy atiende por WhatsApp e Instagram, entiende las notas de voz e importa tu catálogo desde WooCommerce o Jumpseller. Estas son las demás integraciones que vienen, para que el agente agende, cobre y venda sin que tu cliente salga de la conversación."
         />
         <ul className="zv-integra-grid" data-reveal>
           {INTEGRATIONS.map((it) => (
@@ -441,6 +442,7 @@ export default function Home() {
         <Negocios />
         <Limites />
         <Integraciones />
+        <Mesas />
         <Resuelve />
         <Empieza />
         <Final />

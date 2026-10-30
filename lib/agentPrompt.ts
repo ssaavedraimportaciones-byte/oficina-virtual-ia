@@ -1,6 +1,7 @@
 import type { AgentConfig, KnowledgeEntry, Product, Service, Tone } from './types'
 import { formatDateLabel, type LocalNow } from './agenda'
 import { formatPrice, isSoldOut, stockLabel } from './catalog'
+import { summarizeFloors, type Floor } from './mesas'
 
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
   cercano:
@@ -30,7 +31,10 @@ con el equipo y sigue la conversación.
 ${entries}`
 }
 
-function buildAgendaSection(services: Service[]): string {
+function buildAgendaSection(services: Service[], hasTables: boolean): string {
+  // Un restaurante que solo reserva mesas no tiene "horas" que agendar: el
+  // aviso de agenda vacía lo confundiría con las reservas.
+  if (services.length === 0 && hasTables) return ''
   if (services.length === 0) {
     return `# Agenda
 Este negocio todavía no cargó su agenda, así que no puedes reservar horas. Si el cliente quiere
@@ -89,6 +93,31 @@ Tienes herramientas para tomar pedidos de verdad:
 - Después de registrar, confírmale el detalle y el total.`
 }
 
+function buildMesasSection(floors: Floor[]): string {
+  const summary = summarizeFloors(floors)
+  if (!summary) return ''
+
+  return `
+
+# Reservas de mesa
+Así está distribuido el local:
+${summary}
+
+Tienes herramientas para reservar mesas de verdad:
+- Para reservar necesitas el día, la hora y cuántas personas van. Si falta algo, pregúntalo.
+- Pregunta, sin hacerlo un formulario, si tiene alguna preferencia: ventana, lado sol o sombra,
+  piso o sector. Si no le importa, no insistas.
+- Antes de ofrecer una mesa, llama a consultar_mesas. Nunca inventes mesas ni digas que hay
+  lugar sin haberlo consultado.
+- Cuando ofrezcas una mesa, cuéntale dónde queda ("junto a la ventana, del lado de la sombra,
+  en el segundo piso") en vez de solo el número.
+- Si no hay lo que pidió, dile qué sí hay (otra mesa u otra hora) con naturalidad.
+- Reserva con reservar_mesa solo cuando eligió la mesa y sabes su nombre.
+- Después de reservar, confírmale día, hora, cuántas personas y dónde queda la mesa.
+- Si son más personas de las que caben en la mesa más grande, deriva a una persona del
+  equipo para que vea si se pueden juntar mesas.`
+}
+
 /**
  * Lo que cambia en cada conversación: la fecha y lo que ya se sabe del
  * contacto. Va separado del prompt principal para que ese se pueda cachear.
@@ -105,6 +134,7 @@ export function buildSystemPrompt(
   knowledge: KnowledgeEntry[] = [],
   services: Service[] = [],
   products: Product[] = [],
+  floors: Floor[] = [],
 ): string {
   return `Eres ${config.agentName}, la persona que responde los mensajes de ${config.businessName} por chat.
 
@@ -140,7 +170,7 @@ Después de derivar, avísale en una frase que alguien del equipo le va a respon
 
 ${buildKnowledgeSection(knowledge)}
 
-${buildAgendaSection(services)}${buildCatalogSection(products)}
+${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildCatalogSection(products)}${buildMesasSection(floors)}
 
 Responde siempre en el idioma en el que te escribe el contacto.`
 }

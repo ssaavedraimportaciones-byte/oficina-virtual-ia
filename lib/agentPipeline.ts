@@ -1,4 +1,5 @@
 import { generateAgentReply } from './agentEngine'
+import { listFloors } from './mesasStore'
 import { updateContactNotes } from './contactNotes'
 import { notifyNewConversation, notifyQuotaReached } from './notifications'
 import { getMaintenance } from './platform'
@@ -142,16 +143,18 @@ export async function handleIncomingMessage(
     return { status: 'quota', conversation }
   }
 
-  const [knowledge, services, products] = await Promise.all([
+  const [knowledge, services, products, floors] = await Promise.all([
     listKnowledge(business.id),
     listServices(business.id),
     listProducts(business.id),
+    listFloors(business.id),
   ])
   let reply: string
   try {
     reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
       services,
       products,
+      floors,
       toolContext: { business, conversation },
       contactNotes: conversation.notes,
     })

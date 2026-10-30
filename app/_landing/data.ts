@@ -248,7 +248,7 @@ export const STREET: StreetShop[] = [
     id: 'gastronomia',
     emoji: '🍽️',
     label: 'Gastronomía',
-    does: 'Responde carta, precios y horarios, y toma la reserva para cuántos y a qué hora.',
+    does: 'Responde carta y horarios, y reserva la mesa: cuántos, a qué hora y si la quieren junto a la ventana.',
     sign: { text: 'La Picada', sub: 'almuerzos · once', kind: 'neon', bg: '#111', fg: '#ffb347', font: 'script' },
     facade: '#9c5b45',
     glow: '#ffc27a',
@@ -328,6 +328,7 @@ export const NAV = [
   { id: 'foodtruck', label: 'Food truck' },
   { id: 'negocios', label: 'Negocios' },
   { id: 'integraciones', label: 'Integraciones' },
+  { id: 'mesas', label: 'Reservas' },
   { id: 'ahorro', label: 'Ahorro' },
   { id: 'empieza', label: 'Cómo empieza' },
 ]
@@ -491,6 +492,7 @@ export type IntegrationStatus = 'live' | 'soon'
 export const INTEGRATIONS: { name: string; emoji: string; text: string; group: string; status: IntegrationStatus }[] = [
   { name: 'WhatsApp Business', emoji: '💬', text: 'Atiende donde ya te escriben.', group: 'Canales', status: 'live' },
   { name: 'Instagram', emoji: '📸', text: 'Responde los mensajes directos.', group: 'Canales', status: 'live' },
+  { name: 'Notas de voz', emoji: '🎤', text: 'Escucha los audios que manda el cliente y le responde.', group: 'Canales', status: 'live' },
   { name: 'WooCommerce', emoji: '🧩', text: 'Importa tu catálogo y precios desde tu tienda WordPress.', group: 'Tienda', status: 'live' },
   { name: 'Jumpseller', emoji: '🛒', text: 'Importa productos, precios y stock desde tu tienda.', group: 'Tienda', status: 'live' },
   { name: 'Google Calendar', emoji: '📅', text: 'Agenda y bloquea las horas solo.', group: 'Agenda', status: 'soon' },
@@ -500,5 +502,4 @@ export const INTEGRATIONS: { name: string; emoji: string; text: string; group: s
   { name: 'Mercado Pago', emoji: '🔗', text: 'Links de pago, sin salir de la conversación.', group: 'Pagos', status: 'soon' },
   { name: 'Flow', emoji: '🏦', text: 'Pagos y transferencias online.', group: 'Pagos', status: 'soon' },
   { name: 'Boleta electrónica (SII)', emoji: '📄', text: 'Documentos tributarios del cliente.', group: 'Documentos', status: 'soon' },
-  { name: 'Notas de voz', emoji: '🎤', text: 'Procesa los audios que manda el cliente.', group: 'Documentos', status: 'soon' },
 ]

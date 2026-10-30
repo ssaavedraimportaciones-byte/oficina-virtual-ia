@@ -2981,3 +2981,31 @@
 .zv-integra-card[data-status='live'] .zv-tilt:hover {
   border-color: rgba(255, 179, 71, 0.7);
 }
+.zv-mesas-place {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--zv-soft);
+}
+.zv-mesas-place strong {
+  color: var(--zv-bone);
+  font-weight: 600;
+}
+.zv-mesas-place span {
+  margin-left: auto;
+  font-family: var(--zv-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.16rem 0.45rem;
+  border: 1px solid var(--zv-line);
+  border-radius: 999px;
+  color: var(--zv-dim);
+}
+.zv-mesas-door {
+  fill: rgba(52, 211, 153, 0.5);
+  stroke: #34d399;
+}

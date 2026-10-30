@@ -25,32 +25,35 @@ const POINTS = [
   },
 ]
 
+/** Restaurante inventado para el ejemplo (es el mismo de la cuenta de demostración). */
+const PLACE = { name: 'Altura Bistró', floor: 'Piso 11 · Salón', where: 'Las Condes' }
+
 const CHAT = [
-  { from: 'in', text: 'Hola! ¿tienen mesa para 4 el sábado a las 21:00? Ojalá junto a la ventana 🙏' },
+  { from: 'in', text: 'Hola! ¿tienen mesa para 4 el sábado a las 20:30? Ojalá con vista a la Torre Titanium 🙏' },
   {
     from: 'out',
-    text: '¡Hola! Sí 🙌 Te dejo la Mesa 6 del segundo piso, junto a la ventana 2, del lado de la sombra. ¿A nombre de quién la reservo?',
+    text: '¡Hola! Sí 🙌 Te dejo la Mesa 3 del piso 11, junto al ventanal con vista a la Torre Titanium. A esa hora te toca la puesta de sol de frente. ¿A nombre de quién la reservo?',
   },
   { from: 'in', text: 'A nombre de Camila' },
-  { from: 'out', text: 'Listo, Camila: sábado 21:00, 4 personas, Mesa 6 junto a la ventana. ¡Te esperamos!' },
+  { from: 'out', text: 'Listo, Camila: sábado 20:30, 4 personas, Mesa 3 frente a la Torre Titanium. ¡Te esperamos!' },
 ] as const
 
 type Table = { x: number; y: number; r?: number; w?: number; h?: number; label: string; tone: 'sol' | 'sombra' | 'libre' | 'tomada' }
 
 const TABLES: Table[] = [
-  { x: 70, y: 70, r: 22, label: '1', tone: 'sol' },
-  { x: 150, y: 70, r: 22, label: '2', tone: 'sol' },
-  { x: 250, y: 60, w: 60, h: 40, label: '6', tone: 'sombra' },
-  { x: 335, y: 60, w: 44, h: 40, label: '7', tone: 'tomada' },
-  { x: 90, y: 165, r: 20, label: '3', tone: 'libre' },
-  { x: 175, y: 165, r: 20, label: '4', tone: 'tomada' },
-  { x: 265, y: 160, w: 44, h: 40, label: '8', tone: 'libre' },
-  { x: 60, y: 250, w: 80, h: 34, label: '5', tone: 'libre' },
+  { x: 60, y: 62, r: 20, label: '1', tone: 'tomada' },
+  { x: 125, y: 62, r: 20, label: '2', tone: 'sol' },
+  { x: 190, y: 62, r: 20, label: '3', tone: 'sol' },
+  { x: 330, y: 70, w: 44, h: 40, label: '5', tone: 'sombra' },
+  { x: 330, y: 130, w: 44, h: 54, label: '6', tone: 'tomada' },
+  { x: 100, y: 150, r: 20, label: '8', tone: 'libre' },
+  { x: 200, y: 150, r: 20, label: '9', tone: 'libre' },
+  { x: 230, y: 230, w: 100, h: 36, label: '10', tone: 'libre' },
 ]
 
 function Plan() {
   return (
-    <svg className="zv-mesas-plan" viewBox="0 0 400 300" role="img" aria-label="Croquis de ejemplo: un salón con dos ventanas, una al sol y otra a la sombra, y la mesa 6 elegida junto a la ventana de la sombra.">
+    <svg className="zv-mesas-plan" viewBox="0 0 400 300" role="img" aria-label="Croquis de ejemplo de Altura Bistró: un salón con un ventanal al sol con vista a la Torre Titanium y otro a la sombra hacia la cordillera, y la mesa 3 elegida junto al ventanal de la torre.">
       <defs>
         <pattern id="zv-mesas-grid" width="20" height="20" patternUnits="userSpaceOnUse">
           <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(239,231,216,0.06)" strokeWidth="1" />
@@ -59,20 +62,24 @@ function Plan() {
       <rect x="1" y="1" width="398" height="298" rx="14" className="zv-mesas-floor" />
       <rect x="1" y="1" width="398" height="298" rx="14" fill="url(#zv-mesas-grid)" />
       {/* Ventanas en la pared de arriba */}
-      <rect x="40" y="6" width="140" height="8" rx="3" className="zv-mesas-win zv-mesas-win--sol" />
-      <text x="110" y="30" className="zv-mesas-tag">ventana 1 · sol</text>
-      <rect x="230" y="6" width="150" height="8" rx="3" className="zv-mesas-win zv-mesas-win--sombra" />
-      <text x="305" y="30" className="zv-mesas-tag">ventana 2 · sombra</text>
-      {/* Terraza y barra */}
-      <rect x="22" y="222" width="160" height="70" rx="8" className="zv-mesas-zone" />
-      <text x="32" y="240" className="zv-mesas-tag zv-mesas-tag--left">terraza</text>
-      <rect x="250" y="240" width="130" height="34" rx="4" className="zv-mesas-bar" />
-      <text x="315" y="262" className="zv-mesas-tag">barra</text>
+      <rect x="30" y="6" width="200" height="8" rx="3" className="zv-mesas-win zv-mesas-win--sol" />
+      <text x="130" y="30" className="zv-mesas-tag">ventanal torre titanium · sol</text>
+      <rect x="386" y="50" width="8" height="150" rx="3" className="zv-mesas-win zv-mesas-win--sombra" />
+      <text x="330" y="40" className="zv-mesas-tag">cordillera · sombra</text>
+      {/* Barra y ascensor */}
+      <rect x="24" y="236" width="150" height="40" rx="4" className="zv-mesas-bar" />
+      <text x="99" y="260" className="zv-mesas-tag">barra de cócteles</text>
+      <rect x="250" y="288" width="70" height="6" rx="2" className="zv-mesas-door" />
       {TABLES.map((t) => {
-        const chosen = t.label === '6'
+        const chosen = t.label === '3'
         return (
           <g key={t.label} className={`zv-mesas-t zv-mesas-t--${t.tone}${chosen ? ' is-chosen' : ''}`}>
-            {chosen && <rect x={t.x - 8} y={t.y - 8} width={(t.w ?? 0) + 16} height={(t.h ?? 0) + 16} rx="12" className="zv-mesas-ring" />}
+            {chosen &&
+              (t.r ? (
+                <circle cx={t.x} cy={t.y} r={t.r + 8} className="zv-mesas-ring" />
+              ) : (
+                <rect x={t.x - 8} y={t.y - 8} width={(t.w ?? 0) + 16} height={(t.h ?? 0) + 16} rx="12" className="zv-mesas-ring" />
+              ))}
             {t.r ? <circle cx={t.x} cy={t.y} r={t.r} /> : <rect x={t.x} y={t.y} width={t.w} height={t.h} rx="7" />}
             <text x={t.r ? t.x : t.x + (t.w ?? 0) / 2} y={(t.r ? t.y : t.y + (t.h ?? 0) / 2) + 4}>
               {t.label}
@@ -97,7 +104,7 @@ export default function Mesas() {
           </h2>
           <p className="zv-intro" data-reveal-item>
             Dibuja cada piso de tu restaurante y el agente reserva solo, a cualquier hora. Al cliente le dice exactamente
-            dónde se va a sentar: junto a la ventana, al sol o a la sombra, en la terraza.
+            dónde se va a sentar: frente al ventanal con vista a la torre, al sol o a la sombra, en la terraza.
           </p>
         </header>
 
@@ -116,6 +123,10 @@ export default function Mesas() {
 
           <div className="zv-mesas-demo" data-reveal>
             <figure className="zv-mesas-card" data-reveal-item>
+              <p className="zv-mesas-place">
+                <strong>{PLACE.name}</strong> · {PLACE.floor} · {PLACE.where}
+                <span>ejemplo</span>
+              </p>
               <Plan />
               <figcaption className="zv-mesas-legend">
                 <span className="is-sol">Sol</span>

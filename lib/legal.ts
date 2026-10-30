@@ -20,10 +20,9 @@ export const COMPANY = {
   /**
    * Casilla pública para consultas legales y pedidos sobre datos personales.
    * Tiene que ser una casilla que alguien lea: acá llegan los ejercicios de
-   * derechos de la Ley 19.628. Cuando exista contacto@zerovistochile.com,
-   * cambiar solo esta línea.
+   * derechos de la Ley 19.628.
    */
-  email: 'sebastianmatiassaavedraaraya@gmail.com',
+  email: 'contacto@zerovistochile.com',
   phone: '+56 9 2044 8651',
   site: 'zerovistochile.com',
   /** Fecha de publicación de los textos legales: actualizar al editarlos. */

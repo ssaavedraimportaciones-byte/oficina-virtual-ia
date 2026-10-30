@@ -175,15 +175,15 @@ function skyMaterial(): THREE.ShaderMaterial {
         vec3 zenith = vec3(0.035, 0.05, 0.13);
         vec3 high = vec3(0.16, 0.12, 0.30);
         vec3 mid = vec3(0.62, 0.26, 0.38);
-        vec3 horizon = vec3(1.25, 0.58, 0.30);
+        vec3 horizon = vec3(1.0, 0.47, 0.26);
         vec3 col = mix(horizon, mid, smoothstep(0.0, 0.12, h));
         col = mix(col, high, smoothstep(0.1, 0.35, h));
         col = mix(col, zenith, smoothstep(0.35, 0.9, h));
         // Más luz del lado del sol; más fría del lado de la cordillera
         float toward = dot(normalize(vec3(d.x, 0.0001, d.z)), normalize(vec3(uSun.x, 0.0, uSun.z)));
-        col *= mix(vec3(0.62, 0.7, 1.0), vec3(1.15, 1.0, 0.9), toward * 0.5 + 0.5);
+        col *= mix(vec3(0.62, 0.7, 1.0), vec3(1.08, 0.98, 0.9), toward * 0.5 + 0.5);
         float s = max(dot(d, uSun), 0.0);
-        col += vec3(1.6, 0.9, 0.45) * pow(s, 18.0) * 0.9;
+        col += vec3(1.6, 0.9, 0.45) * pow(s, 24.0) * 0.55;
         col += vec3(6.0, 4.6, 3.0) * smoothstep(0.9993, 0.9997, s);
         col = mix(col, horizon * 0.55, smoothstep(0.0, -0.08, h));
         gl_FragColor = vec4(col, 1.0);
@@ -527,13 +527,16 @@ export function createAlturaScene(canvas: HTMLCanvasElement, opts: { motion: boo
   // Lámparas colgantes
   const pendantMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffc884').multiplyScalar(1.6) })
   const pendantGeo = new THREE.SphereGeometry(0.14, 12, 8)
+  const pendants = new THREE.InstancedMesh(pendantGeo, pendantMat, 18)
+  let pendantIndex = 0
   for (let x = -10; x <= 10; x += 4) {
     for (const z of [-4.5, 0, 4.5]) {
-      const p = new THREE.Mesh(pendantGeo, pendantMat)
-      p.position.set(x, B.base + B.floor - 1.2, z)
-      scene.add(p)
+      m4.makeTranslation(x, B.base + B.floor - 1.2, z)
+      pendants.setMatrixAt(pendantIndex, m4)
+      pendantIndex += 1
     }
   }
+  scene.add(pendants)
   for (const [x, z] of [
     [-7, -3],
     [7, -3],
@@ -670,14 +673,17 @@ export function createAlturaScene(canvas: HTMLCanvasElement, opts: { motion: boo
   // Guirnaldas de ampolletas
   const bulbMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffcf85').multiplyScalar(2.2) })
   const bulbGeo = new THREE.SphereGeometry(0.06, 8, 6)
-  for (const z of [-B.d / 2 + 0.6, -2, 3, B.d / 2 - 0.6]) {
+  // Una sola llamada de dibujo para las 212 ampolletas (en celulares importa)
+  const bulbRows = [-B.d / 2 + 0.6, -2, 3, B.d / 2 - 0.6]
+  const bulbs = new THREE.InstancedMesh(bulbGeo, bulbMat, bulbRows.length * 53)
+  bulbRows.forEach((z, row) => {
     for (let i = 0; i <= 52; i += 1) {
       const u = i / 52
-      const bulb = new THREE.Mesh(bulbGeo, bulbMat)
-      bulb.position.set(-B.w / 2 + u * B.w, ROOF_Y + 2.7 - Math.sin(u * Math.PI * 3) ** 2 * 0.45, z)
-      scene.add(bulb)
+      m4.makeTranslation(-B.w / 2 + u * B.w, ROOF_Y + 2.7 - Math.sin(u * Math.PI * 3) ** 2 * 0.45, z)
+      bulbs.setMatrixAt(row * 53 + i, m4)
     }
-  }
+  })
+  scene.add(bulbs)
   for (const [x, z] of [
     [-9, -6.5], [-4, -6.5], [1, -6.5], [6, -6.5], [-7, 0.5], [-1, 0.5], [5, 1], [-4, 6], [3, 6],
   ]) {
@@ -697,7 +703,7 @@ export function createAlturaScene(canvas: HTMLCanvasElement, opts: { motion: boo
   const composer = new EffectComposer(renderer)
   composer.addPass(new RenderPass(scene, camera))
   const BLOOM_OUT = lite ? 0.55 : 0.75
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_OUT, 0.55, 0.86)
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_OUT, 0.5, 0.95)
   composer.addPass(bloom)
   const grade = gradePass()
   composer.addPass(grade)

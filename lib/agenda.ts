@@ -240,6 +240,7 @@ export function assignProfessional(
   preferred?: Professional | null,
 ): { ok: true; professional: Professional } | { ok: false; reason: string } {
   const candidates = preferred ? [preferred] : team
+  if (candidates.length === 0) return { ok: false, reason: 'No hay nadie del equipo disponible.' }
   const date = splitLocal(startsAt).date
   const free = candidates.filter(
     (p) => isSlotFree(hours, appointmentsOf(appointments, p.id), startsAt, durationMinutes, now).ok,

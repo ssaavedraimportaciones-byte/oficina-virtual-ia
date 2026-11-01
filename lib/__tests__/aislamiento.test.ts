@@ -19,6 +19,8 @@ import * as orderRoute from '@/app/api/orders/[id]/route'
 import * as serviceRoute from '@/app/api/services/[id]/route'
 import * as knowledgeRoute from '@/app/api/knowledge/[id]/route'
 import * as appointmentRoute from '@/app/api/appointments/[id]/route'
+import * as equipoRoute from '@/app/api/businesses/[id]/equipo/route'
+import * as professionalRoute from '@/app/api/professionals/[id]/route'
 import * as businessesRoute from '@/app/api/businesses/route'
 
 /**
@@ -39,6 +41,7 @@ interface Tenant {
   orderId: string
   knowledgeId: string
   conversationId: string
+  professionalId: string
 }
 
 async function createTenant(label: string): Promise<Tenant> {
@@ -77,6 +80,7 @@ async function createTenant(label: string): Promise<Tenant> {
     contactHandle: 'x', requested: [{ producto: 'Esmalte', cantidad: 1 }], note: '',
   })
   if (!order.ok) throw new Error(order.reason)
+  const professional = await store.addProfessional(business.id, `Persona ${label}`)
   const knowledge = await store.addKnowledgeEntry({
     businessId: business.id, title: 'Precios', content: 'Semi: $1', sourceType: 'manual', sourceUrl: null,
   })
@@ -91,6 +95,7 @@ async function createTenant(label: string): Promise<Tenant> {
     orderId: order.order.id,
     knowledgeId: knowledge.id,
     conversationId: conversation.id,
+    professionalId: professional.id,
   }
 }
 
@@ -175,10 +180,12 @@ describe('aislamiento entre empresas: escrituras', () => {
     expect((await agendaRoute.POST(req('POST', { name: 'Hack', durationMinutes: 30, price: '$1' }), ctx(B.business.id))).status).toBe(404)
     expect((await agendaRoute.PUT(req('PUT', { hours: [null, null, null, null, null, null, null] }), ctx(B.business.id))).status).toBe(404)
     expect((await conversationsRoute.POST(req('POST', { channel: 'simulador', contactName: 'x', contactHandle: 'x' }), ctx(B.business.id))).status).toBe(404)
+    expect((await equipoRoute.POST(req('POST', { name: 'Intrusa' }), ctx(B.business.id))).status).toBe(404)
 
     expect(await store.listProducts(B.business.id)).toHaveLength(1)
     expect(await store.listServices(B.business.id)).toHaveLength(1)
     expect(await store.listKnowledge(B.business.id)).toHaveLength(1)
+    expect(await store.listProfessionals(B.business.id)).toHaveLength(1)
   })
 
   it('A no puede tocar productos, pedidos, servicios, conocimiento ni horas de B por su ID', async () => {
@@ -189,6 +196,7 @@ describe('aislamiento entre empresas: escrituras', () => {
     expect((await serviceRoute.DELETE(req('DELETE'), ctx(B.serviceId))).status).toBe(404)
     expect((await knowledgeRoute.DELETE(req('DELETE'), ctx(B.knowledgeId))).status).toBe(404)
     expect((await appointmentRoute.DELETE(req('DELETE'), ctx(B.appointmentId))).status).toBe(404)
+    expect((await professionalRoute.DELETE(req('DELETE'), ctx(B.professionalId))).status).toBe(404)
 
     // Nada cambió en la base.
     const [product] = await store.listProducts(B.business.id)
@@ -197,6 +205,7 @@ describe('aislamiento entre empresas: escrituras', () => {
     expect(await store.listServices(B.business.id)).toHaveLength(1)
     expect(await store.listKnowledge(B.business.id)).toHaveLength(1)
     expect((await store.listAppointments(B.business.id))[0].status).toBe('confirmado')
+    expect(await store.listProfessionals(B.business.id)).toHaveLength(1)
   })
 
   it('A no puede escribirle ni pausar al agente en una conversación de B', async () => {
@@ -214,6 +223,7 @@ describe('aislamiento entre empresas: escrituras', () => {
     expect((await productRoute.PATCH(req('PATCH', { stock: 7 }), ctx(B.productId))).status).toBe(200)
     expect((await orderRoute.PATCH(req('PATCH', { status: 'entregado' }), ctx(B.orderId))).status).toBe(200)
     expect((await conversationRoute.PATCH(req('PATCH', { agentPaused: true }), ctx(B.conversationId))).status).toBe(200)
+    expect((await equipoRoute.POST(req('POST', { name: 'Nueva' }), ctx(B.business.id))).status).toBe(201)
   })
 })
 
@@ -225,6 +235,8 @@ describe('aislamiento entre empresas: sin sesión', () => {
       catalogRoute.GET(req('GET'), ctx(A.business.id)),
       conversationRoute.GET(req('GET'), ctx(A.conversationId)),
       productRoute.DELETE(req('DELETE'), ctx(A.productId)),
+      equipoRoute.POST(req('POST', { name: 'x' }), ctx(A.business.id)),
+      professionalRoute.DELETE(req('DELETE'), ctx(A.professionalId)),
     ]
     for (const res of await Promise.all(calls)) expect([401, 404]).toContain(res.status)
   })

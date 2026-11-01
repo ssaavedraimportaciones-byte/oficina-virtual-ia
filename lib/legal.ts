@@ -26,7 +26,7 @@ export const COMPANY = {
   phone: '+56 9 2044 8651',
   site: 'zerovistochile.com',
   /** Fecha de publicación de los textos legales: actualizar al editarlos. */
-  updated: '26 de octubre de 2026',
+  updated: '1 de noviembre de 2026',
 } as const
 
 /**

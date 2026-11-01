@@ -93,18 +93,27 @@ export default function TerminosPage() {
       <h2>7. Planes y facturación</h2>
       <p>
         El plan gratuito permite un negocio propio, con hasta 300 respuestas del agente por mes.
-        Los planes pagos (Básico, Negocios e Ilimitado) permiten más negocios propios y más
-        respuestas por mes, según el plan contratado. Al llegar al tope mensual el agente deja de
-        responder de forma automática y avisa que una persona va a contestar; las conversaciones y
-        el panel siguen funcionando.
+        Los planes pagos se diferencian por cuántos negocios propios puedes tener y por cuántas
+        respuestas del agente incluye cada mes: <strong>Básico</strong> (1 negocio, 1.500
+        respuestas), <strong>Negocios</strong> (hasta 3 negocios, 4.000 respuestas) e{' '}
+        <strong>Ilimitado</strong> (negocios sin límite, 10.000 respuestas). El nombre
+        &laquo;Ilimitado&raquo; se refiere a la cantidad de negocios, no a la de respuestas. Al
+        llegar al tope mensual el agente deja de responder de forma automática y avisa que una
+        persona va a contestar; las conversaciones y el panel siguen funcionando.
       </p>
       <p>
-        El primer plan pago que contratas incluye, además de la suscripción mensual, un cobro único
-        de implementación (conectar tu WhatsApp y cargar tu negocio). Los planes se cobran por mes a
-        través de Stripe, al precio informado al contratar, y se pueden cambiar o cancelar cuando
-        quieras desde &laquo;Mi cuenta&raquo;. La cancelación aplica al final del período ya pagado,
-        sin devoluciones proporcionales. Si cambian los precios, se avisa con 30 días de
-        anticipación y el cambio rige en el período siguiente.
+        Además de la suscripción mensual se cobra un <strong>pago único de implementación por cada
+        negocio</strong> que conectas, no uno por cliente: dejar operativo un segundo número
+        (verificarlo ante Meta, cargar su catálogo o agenda y probarlo) es un trabajo distinto del
+        primero. Si contratas con dos negocios, se cobran dos implementaciones.
+      </p>
+      <p>
+        Todos los precios informados en el sitio y en el panel están expresados en pesos chilenos
+        e <strong>incluyen el IVA</strong>. Los planes se cobran por mes a través de Stripe, al
+        precio informado al contratar, y se pueden cambiar o cancelar cuando quieras desde{' '}
+        &laquo;Mi cuenta&raquo;. La cancelación aplica al final del período ya pagado, sin
+        devoluciones proporcionales. Si cambian los precios, se avisa con 30 días de anticipación y
+        el cambio rige en el período siguiente.
       </p>
 
       <h2>8. Qué no garantizamos</h2>

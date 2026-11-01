@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUser, isPlatformAdmin } from '@/lib/auth'
-import { countOpenConversations, listBusinessesForUser } from '@/lib/store'
+import { countOpenConversationsByBusiness, listBusinessesForUser } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import LogoutButton from '../LogoutButton'
 
@@ -12,7 +12,7 @@ export default async function PanelPage() {
   if (!user) redirect('/login')
 
   const businesses = await listBusinessesForUser(user)
-  const openCounts = await Promise.all(businesses.map((b) => countOpenConversations(b.id)))
+  const openByBusiness = await countOpenConversationsByBusiness(businesses.map((b) => b.id))
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-12">
@@ -61,9 +61,9 @@ export default async function PanelPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {businesses.map((business, i) => {
+          {businesses.map((business) => {
             const template = getIndustryTemplate(business.templateId)
-            const openCount = openCounts[i]
+            const openCount = openByBusiness.get(business.id) ?? 0
             return (
               <Link
                 key={business.id}

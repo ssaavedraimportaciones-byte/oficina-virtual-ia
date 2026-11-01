@@ -397,6 +397,22 @@ export async function countOpenConversations(businessId: string): Promise<number
   return prisma.conversation.count({ where: { businessId, status: 'abierta' } })
 }
 
+/**
+ * Conversaciones abiertas de varios negocios de una vez. La lista de negocios
+ * lo pedía uno por uno, y un administrador de plataforma los ve todos.
+ */
+export async function countOpenConversationsByBusiness(
+  businessIds: string[],
+): Promise<Map<string, number>> {
+  if (businessIds.length === 0) return new Map()
+  const rows = await prisma.conversation.groupBy({
+    by: ['businessId'],
+    where: { businessId: { in: businessIds }, status: 'abierta' },
+    _count: { _all: true },
+  })
+  return new Map(rows.map((r) => [r.businessId, r._count._all]))
+}
+
 export async function getConversation(id: string): Promise<Conversation | null> {
   const row = await prisma.conversation.findUnique({
     where: { id },
@@ -790,47 +806,65 @@ export interface BusinessOverview {
   lastActivityAt: string | null
 }
 
-/** Resumen de toda la plataforma para el panel de administración. */
+/**
+ * Resumen de toda la plataforma para el panel de administración.
+ *
+ * Son seis consultas agregadas y no seis POR NEGOCIO: con una consulta por
+ * negocio la pantalla crecía en costo a medida que entraban clientes (con 100
+ * negocios eran más de 600 consultas por carga, y la página no terminaba de
+ * abrir). Acá el número de consultas no depende de cuántos negocios haya.
+ */
 export async function getAdminOverview(): Promise<BusinessOverview[]> {
-  const businesses = await prisma.business.findMany()
-
-  const overview = await Promise.all(
-    businesses.map(async (business) => {
-      const [
-        conversationCount,
-        messageCount,
-        knowledgeCount,
-        pendingOrders,
-        soldOutProducts,
-        lastConversation,
-      ] = await Promise.all([
-        prisma.conversation.count({ where: { businessId: business.id } }),
-        prisma.message.count({ where: { conversation: { businessId: business.id } } }),
-        prisma.knowledgeEntry.count({ where: { businessId: business.id } }),
-        prisma.order.count({ where: { businessId: business.id, status: 'pendiente' } }),
-        prisma.product.count({
-          where: { businessId: business.id, active: true, stock: { lte: 0 } },
-        }),
-        prisma.conversation.findFirst({
-          where: { businessId: business.id },
-          orderBy: { updatedAt: 'desc' },
-          select: { updatedAt: true },
-        }),
-      ])
-
-      return {
-        business: mapBusiness(business),
-        conversationCount,
-        messageCount,
-        knowledgeCount,
-        pendingOrders,
-        soldOutProducts,
-        lastActivityAt: lastConversation?.updatedAt.toISOString() ?? null,
-      }
+  const [businesses, conversations, messages, knowledge, orders, products] = await Promise.all([
+    prisma.business.findMany(),
+    prisma.conversation.groupBy({
+      by: ['businessId'],
+      _count: { _all: true },
+      _max: { updatedAt: true },
     }),
-  )
+    // Los mensajes cuelgan de la conversación, no del negocio, así que el
+    // conteo por negocio necesita el join; no lleva datos de nadie, es fija.
+    prisma.$queryRaw<{ businessId: string; total: bigint }[]>`
+      SELECT c."businessId" AS "businessId", COUNT(m.id) AS total
+      FROM messages m JOIN conversations c ON c.id = m."conversationId"
+      GROUP BY c."businessId"
+    `,
+    prisma.knowledgeEntry.groupBy({ by: ['businessId'], _count: { _all: true } }),
+    prisma.order.groupBy({
+      by: ['businessId'],
+      where: { status: 'pendiente' },
+      _count: { _all: true },
+    }),
+    prisma.product.groupBy({
+      by: ['businessId'],
+      where: { active: true, stock: { lte: 0 } },
+      _count: { _all: true },
+    }),
+  ])
 
-  return overview.sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
+  const countBy = (rows: { businessId: string; _count: { _all: number } }[]) =>
+    new Map(rows.map((r) => [r.businessId, r._count._all]))
+
+  const conversationCounts = countBy(conversations)
+  const lastActivity = new Map(
+    conversations.map((r) => [r.businessId, r._max.updatedAt?.toISOString() ?? null]),
+  )
+  const messageCounts = new Map(messages.map((r) => [r.businessId, Number(r.total)]))
+  const knowledgeCounts = countBy(knowledge)
+  const pendingOrderCounts = countBy(orders)
+  const soldOutCounts = countBy(products)
+
+  return businesses
+    .map((business) => ({
+      business: mapBusiness(business),
+      conversationCount: conversationCounts.get(business.id) ?? 0,
+      messageCount: messageCounts.get(business.id) ?? 0,
+      knowledgeCount: knowledgeCounts.get(business.id) ?? 0,
+      pendingOrders: pendingOrderCounts.get(business.id) ?? 0,
+      soldOutProducts: soldOutCounts.get(business.id) ?? 0,
+      lastActivityAt: lastActivity.get(business.id) ?? null,
+    }))
+    .sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
 }
 
 export interface BusinessAnalytics {

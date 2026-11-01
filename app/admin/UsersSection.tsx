@@ -29,6 +29,7 @@ export default function UsersSection({
 
   const [assigning, setAssigning] = useState<string | null>(null)
   const [businessToAssign, setBusinessToAssign] = useState<Record<string, string>>({})
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
   const [resetting, setResetting] = useState<string | null>(null)
   const [tempPassword, setTempPassword] = useState<{ email: string; password: string } | null>(null)
 
@@ -77,6 +78,7 @@ export default function UsersSection({
       body: JSON.stringify({ businessId, role: 'OWNER' }),
     })
     setAssigning(null)
+    setPickerFor(null)
     refresh()
   }
 
@@ -211,31 +213,49 @@ export default function UsersSection({
                   ))
                 )}
 
-                <div className="flex items-center gap-1.5">
-                  <select
-                    value={businessToAssign[u.id] ?? ''}
-                    onChange={(e) =>
-                      setBusinessToAssign((prev) => ({ ...prev, [u.id]: e.target.value }))
-                    }
-                    className="input py-1 text-xs"
-                  >
-                    <option value="">+ asignar negocio…</option>
-                    {businesses
-                      .filter((b) => !u.businesses.some((ub) => ub.businessId === b.id))
-                      .map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                  </select>
+                {/* La lista de negocios se arma solo para el usuario que se está
+                    editando: dibujarla en cada fila crecía con usuarios × negocios. */}
+                {pickerFor === u.id ? (
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      autoFocus
+                      value={businessToAssign[u.id] ?? ''}
+                      onChange={(e) =>
+                        setBusinessToAssign((prev) => ({ ...prev, [u.id]: e.target.value }))
+                      }
+                      className="input py-1 text-sm"
+                    >
+                      <option value="">Elige un negocio…</option>
+                      {businesses
+                        .filter((b) => !u.businesses.some((ub) => ub.businessId === b.id))
+                        .map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      onClick={() => handleAssign(u.id)}
+                      disabled={!businessToAssign[u.id] || assigning === u.id}
+                      className="text-sm text-amber-400 hover:underline disabled:opacity-50"
+                    >
+                      Asignar
+                    </button>
+                    <button
+                      onClick={() => setPickerFor(null)}
+                      className="text-sm text-gray-500 hover:text-gray-300"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={() => handleAssign(u.id)}
-                    disabled={!businessToAssign[u.id] || assigning === u.id}
-                    className="text-xs text-amber-400 hover:underline disabled:opacity-50"
+                    onClick={() => setPickerFor(u.id)}
+                    className="text-sm text-amber-400 hover:underline"
                   >
-                    Asignar
+                    + Asignar negocio
                   </button>
-                </div>
+                )}
               </div>
             )}
           </div>

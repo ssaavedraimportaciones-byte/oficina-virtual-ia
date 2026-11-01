@@ -13,7 +13,7 @@ process.env.META_APP_SECRET ??= 'secreto-de-app-de-meta-para-tests'
 // y la suite entera fallaba con "Can't reach database server", que parece un
 // error del código y no lo es. Si la base no responde, se levanta sola.
 if (process.env.CLAUDE_CODE_REMOTE === 'true') {
-  const { execSync } = await import('child_process')
+  const { execSync } = require('child_process') as typeof import('child_process')
   const responde = () => {
     try {
       execSync('pg_isready -h localhost -p 5432', { stdio: 'ignore' })

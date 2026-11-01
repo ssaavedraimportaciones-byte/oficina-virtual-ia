@@ -48,11 +48,18 @@ export const PLAN_LABEL: Record<PlanName, string> = {
  * Precio de referencia en CLP/mes, solo para mostrarlo en la pantalla de
  * precios: el cobro real lo define el Price de Stripe (`PLAN_PRICE_ENV`),
  * así que un desajuste acá no cambia cuánto se le cobra a nadie.
+ *
+ * A la altura de lo que el agente hace de verdad (no es un árbol de botones):
+ * entiende lenguaje natural, agenda horas y reservas de mesa con croquis,
+ * toma pedidos con catálogo y stock, escucha notas de voz, deriva a una
+ * persona cuando corresponde, y atiende WhatsApp e Instagram del mismo panel.
+ * Sigue por debajo de la competencia con WhatsApp (Whaticket, Callbell,
+ * Landbot rondan $47.000–$170.000 CLP/mes y son bots de opciones, no IA).
  */
 export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
-  BASICO: 25_000,
-  NEGOCIOS: 55_000,
-  ILIMITADO: 90_000,
+  BASICO: 45_000,
+  NEGOCIOS: 95_000,
+  ILIMITADO: 160_000,
 }
 
 /**
@@ -62,7 +69,7 @@ export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
  * probarlo) es trabajo aparte del primero, así que quien maneja 2 negocios
  * paga la implementación 2 veces.
  */
-export const SETUP_FEE_CLP = 90_000
+export const SETUP_FEE_CLP = 120_000
 
 /** Variable de entorno que trae el Price de Stripe de cada plan pago. */
 export const PLAN_PRICE_ENV: Record<PaidPlan, string> = {

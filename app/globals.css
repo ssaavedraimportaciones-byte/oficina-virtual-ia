@@ -15,3 +15,8 @@
 .input {
   @apply w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-amber-500 focus:outline-none;
 }
+
+/* Panel más legible para personas mayores: agranda todo el panel de cada negocio. */
+.panel-grande {
+  zoom: 1.12;
+}

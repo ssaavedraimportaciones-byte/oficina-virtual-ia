@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { canAccessBusiness, getCurrentUser } from '@/lib/auth'
 import { getBusiness } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
+import { prisma } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,20 +27,23 @@ export default async function BusinessLayout({
 
   const template = getIndustryTemplate(business.templateId)
 
+  const hasTables =
+    business.templateId === 'gastronomia' || (await prisma.floor.count({ where: { businessId } })) > 0
+
   const navItems = [
     { href: `/panel/${businessId}/resumen`, label: 'Resumen' },
     { href: `/panel/${businessId}`, label: 'Conversaciones' },
     { href: `/panel/${businessId}/agenda`, label: 'Agenda y horas' },
     { href: `/panel/${businessId}/pedidos`, label: 'Catálogo y pedidos' },
-    { href: `/panel/${businessId}/mesas`, label: 'Mesas y reservas' },
+    ...(hasTables ? [{ href: `/panel/${businessId}/mesas`, label: 'Mesas y reservas' }] : []),
     { href: `/panel/${businessId}/configurar`, label: 'Configurar agente' },
     { href: `/panel/${businessId}/conocimiento`, label: 'Base de conocimiento' },
     { href: `/panel/${businessId}/conexiones`, label: 'Conexiones' },
   ]
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r border-gray-800 bg-gray-900/40 p-6">
+    <div className="panel-grande flex min-h-screen">
+      <aside className="w-64 shrink-0 border-r border-gray-800 bg-gray-900/40 p-6">
         <Link href="/">
           <BrandLockup />
         </Link>
@@ -52,7 +56,7 @@ export default async function BusinessLayout({
         </Link>
         <div className="mt-2 flex items-center gap-2">
           <span>{template?.emoji ?? '✨'}</span>
-          <span className="truncate text-sm font-medium text-white">
+          <span className="truncate text-base font-medium text-white">
             {business.config.businessName}
           </span>
         </div>
@@ -62,7 +66,7 @@ export default async function BusinessLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-md px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="rounded-md px-3 py-2.5 text-base text-gray-200 hover:bg-gray-800 hover:text-white"
             >
               {item.label}
             </Link>

@@ -110,6 +110,40 @@ export default function AgendaPage() {
         horas solo, directamente desde el chat.
       </p>
 
+      <section className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold text-white">Horas reservadas ({upcoming.length})</h2>
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-gray-500">Todavía no hay horas reservadas.</p>
+        ) : (
+          <div className="flex flex-col divide-y divide-gray-800 rounded-lg border border-gray-800">
+            {upcoming.map((appointment) => {
+              const { date, time } = splitLocal(appointment.startsAt)
+              return (
+                <div
+                  key={appointment.id}
+                  className="flex items-center justify-between gap-4 px-5 py-4"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-white">
+                      {appointment.contactName} — {appointment.serviceName}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatDateLabel(date)} a las {time} · {appointment.durationMinutes} min
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => cancel(appointment.id)}
+                    className="shrink-0 text-xs text-gray-500 hover:text-danger"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
       {services.length === 0 && (
         <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-5 text-sm text-gray-300">
           Hasta que cargues al menos un servicio, el agente no puede reservar: va a tomar los
@@ -232,40 +266,6 @@ export default function AgendaPage() {
           </button>
           {hoursSaved && <span className="text-sm text-success">Guardado.</span>}
         </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 font-medium text-white">Horas reservadas ({upcoming.length})</h2>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-gray-500">Todavía no hay horas reservadas.</p>
-        ) : (
-          <div className="flex flex-col divide-y divide-gray-800 rounded-lg border border-gray-800">
-            {upcoming.map((appointment) => {
-              const { date, time } = splitLocal(appointment.startsAt)
-              return (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-white">
-                      {appointment.contactName} — {appointment.serviceName}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatDateLabel(date)} a las {time} · {appointment.durationMinutes} min
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => cancel(appointment.id)}
-                    className="shrink-0 text-xs text-gray-500 hover:text-danger"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        )}
       </section>
     </div>
   )

@@ -20,6 +20,7 @@ import type {
   OrderItem,
   OrderStatus,
   Product,
+  Professional,
   Service,
   Tone,
   WeekHours,
@@ -160,6 +161,8 @@ function mapAppointment(row: {
   conversationId: string | null
   serviceId: string | null
   serviceName: string
+  professionalId: string | null
+  professionalName: string | null
   contactName: string
   contactHandle: string
   startsAt: string
@@ -173,6 +176,8 @@ function mapAppointment(row: {
     conversationId: row.conversationId,
     serviceId: row.serviceId,
     serviceName: row.serviceName,
+    professionalId: row.professionalId,
+    professionalName: row.professionalName,
     contactName: row.contactName,
     contactHandle: row.contactHandle,
     startsAt: row.startsAt,
@@ -552,6 +557,25 @@ export async function deleteService(id: string): Promise<void> {
   await prisma.service.delete({ where: { id } }).catch(() => {})
 }
 
+export async function listProfessionals(businessId: string): Promise<Professional[]> {
+  const rows = await prisma.professional.findMany({ where: { businessId }, orderBy: { createdAt: 'asc' } })
+  return rows.map((r) => ({ id: r.id, businessId: r.businessId, name: r.name }))
+}
+
+export async function addProfessional(businessId: string, name: string): Promise<Professional> {
+  const row = await prisma.professional.create({ data: { businessId, name } })
+  return { id: row.id, businessId: row.businessId, name: row.name }
+}
+
+export async function deleteProfessional(id: string): Promise<void> {
+  await prisma.professional.delete({ where: { id } }).catch(() => {})
+}
+
+export async function getProfessionalBusinessId(id: string): Promise<string | null> {
+  const row = await prisma.professional.findUnique({ where: { id }, select: { businessId: true } })
+  return row?.businessId ?? null
+}
+
 export async function listAppointments(businessId: string): Promise<Appointment[]> {
   const rows = await prisma.appointment.findMany({
     where: { businessId },
@@ -561,7 +585,10 @@ export async function listAppointments(businessId: string): Promise<Appointment[
 }
 
 export async function addAppointment(
-  input: Omit<Appointment, 'id' | 'status' | 'createdAt'>,
+  input: Omit<Appointment, 'id' | 'status' | 'createdAt' | 'professionalId' | 'professionalName'> & {
+    professionalId?: string | null
+    professionalName?: string | null
+  },
 ): Promise<Appointment> {
   const row = await prisma.appointment.create({
     data: { ...input, status: 'confirmado' },

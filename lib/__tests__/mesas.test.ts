@@ -65,7 +65,7 @@ function reservation(tableId: string, startsAt: string, durationMinutes = 120): 
     startsAt,
     durationMinutes,
     status: 'confirmado',
-    note: '',
+    note: '', attendantName: null,
     createdAt: new Date().toISOString(),
   }
 }

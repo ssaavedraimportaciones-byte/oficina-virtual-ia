@@ -735,6 +735,7 @@ function Reservations({
                       Se le guarda hasta las {holdUntil(r.startsAt.slice(11, 16), settings.graceMinutes)}
                     </p>
                   )}
+                  {r.attendantName && <p className="text-gray-400">Lo atiende {r.attendantName}</p>}
                   {r.note && <p className="text-gray-500">{r.note}</p>}
                 </div>
                 {r.status === 'confirmado' && (

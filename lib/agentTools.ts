@@ -2,9 +2,12 @@ import type { LlmTool } from './llm'
 import {
   addDays,
   buildLocal,
+  assignProfessional,
+  findProfessionalByName,
   findServiceByName,
   formatDateLabel,
   getAvailableSlots,
+  getAvailableTeamSlots,
   isSlotFree,
 } from './agenda'
 import { formatPrice, isOrderable, isSoldOut, stockLabel } from './catalog'
@@ -25,11 +28,12 @@ import {
   createOrder,
   listAppointments,
   listProducts,
+  listProfessionals,
   listServices,
   setAgentPaused,
 } from './store'
 import { businessNow } from './timezone'
-import type { Business, Conversation } from './types'
+import type { Business, Conversation, Professional } from './types'
 
 /**
  * Disponible en todas las conversaciones, tenga o no agenda o catálogo el
@@ -73,6 +77,11 @@ export const AGENDA_TOOLS: LlmTool[] = [
           description:
             'Opcional, HH:mm (24 horas). Devuelve solo horarios desde esa hora. Úsalo cuando el cliente pide un momento del día: "a la tarde" = 14:00, "a la noche" = 18:00.',
         },
+        profesional: {
+          type: 'string',
+          description:
+            'Opcional: nombre de la persona del equipo que el cliente pidió. Si no pidió a nadie, no lo pases.',
+        },
       },
       required: ['servicio'],
     },
@@ -90,6 +99,11 @@ export const AGENDA_TOOLS: LlmTool[] = [
         nombre_cliente: {
           type: 'string',
           description: 'Nombre del cliente. Si no lo sabes, pregúntaselo antes de reservar.',
+        },
+        profesional: {
+          type: 'string',
+          description:
+            'Opcional: nombre de la persona del equipo que el cliente pidió. Si no pidió a nadie, no lo pases y se asigna sola.',
         },
       },
       required: ['servicio', 'fecha', 'hora', 'nombre_cliente'],
@@ -189,6 +203,10 @@ export const MESAS_TOOLS: LlmTool[] = [
           description: 'Nombre a quien queda la reserva. Si no lo sabes, pregúntaselo antes.',
         },
         nota: { type: 'string', description: 'Opcional: cumpleaños, silla de bebé, alergias, etc.' },
+        atiende: {
+          type: 'string',
+          description: 'Opcional: nombre de la persona del equipo que el cliente pidió que lo atienda.',
+        },
       },
       required: ['mesa', 'fecha', 'hora', 'personas', 'nombre_cliente'],
     },
@@ -203,9 +221,13 @@ export interface ToolContext {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
+function teamNames(team: Professional[]): string {
+  return team.map((p) => p.name).join(', ')
+}
+
 async function runConsultarDisponibilidad(
   ctx: ToolContext,
-  input: { servicio?: string; desde?: string; hora_desde?: string },
+  input: { servicio?: string; desde?: string; hora_desde?: string; profesional?: string },
 ): Promise<string> {
   const services = await listServices(ctx.business.id)
   if (services.length === 0) {
@@ -220,6 +242,41 @@ async function runConsultarDisponibilidad(
   const now = businessNow()
   const from = input.desde && DATE_RE.test(input.desde) && input.desde >= now.date ? input.desde : now.date
   const appointments = await listAppointments(ctx.business.id)
+  const team = await listProfessionals(ctx.business.id)
+
+  if (team.length > 0) {
+    const wanted = input.profesional?.trim() ? findProfessionalByName(team, input.profesional) : null
+    if (input.profesional?.trim() && !wanted) {
+      return `No hay nadie del equipo que se llame "${input.profesional}". El equipo es: ${teamNames(team)}. Pregúntale al cliente con quién prefiere.`
+    }
+    const fromTimeTeam = input.hora_desde && TIME_RE.test(input.hora_desde) ? input.hora_desde : null
+    const teamSlots = getAvailableTeamSlots(
+      ctx.business.hours,
+      appointments,
+      wanted ? [wanted] : team,
+      service.durationMinutes,
+      from,
+      addDays(from, 14),
+      fromTimeTeam ? 400 : 12,
+      now,
+    )
+      .filter((slot) => !fromTimeTeam || slot.time >= fromTimeTeam)
+      .slice(0, 12)
+
+    if (teamSlots.length === 0) {
+      return `No hay horarios libres para "${service.name}"${wanted ? ` con ${wanted.name}` : ''}${fromTimeTeam ? ` desde las ${fromTimeTeam}` : ''} en las próximas dos semanas.${wanted ? ' Puedes ofrecerle a otra persona del equipo.' : ''}`
+    }
+    const byDate = teamSlots.reduce<Record<string, string[]>>((acc, slot) => {
+      acc[slot.date] = acc[slot.date] ?? []
+      acc[slot.date].push(wanted ? slot.time : `${slot.time} (${slot.free.map((p) => p.name).join(' o ')})`)
+      return acc
+    }, {})
+    const teamLines = Object.entries(byDate).map(
+      ([date, times]) => `${formatDateLabel(date)} (${date}): ${times.join(', ')}`,
+    )
+    return `Horarios libres para "${service.name}"${wanted ? ` con ${wanted.name}` : ''} (dura ${service.durationMinutes} min, sale ${service.price}):\n${teamLines.join('\n')}`
+  }
+
   // Sin este filtro el agente solo veía los primeros 12 horarios del día (todos
   // de mañana) y no podía ofrecerle nada a quien pide "a la tarde".
   const fromTime = input.hora_desde && TIME_RE.test(input.hora_desde) ? input.hora_desde : null
@@ -255,7 +312,7 @@ async function runConsultarDisponibilidad(
 
 async function runAgendarTurno(
   ctx: ToolContext,
-  input: { servicio?: string; fecha?: string; hora?: string; nombre_cliente?: string },
+  input: { servicio?: string; fecha?: string; hora?: string; nombre_cliente?: string; profesional?: string },
 ): Promise<string> {
   if (!input.servicio || !input.fecha || !input.hora || !input.nombre_cliente) {
     return 'Faltan datos para reservar: necesito servicio, fecha, hora y nombre del cliente.'
@@ -275,6 +332,39 @@ async function runAgendarTurno(
 
   const startsAt = buildLocal(input.fecha, input.hora)
   const appointments = await listAppointments(ctx.business.id)
+  const team = await listProfessionals(ctx.business.id)
+
+  if (team.length > 0) {
+    const wanted = input.profesional?.trim() ? findProfessionalByName(team, input.profesional) : null
+    if (input.profesional?.trim() && !wanted) {
+      return `No hay nadie del equipo que se llame "${input.profesional}". El equipo es: ${teamNames(team)}.`
+    }
+    const pick = assignProfessional(
+      ctx.business.hours,
+      appointments,
+      team,
+      startsAt,
+      service.durationMinutes,
+      businessNow(),
+      wanted,
+    )
+    if (!pick.ok) {
+      return `No se pudo reservar: ${pick.reason} Ofrécele otro horario o a otra persona del equipo.`
+    }
+    await addAppointment({
+      businessId: ctx.business.id,
+      conversationId: ctx.conversation.id,
+      serviceId: service.id,
+      serviceName: service.name,
+      professionalId: pick.professional.id,
+      professionalName: pick.professional.name,
+      contactName: input.nombre_cliente,
+      contactHandle: ctx.conversation.contactHandle,
+      startsAt,
+      durationMinutes: service.durationMinutes,
+    })
+    return `Hora agendada: ${service.name} con ${pick.professional.name} el ${formatDateLabel(input.fecha)} a las ${input.hora}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente, diciéndole quién lo atiende.`
+  }
 
   // Se revalida acá aunque el horario haya salido de consultar_disponibilidad:
   // entre una cosa y la otra otro cliente puede haber tomado la hora.
@@ -432,7 +522,7 @@ async function runConsultarMesas(
 
 async function runReservarMesa(
   ctx: ToolContext,
-  input: { mesa?: string; piso?: string; fecha?: string; hora?: string; personas?: unknown; nombre_cliente?: string; nota?: string },
+  input: { mesa?: string; piso?: string; fecha?: string; hora?: string; personas?: unknown; nombre_cliente?: string; nota?: string; atiende?: string },
 ): Promise<string> {
   if (!input.mesa || !input.nombre_cliente) {
     return 'Faltan datos para reservar: necesito la mesa y el nombre del cliente.'
@@ -448,6 +538,18 @@ async function runReservarMesa(
   if (option === 'ambigua') return `Hay más de una "${input.mesa}": dime en qué piso.`
   if (!option) return `No encontré la mesa "${input.mesa}". Usa consultar_mesas para ver cuáles hay libres.`
 
+  let attendant: string | null = null
+  if (input.atiende?.trim()) {
+    const team = await listProfessionals(ctx.business.id)
+    const wanted = findProfessionalByName(team, input.atiende)
+    if (!wanted) {
+      return team.length > 0
+        ? `No hay nadie del equipo que se llame "${input.atiende}". El equipo es: ${teamNames(team)}.`
+        : 'Este negocio no tiene equipo cargado, así que no se puede elegir quién atiende. Reserva sin esa preferencia.'
+    }
+    attendant = wanted.name
+  }
+
   const settings = await getReservationSettings(ctx.business.id)
   const result = await reserveTable({
     businessId: ctx.business.id,
@@ -461,12 +563,13 @@ async function runReservarMesa(
     contactHandle: ctx.conversation.contactHandle,
     conversationId: ctx.conversation.id,
     note: input.nota,
+    attendantName: attendant,
     enforceHours: true,
     now: businessNow(),
   })
   if (!result.ok) return `No se pudo reservar: ${result.reason} Consulta de nuevo con consultar_mesas y ofrécele otra.`
 
-  return `Mesa reservada: ${describeTable(option)}, el ${formatDateLabel(input.fecha)} a las ${input.hora}, para ${partySize}, a nombre de ${input.nombre_cliente}. Confírmaselo al cliente y avísale, con amabilidad, que la mesa se le guarda hasta ${settings.graceMinutes} minutos después de la hora (hasta las ${holdUntil(input.hora, settings.graceMinutes)}): si no llega, se libera para otros clientes.`
+  return `Mesa reservada: ${describeTable(option)}, el ${formatDateLabel(input.fecha)} a las ${input.hora}, para ${partySize}, a nombre de ${input.nombre_cliente}${attendant ? `, lo atiende ${attendant}` : ''}. Confírmaselo al cliente y avísale, con amabilidad, que la mesa se le guarda hasta ${settings.graceMinutes} minutos después de la hora (hasta las ${holdUntil(input.hora, settings.graceMinutes)}): si no llega, se libera para otros clientes.`
 }
 
 export async function runAgentTool(
@@ -478,7 +581,7 @@ export async function runAgentTool(
     if (name === 'consultar_disponibilidad') {
       return await runConsultarDisponibilidad(
         ctx,
-        input as { servicio?: string; desde?: string; hora_desde?: string },
+        input as { servicio?: string; desde?: string; hora_desde?: string; profesional?: string },
       )
     }
     if (name === 'agendar_turno') {

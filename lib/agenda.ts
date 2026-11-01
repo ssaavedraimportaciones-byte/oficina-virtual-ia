@@ -1,4 +1,4 @@
-import type { Appointment, Service, WeekHours } from './types'
+import type { Appointment, Professional, Service, WeekHours } from './types'
 
 /** Granularidad de la grilla de horas, en minutos. */
 const SLOT_STEP = 30
@@ -159,4 +159,106 @@ export function findServiceByName(services: Service[], name: string): Service | 
     services.find((s) => normalized.includes(s.name.toLowerCase())) ??
     null
   )
+}
+
+/** Sin acentos ni mayúsculas, para comparar nombres como los escribe un cliente. */
+function normalizeName(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+}
+
+export function findProfessionalByName(team: Professional[], name: string): Professional | null {
+  const wanted = normalizeName(name)
+  if (!wanted) return null
+  return (
+    team.find((p) => normalizeName(p.name) === wanted) ??
+    team.find((p) => normalizeName(p.name).split(' ')[0] === wanted) ??
+    team.find((p) => normalizeName(p.name).includes(wanted)) ??
+    null
+  )
+}
+
+/**
+ * Las horas de una persona: las suyas, más las que se tomaron cuando todavía no
+ * había equipo cargado (sin profesional), que bloquean a todos para no pisarse.
+ */
+function appointmentsOf(appointments: Appointment[], professionalId: string): Appointment[] {
+  return appointments.filter((a) => !a.professionalId || a.professionalId === professionalId)
+}
+
+export interface TeamSlot {
+  date: string
+  time: string
+  /** Quiénes están libres a esa hora. */
+  free: Professional[]
+}
+
+/** Horarios libres de un equipo: una hora sirve si al menos una de las personas está libre. */
+export function getAvailableTeamSlots(
+  hours: WeekHours,
+  appointments: Appointment[],
+  team: Professional[],
+  durationMinutes: number,
+  fromDate: string,
+  toDate: string,
+  limit = 40,
+  now?: LocalNow,
+): TeamSlot[] {
+  const byKey = new Map<string, TeamSlot>()
+  for (const person of team) {
+    const slots = getAvailableSlots(
+      hours,
+      appointmentsOf(appointments, person.id),
+      durationMinutes,
+      fromDate,
+      toDate,
+      400,
+      now,
+    )
+    for (const slot of slots) {
+      const key = `${slot.date}T${slot.time}`
+      const entry = byKey.get(key) ?? { ...slot, free: [] }
+      entry.free.push(person)
+      byKey.set(key, entry)
+    }
+  }
+  return [...byKey.values()]
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+    .slice(0, limit)
+}
+
+/**
+ * Elige quién atiende una hora: la persona pedida si está libre; si no pidió a
+ * nadie, la que tenga menos horas ese día, para repartir el trabajo.
+ */
+export function assignProfessional(
+  hours: WeekHours,
+  appointments: Appointment[],
+  team: Professional[],
+  startsAt: string,
+  durationMinutes: number,
+  now: LocalNow | undefined,
+  preferred?: Professional | null,
+): { ok: true; professional: Professional } | { ok: false; reason: string } {
+  const candidates = preferred ? [preferred] : team
+  const date = splitLocal(startsAt).date
+  const free = candidates.filter(
+    (p) => isSlotFree(hours, appointmentsOf(appointments, p.id), startsAt, durationMinutes, now).ok,
+  )
+  if (free.length === 0) {
+    const reason = isSlotFree(
+      hours,
+      appointmentsOf(appointments, candidates[0].id),
+      startsAt,
+      durationMinutes,
+      now,
+    )
+    const base = reason.ok ? 'Ese horario ya está ocupado.' : reason.reason
+    return { ok: false, reason: preferred ? `${preferred.name}: ${base}` : base }
+  }
+  const load = (p: Professional) =>
+    appointments.filter(
+      (a) => a.status === 'confirmado' && a.professionalId === p.id && splitLocal(a.startsAt).date === date,
+    ).length
+  free.sort((a, b) => load(a) - load(b))
+  return { ok: true, professional: free[0] }
 }

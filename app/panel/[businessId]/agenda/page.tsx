@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { formatDateLabel, splitLocal } from '@/lib/agenda'
-import type { Appointment, Service, WeekHours } from '@/lib/types'
+import type { Appointment, Professional, Service, WeekHours } from '@/lib/types'
 
 const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -14,6 +14,9 @@ export default function AgendaPage() {
   const [hours, setHours] = useState<WeekHours | null>(null)
   const [services, setServices] = useState<Service[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [team, setTeam] = useState<Professional[]>([])
+  const [teamName, setTeamName] = useState('')
+  const [teamError, setTeamError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
   const [duration, setDuration] = useState('60')
@@ -31,6 +34,7 @@ export default function AgendaPage() {
     setHours(data.hours)
     setServices(data.services ?? [])
     setAppointments(data.appointments ?? [])
+    setTeam(data.professionals ?? [])
   }, [businessId])
 
   useEffect(() => {
@@ -85,6 +89,28 @@ export default function AgendaPage() {
     await load()
   }
 
+  async function addPerson(e: React.FormEvent) {
+    e.preventDefault()
+    setTeamError(null)
+    const res = await fetch(`/api/businesses/${businessId}/equipo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: teamName }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setTeamError(typeof data.error === 'string' ? data.error : 'No se pudo agregar.')
+      return
+    }
+    setTeamName('')
+    await load()
+  }
+
+  async function removePerson(id: string) {
+    await fetch(`/api/professionals/${id}`, { method: 'DELETE' })
+    await load()
+  }
+
   async function removeService(id: string) {
     await fetch(`/api/services/${id}`, { method: 'DELETE' })
     await load()
@@ -126,6 +152,7 @@ export default function AgendaPage() {
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-white">
                       {appointment.contactName} — {appointment.serviceName}
+                      {appointment.professionalName ? ` · con ${appointment.professionalName}` : ''}
                     </div>
                     <div className="text-xs text-gray-500">
                       {formatDateLabel(date)} a las {time} · {appointment.durationMinutes} min
@@ -150,6 +177,51 @@ export default function AgendaPage() {
           datos y decir que confirma el horario a la brevedad.
         </div>
       )}
+
+      <section className="mt-6 rounded-lg border border-gray-800 p-6">
+        <h2 className="font-medium text-white">Equipo: quién atiende</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          Agrega los nombres de las personas que atienden. El cliente puede pedir con quién quiere su
+          hora, y el agente le dice quiénes son. Cada persona tiene su propia agenda: dos clientes
+          pueden tener la misma hora si los atienden personas distintas. Si no cargas a nadie, el
+          negocio funciona con una sola agenda.
+        </p>
+        {team.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {team.map((person) => (
+              <span
+                key={person.id}
+                className="flex items-center gap-2 rounded-full border border-gray-700 px-3 py-1 text-sm text-white"
+              >
+                {person.name}
+                <button
+                  onClick={() => removePerson(person.id)}
+                  className="text-gray-500 hover:text-danger"
+                  aria-label={`Quitar a ${person.name}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <form onSubmit={addPerson} className="mt-4 flex gap-3">
+          <input
+            required
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            placeholder="Nombre de la persona (ej: Camila)"
+            className="input"
+          />
+          <button
+            type="submit"
+            className="shrink-0 rounded-md border border-gray-700 px-4 py-2 text-sm text-gray-200 hover:border-amber-500 hover:text-amber-400"
+          >
+            Agregar
+          </button>
+        </form>
+        {teamError && <p className="mt-2 text-sm text-danger">{teamError}</p>}
+      </section>
 
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Servicios</h2>

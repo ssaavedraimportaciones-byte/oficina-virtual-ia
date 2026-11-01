@@ -77,6 +77,8 @@ export interface TableReservation {
   durationMinutes: number
   status: ReservationStatus
   note: string
+  /** Quién lo atiende, si el cliente pidió a alguien del equipo. */
+  attendantName: string | null
   createdAt: string
 }
 

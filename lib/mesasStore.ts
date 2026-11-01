@@ -61,6 +61,7 @@ function mapReservation(row: {
   durationMinutes: number
   status: string
   note: string
+  attendantName: string | null
   createdAt: Date
 }): TableReservation {
   return { ...row, status: row.status as ReservationStatus, createdAt: row.createdAt.toISOString() }
@@ -198,6 +199,7 @@ export interface ReserveInput {
   contactHandle: string
   conversationId: string | null
   note?: string
+  attendantName?: string | null
   /** El dueño puede anotar una reserva fuera de horario; el agente no. */
   enforceHours: boolean
   now?: LocalNow
@@ -249,6 +251,7 @@ export async function reserveTable(
         startsAt: `${input.date}T${input.time}`,
         durationMinutes: input.durationMinutes,
         note: input.note ?? '',
+        attendantName: input.attendantName ?? null,
       },
     })
     return { ok: true as const, reservation: mapReservation(row) }

@@ -35,6 +35,13 @@ export interface Service {
   price: string
 }
 
+/** Una persona del equipo que atiende (manicurista, estilista, dentista, mesero...). */
+export interface Professional {
+  id: string
+  businessId: string
+  name: string
+}
+
 /** Horario de atención de un día. `null` = cerrado ese día. */
 export interface DayHours {
   open: string
@@ -62,6 +69,9 @@ export interface Appointment {
   conversationId: string | null
   serviceId: string | null
   serviceName: string
+  /** Quién atiende; null si el negocio no maneja personal. */
+  professionalId: string | null
+  professionalName: string | null
   contactName: string
   contactHandle: string
   /**

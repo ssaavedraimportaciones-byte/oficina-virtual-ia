@@ -1,4 +1,4 @@
-import type { AgentConfig, KnowledgeEntry, Product, Service, Tone } from './types'
+import type { AgentConfig, KnowledgeEntry, Product, Professional, Service, Tone } from './types'
 import { formatDateLabel, type LocalNow } from './agenda'
 import { formatPrice, isSoldOut, stockLabel } from './catalog'
 import { summarizeFloors, type Floor } from './mesas'
@@ -61,6 +61,21 @@ Tienes herramientas para manejar la agenda de verdad:
 - Reserva con agendar_turno solo cuando el cliente eligió un horario concreto y ya sabes su
   nombre. Si no te lo dijo, pregúntaselo antes.
 - Después de reservar, confírmale al cliente el día y la hora en tus palabras.`
+}
+
+function buildTeamSection(team: Professional[]): string {
+  if (team.length === 0) return ''
+  return `
+
+# Equipo
+Las personas que atienden en este negocio son: ${team.map((p) => p.name).join(', ')}.
+- Si el cliente pregunta quién atiende, o con quién puede agendar, dile esos nombres (solo esos:
+  nunca inventes personas).
+- Si pide a alguien en particular, pásalo en el campo profesional (agenda) o atiende (mesas) al
+  consultar disponibilidad y al reservar.
+- Si no pide a nadie, no lo presiones: como mucho pregúntale una vez si prefiere a alguien, y si
+  le da lo mismo no pases profesional y se asigna sola.
+- Al confirmar una hora, dile con quién queda.`
 }
 
 function buildCatalogSection(products: Product[]): string {
@@ -136,6 +151,7 @@ export function buildSystemPrompt(
   services: Service[] = [],
   products: Product[] = [],
   floors: Floor[] = [],
+  team: Professional[] = [],
 ): string {
   return `Eres ${config.agentName}, la persona que responde los mensajes de ${config.businessName} por chat.
 
@@ -171,7 +187,7 @@ Después de derivar, avísale en una frase que alguien del equipo le va a respon
 
 ${buildKnowledgeSection(knowledge)}
 
-${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildCatalogSection(products)}${buildMesasSection(floors)}
+${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildTeamSection(team)}${buildCatalogSection(products)}${buildMesasSection(floors)}
 
 Responde siempre en el idioma en el que te escribe el contacto.`
 }

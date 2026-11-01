@@ -16,7 +16,7 @@ const HOURS: WeekHours = [
 function appointment(startsAt: string, durationMinutes: number): Appointment {
   return {
     id: 'a', businessId: 'b', conversationId: null, serviceId: null,
-    serviceName: 'x', contactName: 'n', contactHandle: 'h',
+    serviceName: 'x', professionalId: null, professionalName: null, contactName: 'n', contactHandle: 'h',
     startsAt, durationMinutes, status: 'confirmado', createdAt: '',
   }
 }

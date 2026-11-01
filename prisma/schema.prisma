@@ -184,6 +184,7 @@ model Business {
   products      Product[]
   orders        Order[]
   floors        Floor[]
+  professionals Professional[]
   reservations  TableReservation[]
 
   /// Cuánto se guarda una mesa por reserva, en minutos.
@@ -277,6 +278,9 @@ model Appointment {
   conversationId String?
   serviceId      String?
   serviceName    String
+  /// Quién atiende (null = el negocio no maneja personal, o cualquiera).
+  professionalId   String?
+  professionalName String?
   contactName    String
   contactHandle  String
   /// Fecha y hora local del negocio sin zona horaria ("2026-08-07T14:00"),
@@ -288,9 +292,25 @@ model Appointment {
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   service  Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
 
   @@index([businessId, startsAt])
   @@map("appointments")
+}
+
+/// Una persona del equipo que atiende (peluquera, manicurista, dentista, mesero...).
+/// Sin ninguna cargada, el negocio funciona con una sola agenda, como siempre.
+model Professional {
+  id         String   @id @default(uuid())
+  businessId String
+  name       String
+  createdAt  DateTime @default(now())
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([businessId])
+  @@map("professionals")
 }
 
 // --- Mesas y reservas (restaurantes) ---
@@ -359,6 +379,8 @@ model TableReservation {
   durationMinutes Int
   status          String   @default("confirmado")
   note            String   @default("")
+  /// Quién lo atiende, si el cliente pidió a alguien del equipo.
+  attendantName   String?
   createdAt       DateTime @default(now())
 
   business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)

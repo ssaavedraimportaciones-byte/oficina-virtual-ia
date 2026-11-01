@@ -12,6 +12,7 @@ import {
   getConversation,
   listKnowledge,
   listProducts,
+  listProfessionals,
   listServices,
 } from './store'
 import type { Business, Channel, Conversation } from './types'
@@ -144,11 +145,12 @@ export async function handleIncomingMessage(
     return { status: 'quota', conversation }
   }
 
-  const [knowledge, services, products, floors] = await Promise.all([
+  const [knowledge, services, products, floors, team] = await Promise.all([
     listKnowledge(business.id),
     listServices(business.id),
     listProducts(business.id),
     listFloors(business.id),
+    listProfessionals(business.id),
   ])
   let reply: string
   try {
@@ -156,6 +158,7 @@ export async function handleIncomingMessage(
       services,
       products,
       floors,
+      team,
       toolContext: { business, conversation },
       contactNotes: conversation.notes,
     })

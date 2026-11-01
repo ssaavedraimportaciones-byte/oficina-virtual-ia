@@ -1,4 +1,4 @@
-import type { AgentConfig, KnowledgeEntry, Message, Product, Service } from './types'
+import type { AgentConfig, KnowledgeEntry, Message, Product, Professional, Service } from './types'
 import { buildConversationContext, buildSystemPrompt } from './agentPrompt'
 import { AGENDA_TOOLS, HANDOFF_TOOL, MESAS_TOOLS, PEDIDO_TOOLS, runAgentTool, type ToolContext } from './agentTools'
 import { reservableTables, type Floor } from './mesas'
@@ -72,6 +72,7 @@ export async function generateAgentReply(
     services?: Service[]
     products?: Product[]
     floors?: Floor[]
+    team?: Professional[]
     toolContext?: ToolContext
     contactNotes?: string
   },
@@ -98,7 +99,7 @@ export async function generateAgentReply(
   const messages = toLlmMessages(history)
   if (messages.length === 0) return FALLBACK_REPLY
 
-  const system = buildSystemPrompt(config, knowledge, services, products, floors)
+  const system = buildSystemPrompt(config, knowledge, services, products, floors, options?.team ?? [])
   const context = buildConversationContext(businessNow(), options?.contactNotes)
 
   const startedAt = Date.now()

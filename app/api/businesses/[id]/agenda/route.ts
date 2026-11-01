@@ -5,6 +5,7 @@ import {
   addService,
   getBusiness,
   listAppointments,
+  listProfessionals,
   listServices,
   updateBusinessHours,
 } from '@/lib/store'
@@ -19,8 +20,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
   }
 
-  const [services, appointments] = await Promise.all([listServices(id), listAppointments(id)])
-  return NextResponse.json({ hours: business.hours, services, appointments })
+  const [services, appointments, professionals] = await Promise.all([
+    listServices(id),
+    listAppointments(id),
+    listProfessionals(id),
+  ])
+  return NextResponse.json({ hours: business.hours, services, appointments, professionals })
 }
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/

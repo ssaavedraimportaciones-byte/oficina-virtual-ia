@@ -1,6 +1,7 @@
 import { getBusinessAnalytics } from '@/lib/store'
 import { formatPrice } from '@/lib/catalog'
 import { getAgentUsage } from '@/lib/usage'
+import { PLAN_LABEL } from '@/lib/plans'
 
 function Stat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
@@ -34,7 +35,7 @@ export default async function ResumenPage({
       <h2 className="mt-10 text-sm font-medium uppercase tracking-wide text-gray-500">Plan</h2>
       <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
-          label={`Respuestas del agente este mes (plan ${usage.plan === 'PRO' ? 'PRO' : 'gratis'})`}
+          label={`Respuestas del agente este mes (plan ${PLAN_LABEL[usage.plan]})`}
           value={usage.limit === null ? usage.used : `${usage.used} / ${usage.limit}`}
           accent={usage.limit !== null && usage.used >= usage.limit * 0.8}
         />

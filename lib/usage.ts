@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { comparePlans, type PlanName } from './plans'
 
 /**
  * Cupo mensual de respuestas del agente por empresa.
@@ -8,17 +9,20 @@ import { prisma } from './db'
  * un tope, una empresa del plan gratis (o un bucle, o alguien abusando del
  * simulador) puede gastar el saldo de todos.
  *
- * El tope sale del plan del DUEÑO de la empresa y se configura por entorno:
- *   AGENT_REPLIES_FREE (por defecto 300) y AGENT_REPLIES_PRO (por defecto 5000).
- * Un valor negativo significa "sin límite".
+ * El tope sale del plan del DUEÑO de la empresa y se configura por entorno,
+ * una variable por plan (AGENT_REPLIES_FREE, AGENT_REPLIES_BASICO,
+ * AGENT_REPLIES_NEGOCIOS, AGENT_REPLIES_ILIMITADO). Un valor negativo
+ * significa "sin límite".
  */
 
-export type PlanName = 'FREE' | 'PRO'
+export type { PlanName }
 
-const DEFAULT_LIMITS: Record<PlanName, number> = { FREE: 300, PRO: 5000 }
+const DEFAULT_LIMITS: Record<PlanName, number> = { FREE: 300, BASICO: 1500, NEGOCIOS: 4000, ILIMITADO: 10_000 }
 const ENV_VARS: Record<PlanName, string> = {
   FREE: 'AGENT_REPLIES_FREE',
-  PRO: 'AGENT_REPLIES_PRO',
+  BASICO: 'AGENT_REPLIES_BASICO',
+  NEGOCIOS: 'AGENT_REPLIES_NEGOCIOS',
+  ILIMITADO: 'AGENT_REPLIES_ILIMITADO',
 }
 
 /** Respuestas por mes que incluye el plan. `null` = sin límite. */
@@ -39,8 +43,11 @@ export async function businessPlan(businessId: string): Promise<PlanName> {
     where: { businessId, role: 'OWNER' },
     select: { user: { select: { plan: true } } },
   })
-  if (owners.length === 0) return 'PRO'
-  return owners.some((o) => o.user.plan === 'PRO') ? 'PRO' : 'FREE'
+  if (owners.length === 0) return 'ILIMITADO'
+  return owners.reduce<PlanName>(
+    (best, o) => (comparePlans(o.user.plan, best) > 0 ? o.user.plan : best),
+    'FREE',
+  )
 }
 
 /** Inicio del mes en curso (UTC): el cupo se renueva el día 1. */
@@ -89,7 +96,7 @@ export const QUOTA_REPLY =
 
 /** Lo que ve quien prueba el simulador desde el panel. */
 export function quotaMessage(usage: AgentUsage): string {
-  const upgrade = usage.plan === 'FREE' ? ' Pásate a PRO para aumentar el límite.' : ''
+  const upgrade = usage.plan === 'FREE' ? ' Pásate a un plan pago para aumentar el límite.' : ''
   const unit = usage.limit === 1 ? 'respuesta automática' : 'respuestas automáticas'
   return `Llegaste al límite de ${usage.limit} ${unit} de este mes.${upgrade}`
 }

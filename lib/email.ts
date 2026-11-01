@@ -1,5 +1,6 @@
 import { BRAND } from './brand'
 import nodemailer, { type Transporter } from 'nodemailer'
+import type { PlanName } from './plans'
 
 /**
  * Envío de mail vía SMTP genérico: funciona con cualquier proveedor (Gmail,
@@ -149,12 +150,12 @@ export function handoffEmail(
 
 export function quotaReachedEmail(
   businessName: string,
-  usage: { plan: 'FREE' | 'PRO'; limit: number | null },
+  usage: { plan: PlanName; limit: number | null },
   accountUrl: string,
 ) {
   const upgrade =
     usage.plan === 'FREE'
-      ? ' Pasándote al plan PRO el límite sube y el agente vuelve a responder solo.'
+      ? ' Pasándote a un plan pago el límite sube y el agente vuelve a responder solo.'
       : ' Escríbenos si necesitas aumentar el límite.'
   return {
     subject: `${businessName}: el agente llegó al límite de respuestas de este mes — ${BRAND.name}`,

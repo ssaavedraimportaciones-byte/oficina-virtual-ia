@@ -1,5 +1,6 @@
 import { prisma } from './db'
 import { getAgentUsage, monthlyLimit, type AgentUsage } from './usage'
+import { isPaidPlan, type PlanName } from './plans'
 
 /**
  * Lo que solo ve y toca el dueño de la plataforma: modo mantenimiento, avisos a
@@ -135,10 +136,10 @@ export interface BillingUserRow {
   id: string
   email: string
   role: 'PLATFORM_ADMIN' | 'USER'
-  plan: 'FREE' | 'PRO'
+  plan: PlanName
   stripeCustomerId: string | null
   stripeSubscriptionId: string | null
-  /** PRO sin suscripción de Stripe: lo dio el administrador a mano. */
+  /** Plan pago sin suscripción de Stripe: lo dio el administrador a mano. */
   courtesy: boolean
   businesses: BillingBusinessRow[]
   repliesThisMonth: number
@@ -148,9 +149,10 @@ export interface BillingOverview {
   users: BillingUserRow[]
   totals: {
     users: number
-    pro: number
+    /** Cuántos tienen cada plan, incluidos los de cortesía. */
+    byPlan: Record<PlanName, number>
     free: number
-    /** PRO con suscripción de Stripe: los que de verdad pagan. */
+    /** Plan pago con suscripción de Stripe: los que de verdad pagan. */
     paying: number
     courtesy: number
     repliesThisMonth: number
@@ -189,7 +191,7 @@ export async function getBillingOverview(now: Date = new Date()): Promise<Billin
       plan: row.plan,
       stripeCustomerId: row.stripeCustomerId,
       stripeSubscriptionId: row.stripeSubscriptionId,
-      courtesy: row.plan === 'PRO' && !row.stripeSubscriptionId,
+      courtesy: isPaidPlan(row.plan) && !row.stripeSubscriptionId,
       businesses,
       repliesThisMonth: businesses.reduce((sum, b) => sum + b.usage.used, 0),
     })
@@ -200,9 +202,14 @@ export async function getBillingOverview(now: Date = new Date()): Promise<Billin
     users,
     totals: {
       users: users.length,
-      pro: users.filter((u) => u.plan === 'PRO').length,
+      byPlan: {
+        FREE: users.filter((u) => u.plan === 'FREE').length,
+        BASICO: users.filter((u) => u.plan === 'BASICO').length,
+        NEGOCIOS: users.filter((u) => u.plan === 'NEGOCIOS').length,
+        ILIMITADO: users.filter((u) => u.plan === 'ILIMITADO').length,
+      },
       free: users.filter((u) => u.plan === 'FREE').length,
-      paying: users.filter((u) => u.plan === 'PRO' && u.stripeSubscriptionId).length,
+      paying: users.filter((u) => isPaidPlan(u.plan) && u.stripeSubscriptionId).length,
       courtesy: users.filter((u) => u.courtesy).length,
       repliesThisMonth: users.reduce((sum, u) => sum + u.repliesThisMonth, 0),
       businessesNearLimit: allBusinesses.filter((b) => b.usage.limit !== null && !b.usage.exceeded && b.usage.used >= b.usage.limit * 0.8).length,
@@ -211,7 +218,7 @@ export async function getBillingOverview(now: Date = new Date()): Promise<Billin
   }
 }
 
-export async function setUserPlan(userId: string, plan: 'FREE' | 'PRO'): Promise<boolean> {
+export async function setUserPlan(userId: string, plan: PlanName): Promise<boolean> {
   const result = await prisma.user.updateMany({ where: { id: userId }, data: { plan } })
   return result.count > 0
 }
@@ -221,7 +228,7 @@ export interface BusinessAdminRow {
   name: string
   /** Vacío = la empresa no tiene dueños: la administra la plataforma. */
   ownerEmails: string[]
-  plan: 'FREE' | 'PRO'
+  plan: PlanName
   used: number
   /** Límite que da el plan (`null` = sin límite). */
   planLimit: number | null

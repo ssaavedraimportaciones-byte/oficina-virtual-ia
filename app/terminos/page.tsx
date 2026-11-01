@@ -92,15 +92,19 @@ export default function TerminosPage() {
 
       <h2>7. Planes y facturación</h2>
       <p>
-        El plan gratuito incluye hasta 300 respuestas del agente por mes y por negocio. El plan PRO
-        incluye hasta 5.000. Al llegar al tope el agente deja de responder de forma automática y
-        avisa que una persona va a contestar; las conversaciones y el panel siguen funcionando.
+        El plan gratuito permite un negocio propio, con hasta 300 respuestas del agente por mes.
+        Los planes pagos (Básico, Negocios e Ilimitado) permiten más negocios propios y más
+        respuestas por mes, según el plan contratado. Al llegar al tope mensual el agente deja de
+        responder de forma automática y avisa que una persona va a contestar; las conversaciones y
+        el panel siguen funcionando.
       </p>
       <p>
-        El plan PRO se cobra por mes a través de Stripe, al precio informado al contratar, y se
-        puede cancelar cuando quieras desde &laquo;Mi cuenta&raquo;. La cancelación aplica al final
-        del período ya pagado, sin devoluciones proporcionales. Si cambian los precios, se avisa
-        con 30 días de anticipación y el cambio rige en el período siguiente.
+        El primer plan pago que contratas incluye, además de la suscripción mensual, un cobro único
+        de implementación (conectar tu WhatsApp y cargar tu negocio). Los planes se cobran por mes a
+        través de Stripe, al precio informado al contratar, y se pueden cambiar o cancelar cuando
+        quieras desde &laquo;Mi cuenta&raquo;. La cancelación aplica al final del período ya pagado,
+        sin devoluciones proporcionales. Si cambian los precios, se avisa con 30 días de
+        anticipación y el cambio rige en el período siguiente.
       </p>
 
       <h2>8. Qué no garantizamos</h2>

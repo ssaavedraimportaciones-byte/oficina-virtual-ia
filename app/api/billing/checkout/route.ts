@@ -1,16 +1,26 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { appUrl } from '@/lib/auth'
 import { createUpgradeCheckout } from '@/lib/billing'
 import { requireUser } from '@/lib/authz'
 import { prisma } from '@/lib/db'
+import { PAID_PLANS } from '@/lib/plans'
 
-export async function POST() {
+const checkoutSchema = z.object({ plan: z.enum(PAID_PLANS) })
+
+export async function POST(request: NextRequest) {
   const user = await requireUser()
   if (user instanceof NextResponse) return user
 
+  const parsed = checkoutSchema.safeParse(await request.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json({ error: `Elige uno de estos planes: ${PAID_PLANS.join(', ')}` }, { status: 400 })
+  }
+
   const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
   const result = await createUpgradeCheckout(
-    { id: user.id, email: user.email, stripeCustomerId: row.stripeCustomerId },
+    { id: user.id, email: user.email, stripeCustomerId: row.stripeCustomerId, setupFeePaidAt: row.setupFeePaidAt },
+    parsed.data.plan,
     `${appUrl()}/account?upgrade=ok`,
     `${appUrl()}/account?upgrade=cancelado`,
   )

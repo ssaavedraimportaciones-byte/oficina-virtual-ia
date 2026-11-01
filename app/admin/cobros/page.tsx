@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUser, isPlatformAdmin } from '@/lib/auth'
 import { getBillingOverview } from '@/lib/platform'
+import { isPaidPlan, PAID_PLANS, PLAN_LABEL } from '@/lib/plans'
 import LogoutButton from '../../LogoutButton'
 import AdminNav from '../AdminNav'
 import PlanButton from './PlanButton'
@@ -43,9 +44,14 @@ export default async function CobrosPage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-4">
         <Stat label="Clientes pagando" value={totals.paying} accent={totals.paying > 0} />
-        <Stat label="PRO de cortesía" value={totals.courtesy} />
+        <Stat label="De cortesía" value={totals.courtesy} />
         <Stat label="Plan gratis" value={totals.free} />
         <Stat label="Respuestas este mes" value={totals.repliesThisMonth} />
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {PAID_PLANS.map((plan) => (
+          <Stat key={plan} label={PLAN_LABEL[plan]} value={totals.byPlan[plan]} />
+        ))}
       </div>
       {(totals.businessesNearLimit > 0 || totals.businessesOverLimit > 0) && (
         <p className="mt-4 text-sm text-amber-400">
@@ -79,10 +85,10 @@ export default async function CobrosPage() {
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[10px] uppercase ${
-                        row.plan === 'PRO' ? 'border-amber-700 text-amber-400' : 'border-gray-700 text-gray-500'
+                        isPaidPlan(row.plan) ? 'border-amber-700 text-amber-400' : 'border-gray-700 text-gray-500'
                       }`}
                     >
-                      {row.plan === 'PRO' ? 'PRO' : 'Gratis'}
+                      {PLAN_LABEL[row.plan]}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400">

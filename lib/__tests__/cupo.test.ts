@@ -19,7 +19,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function newBusiness(plan: 'FREE' | 'PRO' | 'SIN_DUENO' = 'FREE'): Promise<Business> {
+async function newBusiness(plan: 'FREE' | 'ILIMITADO' | 'SIN_DUENO' = 'FREE'): Promise<Business> {
   const business = await store.createBusiness(
     { agentName: 'A', businessName: 'Negocio', industry: 'i', description: 'd', goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },
     'manicura',
@@ -47,23 +47,23 @@ async function agentSpent(business: Business, n: number, at?: Date) {
 describe('límites por plan', () => {
   it('trae valores por defecto y se pueden cambiar por entorno', () => {
     delete process.env.AGENT_REPLIES_FREE
-    delete process.env.AGENT_REPLIES_PRO
+    delete process.env.AGENT_REPLIES_ILIMITADO
     expect(monthlyLimit('FREE')).toBe(300)
-    expect(monthlyLimit('PRO')).toBe(5000)
+    expect(monthlyLimit('ILIMITADO')).toBe(10_000)
 
     process.env.AGENT_REPLIES_FREE = '50'
-    process.env.AGENT_REPLIES_PRO = '-1'
+    process.env.AGENT_REPLIES_ILIMITADO = '-1'
     expect(monthlyLimit('FREE')).toBe(50)
-    expect(monthlyLimit('PRO')).toBeNull() // negativo = sin límite
+    expect(monthlyLimit('ILIMITADO')).toBeNull() // negativo = sin límite
 
     process.env.AGENT_REPLIES_FREE = 'abc'
     expect(monthlyLimit('FREE')).toBe(300) // valor inválido: cae al por defecto
   })
 
-  it('el plan de la empresa es el del dueño; sin dueño cuenta como PRO', async () => {
+  it('el plan de la empresa es el del dueño; sin dueño cuenta como ilimitado', async () => {
     expect(await businessPlan((await newBusiness('FREE')).id)).toBe('FREE')
-    expect(await businessPlan((await newBusiness('PRO')).id)).toBe('PRO')
-    expect(await businessPlan((await newBusiness('SIN_DUENO')).id)).toBe('PRO')
+    expect(await businessPlan((await newBusiness('ILIMITADO')).id)).toBe('ILIMITADO')
+    expect(await businessPlan((await newBusiness('SIN_DUENO')).id)).toBe('ILIMITADO')
   })
 })
 
@@ -162,7 +162,7 @@ describe('cupo agotado en el simulador del panel', () => {
     const complete = vi.fn()
     vi.spyOn(llm, 'getProvider').mockReturnValue({ id: 'anthropic', model: 'fake', complete, describeError: () => 'e' } as LlmProvider)
     vi.spyOn(auth, 'getCurrentUser').mockResolvedValue({
-      id: 'u', email: 'u@x.test', role: 'PLATFORM_ADMIN', plan: 'PRO', businesses: [],
+      id: 'u', email: 'u@x.test', role: 'PLATFORM_ADMIN', plan: 'ILIMITADO', businesses: [],
     })
 
     const res = await messagesRoute.POST(

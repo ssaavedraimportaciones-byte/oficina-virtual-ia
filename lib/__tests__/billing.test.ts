@@ -45,11 +45,28 @@ describe('límite de negocios por plan', () => {
     expect(await canOwnAnotherBusiness(userId, 'USER')).toBe(false)
   })
 
-  it('un usuario PRO no tiene límite', async () => {
+  it('un usuario NEGOCIOS puede tener hasta 3, pero no un cuarto', async () => {
     const userId = await newUser()
-    await prisma.user.update({ where: { id: userId }, data: { plan: 'PRO' } })
+    await prisma.user.update({ where: { id: userId }, data: { plan: 'NEGOCIOS' } })
 
     for (let i = 0; i < 3; i++) {
+      expect(await canOwnAnotherBusiness(userId, 'USER')).toBe(true)
+      const business = await store.createBusiness(
+        { agentName: 'A', businessName: `Negocio ${i}`, industry: 'i', description: 'd',
+          goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },
+        'manicura',
+      )
+      await addBusinessMember(userId, business.id, 'OWNER')
+    }
+
+    expect(await canOwnAnotherBusiness(userId, 'USER')).toBe(false)
+  })
+
+  it('un usuario ILIMITADO no tiene límite', async () => {
+    const userId = await newUser()
+    await prisma.user.update({ where: { id: userId }, data: { plan: 'ILIMITADO' } })
+
+    for (let i = 0; i < 5; i++) {
       const business = await store.createBusiness(
         { agentName: 'A', businessName: `Negocio ${i}`, industry: 'i', description: 'd',
           goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },

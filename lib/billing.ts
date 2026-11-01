@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { prisma } from './db'
+import { BUSINESS_LIMIT, PAID_PLANS, PLAN_PRICE_ENV, isPaidPlan, type PaidPlan, type PlanName } from './plans'
 import type { SystemRole } from './generated/prisma/enums'
 
 /**
@@ -23,33 +24,57 @@ function getStripe(): Stripe | null {
   return stripeClient
 }
 
-/** En el plan FREE alcanza con un negocio propio; PRO no tiene límite. */
-const FREE_BUSINESS_LIMIT = 1
-
 /** Los admins de plataforma no están sujetos a ningún límite de plan. */
 export async function canOwnAnotherBusiness(userId: string, role: SystemRole): Promise<boolean> {
   if (role === 'PLATFORM_ADMIN') return true
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
-  if (user.plan === 'PRO') return true
+  const limit = BUSINESS_LIMIT[user.plan]
+  if (limit === null) return true
 
   const owned = await prisma.businessMember.count({ where: { userId, role: 'OWNER' } })
-  return owned < FREE_BUSINESS_LIMIT
+  return owned < limit
+}
+
+/** El Price de Stripe de cada plan pago, solo los que están configurados. */
+function priceIdFor(plan: PaidPlan): string | null {
+  return process.env[PLAN_PRICE_ENV[plan]] ?? null
+}
+
+/** priceId de Stripe -> plan, para leer de vuelta qué plan trae una suscripción. */
+function planForPriceId(priceId: string | null | undefined): PlanName | null {
+  if (!priceId) return null
+  for (const plan of PAID_PLANS) {
+    if (priceIdFor(plan) === priceId) return plan
+  }
+  return null
 }
 
 export type BillingLinkResult = { ok: true; url: string } | { ok: false; reason: string }
 
-/** Sesión de checkout de Stripe para pasar a PRO. Crea el customer en Stripe la primera vez. */
+/**
+ * Sesión de checkout de Stripe para pasar a un plan pago. La primera vez que
+ * el cliente paga, se le suma el cobro único de implementación en la misma
+ * sesión (Stripe acepta ítems de una sola vez junto con la suscripción); las
+ * veces siguientes (cambiar de plan) ya no se le vuelve a cobrar.
+ */
 export async function createUpgradeCheckout(
-  user: { id: string; email: string; stripeCustomerId: string | null },
+  user: { id: string; email: string; stripeCustomerId: string | null; setupFeePaidAt: Date | null },
+  plan: PaidPlan,
   successUrl: string,
   cancelUrl: string,
 ): Promise<BillingLinkResult> {
   const stripe = getStripe()
   if (!stripe) return { ok: false, reason: 'La facturación no está configurada todavía.' }
 
-  const priceId = process.env.STRIPE_PRICE_ID_PRO
-  if (!priceId) return { ok: false, reason: 'Falta configurar el plan PRO (STRIPE_PRICE_ID_PRO).' }
+  const priceId = priceIdFor(plan)
+  if (!priceId) return { ok: false, reason: `Falta configurar el plan ${plan} (${PLAN_PRICE_ENV[plan]}).` }
+
+  const includeSetupFee = !user.setupFeePaidAt
+  const setupPriceId = process.env.STRIPE_PRICE_ID_SETUP
+  if (includeSetupFee && !setupPriceId) {
+    return { ok: false, reason: 'Falta configurar el cobro de implementación (STRIPE_PRICE_ID_SETUP).' }
+  }
 
   let customerId = user.stripeCustomerId
   if (!customerId) {
@@ -61,17 +86,23 @@ export async function createUpgradeCheckout(
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: [
+      { price: priceId, quantity: 1 },
+      ...(includeSetupFee && setupPriceId ? [{ price: setupPriceId, quantity: 1 }] : []),
+    ],
     success_url: successUrl,
     cancel_url: cancelUrl,
     client_reference_id: user.id,
+    // El webhook decide con esto, no adivinando de los line items: qué plan
+    // quedó y si esta sesión incluía o no la implementación.
+    metadata: { plan, includesSetupFee: includeSetupFee ? '1' : '0' },
   })
 
   if (!session.url) return { ok: false, reason: 'Stripe no devolvió una URL de checkout.' }
   return { ok: true, url: session.url }
 }
 
-/** Portal de Stripe para que el usuario gestione o cancele su propia suscripción. */
+/** Portal de Stripe para que el usuario gestione, cambie o cancele su propia suscripción. */
 export async function createBillingPortalSession(
   customerId: string,
   returnUrl: string,
@@ -86,9 +117,9 @@ export async function createBillingPortalSession(
 export type WebhookResult = { ok: true } | { ok: false; status: number; reason: string }
 
 /**
- * Único lugar donde el plan de un usuario pasa a PRO o vuelve a FREE: nunca
- * se confía en lo que devuelve el navegador después del checkout, solo en
- * este webhook firmado por Stripe.
+ * Único lugar donde el plan de un usuario cambia: nunca se confía en lo que
+ * devuelve el navegador después del checkout, solo en este webhook firmado
+ * por Stripe.
  */
 export async function handleStripeWebhook(
   rawBody: string,
@@ -114,9 +145,17 @@ export async function handleStripeWebhook(
       const userId = session.client_reference_id
       const subscriptionId =
         typeof session.subscription === 'string' ? session.subscription : (session.subscription?.id ?? null)
-      if (userId) {
+      const plan = session.metadata?.plan
+      if (userId && plan && isPaidPlan(plan)) {
         await prisma.user
-          .update({ where: { id: userId }, data: { plan: 'PRO', stripeSubscriptionId: subscriptionId } })
+          .update({
+            where: { id: userId },
+            data: {
+              plan,
+              stripeSubscriptionId: subscriptionId,
+              ...(session.metadata?.includesSetupFee === '1' ? { setupFeePaidAt: new Date() } : {}),
+            },
+          })
           .catch(() => {})
       }
       break
@@ -132,10 +171,15 @@ export async function handleStripeWebhook(
     case 'customer.subscription.updated': {
       const subscription = event.data.object as Stripe.Subscription
       const active = subscription.status === 'active' || subscription.status === 'trialing'
-      await prisma.user.updateMany({
-        where: { stripeSubscriptionId: subscription.id },
-        data: { plan: active ? 'PRO' : 'FREE' },
-      })
+      // El cliente puede cambiar de plan desde el portal de Stripe: ahí
+      // cambia el price del ítem, no el metadata del checkout original.
+      const plan = active ? planForPriceId(subscription.items.data[0]?.price.id) : 'FREE'
+      if (plan) {
+        await prisma.user.updateMany({
+          where: { stripeSubscriptionId: subscription.id },
+          data: { plan },
+        })
+      }
       break
     }
     default:

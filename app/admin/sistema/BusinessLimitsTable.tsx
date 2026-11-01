@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PLAN_LABEL } from '@/lib/plans'
+import type { Plan } from '@/lib/generated/prisma/enums'
 
 export interface BusinessRow {
   businessId: string
   name: string
   ownerEmails: string[]
-  plan: 'FREE' | 'PRO'
+  plan: Plan
   used: number
   planLimit: number | null
   replyLimitOverride: number | null
@@ -44,7 +46,7 @@ function Row({ row }: { row: BusinessRow }) {
       </td>
       <td className="px-4 py-3 text-xs text-gray-300">
         {row.used} / {row.replyLimitOverride ?? row.planLimit ?? '∞'}
-        <div className="text-gray-600">plan {row.plan === 'PRO' ? 'PRO' : 'gratis'}</div>
+        <div className="text-gray-600">plan {PLAN_LABEL[row.plan]}</div>
       </td>
       <td className="px-4 py-3">
         <input

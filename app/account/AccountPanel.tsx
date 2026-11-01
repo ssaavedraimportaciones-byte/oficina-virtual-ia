@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import type { UserProfile } from '@/lib/auth'
+import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, type PaidPlan } from '@/lib/plans'
 import SessionsSection from './SessionsSection'
 import TwoFactorSection from './TwoFactorSection'
+
+const clp = (n: number) => `$${n.toLocaleString('es-CL')}`
 
 export default function AccountPanel({ profile }: { profile: UserProfile }) {
   const [currentPassword, setCurrentPassword] = useState('')
@@ -55,10 +58,14 @@ export default function AccountPanel({ profile }: { profile: UserProfile }) {
     setResent(true)
   }
 
-  async function handleBilling(path: '/api/billing/checkout' | '/api/billing/portal') {
+  async function handleCheckout(plan: PaidPlan) {
     setBillingBusy(true)
     setBillingError(null)
-    const res = await fetch(path, { method: 'POST' })
+    const res = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    })
     const data = await res.json().catch(() => ({}))
     setBillingBusy(false)
     if (!res.ok) {
@@ -68,39 +75,78 @@ export default function AccountPanel({ profile }: { profile: UserProfile }) {
     window.location.href = data.url
   }
 
+  async function handlePortal() {
+    setBillingBusy(true)
+    setBillingError(null)
+    const res = await fetch('/api/billing/portal', { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+    setBillingBusy(false)
+    if (!res.ok) {
+      setBillingError(data.error ?? 'No se pudo abrir la facturación')
+      return
+    }
+    window.location.href = data.url
+  }
+
+  const isPaid = profile.plan !== 'FREE'
+
   return (
     <div className="mt-8 flex flex-col gap-8">
       <div className="rounded-lg border border-gray-800 p-6">
-        <h2 className="text-sm font-medium text-white">Plan</h2>
-        <div className="mt-1 flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-white">Plan</h2>
           <span
             className={`rounded-full border px-2 py-0.5 text-[10px] uppercase ${
-              profile.plan === 'PRO'
-                ? 'border-amber-700 text-amber-400'
-                : 'border-gray-700 text-gray-500'
+              isPaid ? 'border-amber-700 text-amber-400' : 'border-gray-700 text-gray-500'
             }`}
           >
-            {profile.plan === 'PRO' ? 'PRO' : 'Free (1 negocio)'}
+            {PLAN_LABEL[profile.plan]}
+            {!isPaid && ` (${BUSINESS_LIMIT.FREE} negocio)`}
           </span>
-          {profile.plan === 'FREE' ? (
-            <button
-              onClick={() => handleBilling('/api/billing/checkout')}
-              disabled={billingBusy}
-              className="text-xs text-amber-400 hover:underline disabled:opacity-50"
-            >
-              {billingBusy ? 'Abriendo…' : 'Pasar a PRO'}
-            </button>
-          ) : (
-            <button
-              onClick={() => handleBilling('/api/billing/portal')}
-              disabled={billingBusy}
-              className="text-xs text-amber-400 hover:underline disabled:opacity-50"
-            >
-              {billingBusy ? 'Abriendo…' : 'Gestionar suscripción'}
-            </button>
-          )}
         </div>
-        {billingError && <p className="mt-2 text-xs text-danger">{billingError}</p>}
+
+        {isPaid ? (
+          <button
+            onClick={handlePortal}
+            disabled={billingBusy}
+            className="mt-3 text-xs text-amber-400 hover:underline disabled:opacity-50"
+          >
+            {billingBusy ? 'Abriendo…' : 'Gestionar o cambiar de plan'}
+          </button>
+        ) : (
+          <>
+            <p className="mt-1 text-xs text-gray-500">
+              Más de un negocio, cupo mayor de respuestas del agente y soporte prioritario. Al pagar
+              el primer plan se suma una vez el cobro de implementación ({clp(SETUP_FEE_CLP)}): dejamos
+              tu WhatsApp conectado y tu negocio cargado.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {PAID_PLANS.map((plan) => {
+                const limit = BUSINESS_LIMIT[plan]
+                return (
+                  <div key={plan} className="rounded-lg border border-gray-800 p-4">
+                    <p className="text-sm font-medium text-white">{PLAN_LABEL[plan]}</p>
+                    <p className="mt-1 text-lg font-semibold text-amber-400">
+                      {clp(PLAN_MONTHLY_CLP[plan])}
+                      <span className="text-xs font-normal text-gray-500">/mes</span>
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {limit === null ? 'Negocios sin límite' : limit === 1 ? '1 negocio' : `Hasta ${limit} negocios`}
+                    </p>
+                    <button
+                      onClick={() => handleCheckout(plan)}
+                      disabled={billingBusy}
+                      className="mt-3 w-full rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-gray-950 hover:bg-amber-400 disabled:opacity-50"
+                    >
+                      {billingBusy ? 'Abriendo…' : 'Elegir'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+        {billingError && <p className="mt-3 text-xs text-danger">{billingError}</p>}
       </div>
 
       <div className="rounded-lg border border-gray-800 p-6">

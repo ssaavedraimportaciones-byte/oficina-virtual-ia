@@ -16,11 +16,15 @@ enum SystemRole {
   USER
 }
 
-/// FREE: hasta un negocio propio. PRO: sin límite. Un PLATFORM_ADMIN no está
-/// sujeto a esto (ve/gestiona todo independientemente del plan).
+/// Se diferencian por cuántos negocios propios permite cada uno (ver
+/// lib/plans.ts): FREE y BASICO hasta 1, NEGOCIOS hasta 3, ILIMITADO sin
+/// límite. Un PLATFORM_ADMIN no está sujeto a esto (ve/gestiona todo
+/// independientemente del plan).
 enum Plan {
   FREE
-  PRO
+  BASICO
+  NEGOCIOS
+  ILIMITADO
 }
 
 model User {
@@ -40,6 +44,9 @@ model User {
   plan                 Plan    @default(FREE)
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  /// Cuándo pagó el cobro único de implementación. null = todavía no, así que
+  /// el próximo checkout a un plan pago se lo vuelve a incluir.
+  setupFeePaidAt       DateTime?
 
   /// Secreto TOTP cifrado (ver lib/secrets.ts). null = 2FA desactivado.
   totpSecret    String?

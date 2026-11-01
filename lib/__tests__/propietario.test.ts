@@ -30,7 +30,7 @@ import * as messagesRoute from '@/app/api/conversations/[id]/messages/route'
 
 const ORIGINAL = { ...process.env }
 
-const ADMIN: SessionUser = { id: 'admin-1', email: 'admin@x.test', role: 'PLATFORM_ADMIN', plan: 'PRO', businesses: [] }
+const ADMIN: SessionUser = { id: 'admin-1', email: 'admin@x.test', role: 'PLATFORM_ADMIN', plan: 'ILIMITADO', businesses: [] }
 const normalUser = (businessId?: string): SessionUser => ({
   id: 'u-1', email: 'u@x.test', role: 'USER', plan: 'FREE',
   businesses: businessId ? [{ businessId, role: 'OWNER' }] : [],
@@ -52,7 +52,7 @@ async function newBusiness(): Promise<Business> {
   )
 }
 
-async function newUser(plan: 'FREE' | 'PRO' = 'FREE', stripeSubscriptionId?: string) {
+async function newUser(plan: 'FREE' | 'ILIMITADO' = 'FREE', stripeSubscriptionId?: string) {
   const created = await auth.createUser({ email: `u-${randomUUID()}@prop.test`, password: 'clave-123456', role: 'USER' })
   if (!created.ok) throw new Error(created.reason)
   await prisma.user.update({ where: { id: created.id }, data: { plan, stripeSubscriptionId, stripeCustomerId: stripeSubscriptionId ? 'cus_test' : null } })
@@ -74,7 +74,7 @@ afterEach(async () => {
 
 describe('permisos: solo el dueño de la plataforma', () => {
   const calls: Array<[string, () => Promise<Response>]> = [
-    ['cambiar plan', () => userRoute.PATCH(req('PATCH', { plan: 'PRO' }), ctx('x'))],
+    ['cambiar plan', () => userRoute.PATCH(req('PATCH', { plan: 'ILIMITADO' }), ctx('x'))],
     ['borrar usuario', () => userRoute.DELETE(req('DELETE'), ctx('x'))],
     ['notas y límite de una empresa', () => adminBusinessRoute.PATCH(req('PATCH', { adminNotes: 'x' }), ctx('x'))],
     ['leer el mantenimiento', () => platformRoute.GET()],
@@ -95,22 +95,22 @@ describe('permisos: solo el dueño de la plataforma', () => {
     expect((await call()).status).toBe(401)
   })
 
-  it('un cliente no puede apagar el sistema ni darse PRO', async () => {
+  it('un cliente no puede apagar el sistema ni darse un plan pago', async () => {
     const userId = await newUser('FREE')
     as(normalUser())
     await platformRoute.PUT(req('PUT', { enabled: true, message: 'hack' }))
-    await userRoute.PATCH(req('PATCH', { plan: 'PRO' }), ctx(userId))
+    await userRoute.PATCH(req('PATCH', { plan: 'ILIMITADO' }), ctx(userId))
     expect((await getMaintenance()).enabled).toBe(false)
     expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).plan).toBe('FREE')
   })
 })
 
 describe('cobros: plan manual y resumen', () => {
-  it('el administrador da y quita PRO de cortesía', async () => {
+  it('el administrador da y quita un plan pago de cortesía', async () => {
     const userId = await newUser('FREE')
     as(ADMIN)
-    expect((await userRoute.PATCH(req('PATCH', { plan: 'PRO' }), ctx(userId))).status).toBe(200)
-    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).plan).toBe('PRO')
+    expect((await userRoute.PATCH(req('PATCH', { plan: 'ILIMITADO' }), ctx(userId))).status).toBe(200)
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).plan).toBe('ILIMITADO')
     expect((await userRoute.PATCH(req('PATCH', { plan: 'FREE' }), ctx(userId))).status).toBe(200)
     expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).plan).toBe('FREE')
   })
@@ -119,22 +119,25 @@ describe('cobros: plan manual y resumen', () => {
     as(ADMIN)
     expect((await userRoute.PATCH(req('PATCH', { plan: 'GOLD' }), ctx('x'))).status).toBe(400)
     expect((await userRoute.PATCH(req('PATCH', {}), ctx('x'))).status).toBe(400)
-    expect((await userRoute.PATCH(req('PATCH', { plan: 'PRO' }), ctx(randomUUID()))).status).toBe(404)
+    expect((await userRoute.PATCH(req('PATCH', { plan: 'ILIMITADO' }), ctx(randomUUID()))).status).toBe(404)
   })
 
-  it('el resumen distingue a quien paga por Stripe del PRO de cortesía', async () => {
+  it('el resumen distingue a quien paga por Stripe del plan pago de cortesía', async () => {
     const before = (await getBillingOverview()).totals
-    await newUser('PRO', 'sub_123') // paga
-    await newUser('PRO') // cortesía
+    const payingId = await newUser('ILIMITADO', 'sub_123') // paga
+    const courtesyId = await newUser('ILIMITADO') // cortesía
     await newUser('FREE')
 
     const after = await getBillingOverview()
     expect(after.totals.paying - before.paying).toBe(1)
     expect(after.totals.courtesy - before.courtesy).toBe(1)
     expect(after.totals.free - before.free).toBe(1)
-    expect(after.totals.pro - before.pro).toBe(2)
-    const courtesy = after.users.filter((u) => u.courtesy)
-    expect(courtesy.every((u) => u.plan === 'PRO' && !u.stripeSubscriptionId)).toBe(true)
+    expect(after.totals.byPlan.ILIMITADO - before.byPlan.ILIMITADO).toBe(2)
+    // Otros tests dejan sus propios usuarios de cortesía en otros planes: se
+    // revisan solo los dos que crea este test, no "todos los de cortesía".
+    const [paying, courtesy] = [payingId, courtesyId].map((id) => after.users.find((u) => u.id === id)!)
+    expect(paying).toMatchObject({ plan: 'ILIMITADO', courtesy: false, stripeSubscriptionId: 'sub_123' })
+    expect(courtesy).toMatchObject({ plan: 'ILIMITADO', courtesy: true, stripeSubscriptionId: null })
   })
 
   it('suma el consumo de las empresas de cada cliente', async () => {

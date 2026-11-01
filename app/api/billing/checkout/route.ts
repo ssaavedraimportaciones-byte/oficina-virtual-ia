@@ -18,8 +18,17 @@ export async function POST(request: NextRequest) {
   }
 
   const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+  // La implementación se cobra por negocio: se arma la lista de los que son
+  // suyos y todavía no la tienen pagada.
+  const owned = await prisma.businessMember.findMany({
+    where: { userId: user.id, role: 'OWNER' },
+    select: { business: { select: { id: true, setupFeePaidAt: true } } },
+  })
+  const unbilledBusinessIds = owned.filter((m) => !m.business.setupFeePaidAt).map((m) => m.business.id)
+
   const result = await createUpgradeCheckout(
-    { id: user.id, email: user.email, stripeCustomerId: row.stripeCustomerId, setupFeePaidAt: row.setupFeePaidAt },
+    { id: user.id, email: user.email, stripeCustomerId: row.stripeCustomerId },
+    unbilledBusinessIds,
     parsed.data.plan,
     `${appUrl()}/account?upgrade=ok`,
     `${appUrl()}/account?upgrade=cancelado`,

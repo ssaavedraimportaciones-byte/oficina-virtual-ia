@@ -106,19 +106,34 @@ export default function AccountPanel({ profile }: { profile: UserProfile }) {
         </div>
 
         {isPaid ? (
-          <button
-            onClick={handlePortal}
-            disabled={billingBusy}
-            className="mt-3 text-xs text-amber-400 hover:underline disabled:opacity-50"
-          >
-            {billingBusy ? 'Abriendo…' : 'Gestionar o cambiar de plan'}
-          </button>
+          <>
+            <button
+              onClick={handlePortal}
+              disabled={billingBusy}
+              className="mt-3 text-xs text-amber-400 hover:underline disabled:opacity-50"
+            >
+              {billingBusy ? 'Abriendo…' : 'Gestionar o cambiar de plan'}
+            </button>
+            {profile.unbilledBusinesses > 0 && (
+              <p className="mt-2 text-xs text-gray-500">
+                Tienes {profile.unbilledBusinesses}{' '}
+                {profile.unbilledBusinesses === 1 ? 'negocio nuevo' : 'negocios nuevos'} sin el cobro de
+                implementación ({clp(SETUP_FEE_CLP)} cada uno). Escríbenos a{' '}
+                <a href="mailto:contacto@zerovistochile.com" className="text-amber-400 hover:underline">
+                  contacto@zerovistochile.com
+                </a>{' '}
+                para que te lo cobremos.
+              </p>
+            )}
+          </>
         ) : (
           <>
             <p className="mt-1 text-xs text-gray-500">
-              Más de un negocio, cupo mayor de respuestas del agente y soporte prioritario. Al pagar
-              el primer plan se suma una vez el cobro de implementación ({clp(SETUP_FEE_CLP)}): dejamos
-              tu WhatsApp conectado y tu negocio cargado.
+              Más de un negocio, cupo mayor de respuestas del agente y soporte prioritario. La
+              implementación ({clp(SETUP_FEE_CLP)}) se cobra una vez por cada negocio: dejamos su
+              WhatsApp conectado y su información cargada.
+              {profile.unbilledBusinesses > 0 &&
+                ` Al elegir un plan se te cobra la de ${profile.unbilledBusinesses === 1 ? 'tu negocio actual' : `tus ${profile.unbilledBusinesses} negocios`}.`}
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {PAID_PLANS.map((plan) => {

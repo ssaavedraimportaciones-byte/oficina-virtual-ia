@@ -52,14 +52,19 @@ function planForPriceId(priceId: string | null | undefined): PlanName | null {
 
 export type BillingLinkResult = { ok: true; url: string } | { ok: false; reason: string }
 
+/** Máximo de negocios que se pueden cobrar de implementación en un mismo checkout (ver nota de metadata abajo). */
+const MAX_SETUP_FEE_BUSINESSES = 10
+
 /**
- * Sesión de checkout de Stripe para pasar a un plan pago. La primera vez que
- * el cliente paga, se le suma el cobro único de implementación en la misma
- * sesión (Stripe acepta ítems de una sola vez junto con la suscripción); las
- * veces siguientes (cambiar de plan) ya no se le vuelve a cobrar.
+ * Sesión de checkout de Stripe para pasar a un plan pago. Se cobra la
+ * implementación una vez por cada negocio del cliente que todavía no la tenga
+ * pagada (Stripe acepta ítems de una sola vez junto con la suscripción, con
+ * cantidad): si es su primer negocio paga una implementación, si tiene 2 sin
+ * pagar paga dos. Un negocio que ya la pagó no se vuelve a cobrar.
  */
 export async function createUpgradeCheckout(
-  user: { id: string; email: string; stripeCustomerId: string | null; setupFeePaidAt: Date | null },
+  user: { id: string; email: string; stripeCustomerId: string | null },
+  unbilledBusinessIds: string[],
   plan: PaidPlan,
   successUrl: string,
   cancelUrl: string,
@@ -70,11 +75,15 @@ export async function createUpgradeCheckout(
   const priceId = priceIdFor(plan)
   if (!priceId) return { ok: false, reason: `Falta configurar el plan ${plan} (${PLAN_PRICE_ENV[plan]}).` }
 
-  const includeSetupFee = !user.setupFeePaidAt
   const setupPriceId = process.env.STRIPE_PRICE_ID_SETUP
-  if (includeSetupFee && !setupPriceId) {
+  if (unbilledBusinessIds.length > 0 && !setupPriceId) {
     return { ok: false, reason: 'Falta configurar el cobro de implementación (STRIPE_PRICE_ID_SETUP).' }
   }
+  // El metadata de Stripe tiene 500 caracteres por valor: con más negocios no
+  // entrarían todos los ids. No pasa en la práctica (el plan con más negocios
+  // tiene 3), pero se corta la lista antes que mandar algo que el webhook no
+  // pueda leer entero.
+  const toBill = unbilledBusinessIds.slice(0, MAX_SETUP_FEE_BUSINESSES)
 
   let customerId = user.stripeCustomerId
   if (!customerId) {
@@ -88,14 +97,14 @@ export async function createUpgradeCheckout(
     customer: customerId,
     line_items: [
       { price: priceId, quantity: 1 },
-      ...(includeSetupFee && setupPriceId ? [{ price: setupPriceId, quantity: 1 }] : []),
+      ...(toBill.length > 0 && setupPriceId ? [{ price: setupPriceId, quantity: toBill.length }] : []),
     ],
     success_url: successUrl,
     cancel_url: cancelUrl,
     client_reference_id: user.id,
     // El webhook decide con esto, no adivinando de los line items: qué plan
-    // quedó y si esta sesión incluía o no la implementación.
-    metadata: { plan, includesSetupFee: includeSetupFee ? '1' : '0' },
+    // quedó y a qué negocios marcarles la implementación como pagada.
+    metadata: { plan, setupFeeBusinessIds: toBill.join(',') },
   })
 
   if (!session.url) return { ok: false, reason: 'Stripe no devolvió una URL de checkout.' }
@@ -148,15 +157,19 @@ export async function handleStripeWebhook(
       const plan = session.metadata?.plan
       if (userId && plan && isPaidPlan(plan)) {
         await prisma.user
-          .update({
-            where: { id: userId },
-            data: {
-              plan,
-              stripeSubscriptionId: subscriptionId,
-              ...(session.metadata?.includesSetupFee === '1' ? { setupFeePaidAt: new Date() } : {}),
-            },
-          })
+          .update({ where: { id: userId }, data: { plan, stripeSubscriptionId: subscriptionId } })
           .catch(() => {})
+
+        const businessIds = (session.metadata?.setupFeeBusinessIds ?? '').split(',').filter(Boolean)
+        if (businessIds.length > 0) {
+          // Solo negocios de ESTE usuario: el metadata lo arma el servidor en
+          // createUpgradeCheckout, pero igual se revalida antes de marcar nada
+          // como pagado.
+          await prisma.business.updateMany({
+            where: { id: { in: businessIds }, members: { some: { userId, role: 'OWNER' } } },
+            data: { setupFeePaidAt: new Date() },
+          })
+        }
       }
       break
     }

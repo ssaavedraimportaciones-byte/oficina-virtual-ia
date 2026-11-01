@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'crypto'
 import { prisma } from '../db'
-import { createUser } from '../auth'
+import { addBusinessMember, createUser } from '../auth'
+import * as store from '../store'
 import { BUSINESS_LIMIT, comparePlans, isPaidPlan, PAID_PLANS } from '../plans'
 
 /**
@@ -50,6 +51,18 @@ async function newUser(): Promise<string> {
   return created.id
 }
 
+/** Un negocio de este usuario, con o sin la implementación ya pagada. */
+async function newBusiness(userId: string, setupFeePaidAt: Date | null = null): Promise<string> {
+  const business = await store.createBusiness(
+    { agentName: 'A', businessName: `Negocio ${randomUUID()}`, industry: 'i', description: 'd',
+      goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },
+    'manicura',
+  )
+  await addBusinessMember(userId, business.id, 'OWNER')
+  if (setupFeePaidAt) await prisma.business.update({ where: { id: business.id }, data: { setupFeePaidAt } })
+  return business.id
+}
+
 describe('lib/plans: reglas de cada plan', () => {
   it('ordena los planes de menor a mayor', () => {
     expect(comparePlans('ILIMITADO', 'FREE')).toBeGreaterThan(0)
@@ -72,12 +85,14 @@ describe('lib/plans: reglas de cada plan', () => {
   })
 })
 
-describe('createUpgradeCheckout: arma la sesión correcta', () => {
-  it('la primera vez suma el cobro de implementación, además del plan elegido', async () => {
+describe('createUpgradeCheckout: la implementación se cobra por negocio', () => {
+  it('con un negocio sin pagar, cobra una implementación además del plan', async () => {
     const { createUpgradeCheckout } = await import('../billing')
     const userId = await newUser()
+    const businessId = await newBusiness(userId)
     const result = await createUpgradeCheckout(
-      { id: userId, email: 'a@b.test', stripeCustomerId: null, setupFeePaidAt: null },
+      { id: userId, email: 'a@b.test', stripeCustomerId: null },
+      [businessId],
       'NEGOCIOS',
       'https://x/ok',
       'https://x/cancel',
@@ -89,16 +104,41 @@ describe('createUpgradeCheckout: arma la sesión correcta', () => {
           { price: 'price_negocios', quantity: 1 },
           { price: 'price_setup', quantity: 1 },
         ],
-        metadata: { plan: 'NEGOCIOS', includesSetupFee: '1' },
+        metadata: { plan: 'NEGOCIOS', setupFeeBusinessIds: businessId },
       }),
     )
   })
 
-  it('si ya pagó la implementación, el siguiente checkout no la vuelve a cobrar', async () => {
+  it('con 2 negocios sin pagar, cobra la implementación 2 veces (cantidad 2)', async () => {
+    const { createUpgradeCheckout } = await import('../billing')
+    const userId = await newUser()
+    const a = await newBusiness(userId)
+    const b = await newBusiness(userId)
+    const result = await createUpgradeCheckout(
+      { id: userId, email: 'a@b.test', stripeCustomerId: 'cus_1' },
+      [a, b],
+      'NEGOCIOS',
+      'https://x/ok',
+      'https://x/cancel',
+    )
+    expect(result.ok).toBe(true)
+    expect(sessionsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        line_items: [
+          { price: 'price_negocios', quantity: 1 },
+          { price: 'price_setup', quantity: 2 },
+        ],
+        metadata: { plan: 'NEGOCIOS', setupFeeBusinessIds: `${a},${b}` },
+      }),
+    )
+  })
+
+  it('si todos sus negocios ya pagaron la implementación, el checkout no la vuelve a cobrar', async () => {
     const { createUpgradeCheckout } = await import('../billing')
     const userId = await newUser()
     const result = await createUpgradeCheckout(
-      { id: userId, email: 'a@b.test', stripeCustomerId: 'cus_1', setupFeePaidAt: new Date() },
+      { id: userId, email: 'a@b.test', stripeCustomerId: 'cus_1' },
+      [],
       'BASICO',
       'https://x/ok',
       'https://x/cancel',
@@ -107,7 +147,7 @@ describe('createUpgradeCheckout: arma la sesión correcta', () => {
     expect(sessionsCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         line_items: [{ price: 'price_basico', quantity: 1 }],
-        metadata: { plan: 'BASICO', includesSetupFee: '0' },
+        metadata: { plan: 'BASICO', setupFeeBusinessIds: '' },
       }),
     )
   })
@@ -117,7 +157,8 @@ describe('createUpgradeCheckout: arma la sesión correcta', () => {
     const { createUpgradeCheckout } = await import('../billing')
     const userId = await newUser()
     const result = await createUpgradeCheckout(
-      { id: userId, email: 'a@b.test', stripeCustomerId: 'cus_1', setupFeePaidAt: new Date() },
+      { id: userId, email: 'a@b.test', stripeCustomerId: 'cus_1' },
+      [],
       'ILIMITADO',
       'https://x/ok',
       'https://x/cancel',
@@ -127,17 +168,23 @@ describe('createUpgradeCheckout: arma la sesión correcta', () => {
   })
 })
 
-describe('el webhook de Stripe mueve el plan correcto', () => {
-  it('al completar el checkout, deja el plan y la implementación pagada que diga el metadata', async () => {
+describe('el webhook de Stripe mueve el plan y marca pagados los negocios correctos', () => {
+  it('al completar el checkout, deja el plan del usuario y la implementación pagada de sus negocios', async () => {
     const { handleStripeWebhook } = await import('../billing')
     const userId = await newUser()
+    const paid = await newBusiness(userId) // ya la tenía pagada, no debería tocarse
+    const oldPaidAt = (await prisma.business.update({ where: { id: paid }, data: { setupFeePaidAt: new Date('2020-01-01') } })).setupFeePaidAt
+    const a = await newBusiness(userId)
+    const b = await newBusiness(userId)
+    const otherUsersBusiness = await newBusiness(await newUser()) // no es suyo: no se le toca aunque esté en el metadata
+
     constructEvent.mockReturnValue({
       type: 'checkout.session.completed',
       data: {
         object: {
           client_reference_id: userId,
           subscription: 'sub_abc',
-          metadata: { plan: 'NEGOCIOS', includesSetupFee: '1' },
+          metadata: { plan: 'NEGOCIOS', setupFeeBusinessIds: `${a},${b},${otherUsersBusiness}` },
         },
       },
     })
@@ -145,10 +192,16 @@ describe('el webhook de Stripe mueve el plan correcto', () => {
     const result = await handleStripeWebhook('{}', 'firma')
     expect(result).toEqual({ ok: true })
 
-    const row = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
-    expect(row.plan).toBe('NEGOCIOS')
-    expect(row.stripeSubscriptionId).toBe('sub_abc')
-    expect(row.setupFeePaidAt).not.toBeNull()
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+    expect(user.plan).toBe('NEGOCIOS')
+    expect(user.stripeSubscriptionId).toBe('sub_abc')
+
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: a } })).setupFeePaidAt).not.toBeNull()
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: b } })).setupFeePaidAt).not.toBeNull()
+    // El que ya estaba pagado conserva su fecha, no se pisa con "ahora"
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: paid } })).setupFeePaidAt).toEqual(oldPaidAt)
+    // El negocio de otro usuario, aunque vino en el metadata, no se toca
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: otherUsersBusiness } })).setupFeePaidAt).toBeNull()
   })
 
   it('un cambio de plan desde el portal (otro price) actualiza el plan sin tocar la implementación', async () => {
@@ -156,7 +209,7 @@ describe('el webhook de Stripe mueve el plan correcto', () => {
     const userId = await newUser()
     await prisma.user.update({
       where: { id: userId },
-      data: { plan: 'BASICO', stripeSubscriptionId: 'sub_xyz', setupFeePaidAt: new Date() },
+      data: { plan: 'BASICO', stripeSubscriptionId: 'sub_xyz' },
     })
 
     constructEvent.mockReturnValue({

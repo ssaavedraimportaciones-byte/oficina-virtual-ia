@@ -55,7 +55,12 @@ export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
   ILIMITADO: 90_000,
 }
 
-/** Pago único de implementación, informativo (el monto real lo trae `STRIPE_PRICE_ID_SETUP`). */
+/**
+ * Pago único de implementación, informativo (el monto real lo trae
+ * `STRIPE_PRICE_ID_SETUP`). Es POR NEGOCIO, no por cliente: conectar un
+ * segundo número (Meta, SII, probarlo) es trabajo aparte del primero, así
+ * que quien maneja 2 negocios paga la implementación 2 veces.
+ */
 export const SETUP_FEE_CLP = 90_000
 
 /** Variable de entorno que trae el Price de Stripe de cada plan pago. */

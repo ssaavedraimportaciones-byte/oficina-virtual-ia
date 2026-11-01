@@ -170,11 +170,19 @@ export interface UserProfile {
   emailVerifiedAt: string | null
   plan: Plan
   totpEnabled: boolean
+  /** Negocios propios cuya implementación todavía no se pagó: eso es lo que se le cobra en el próximo checkout. */
+  unbilledBusinesses: number
 }
 
 /** Perfil para la pantalla de "mi cuenta" (cambiar contraseña, ver estado de verificación, 2FA, plan). */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const [user, owned] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId } }),
+    prisma.businessMember.findMany({
+      where: { userId, role: 'OWNER' },
+      select: { business: { select: { setupFeePaidAt: true } } },
+    }),
+  ])
   if (!user) return null
   return {
     id: user.id,
@@ -182,6 +190,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     plan: user.plan,
     totpEnabled: Boolean(user.totpEnabledAt),
+    unbilledBusinesses: owned.filter((m) => !m.business.setupFeePaidAt).length,
   }
 }
 

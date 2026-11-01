@@ -44,9 +44,6 @@ model User {
   plan                 Plan    @default(FREE)
   stripeCustomerId     String?
   stripeSubscriptionId String?
-  /// Cuándo pagó el cobro único de implementación. null = todavía no, así que
-  /// el próximo checkout a un plan pago se lo vuelve a incluir.
-  setupFeePaidAt       DateTime?
 
   /// Secreto TOTP cifrado (ver lib/secrets.ts). null = 2FA desactivado.
   totpSecret    String?
@@ -160,6 +157,10 @@ model Business {
   /// Límite mensual de respuestas del agente fijado a mano para esta empresa.
   /// null = vale el del plan.
   replyLimitOverride Int?
+  /// Cuándo se pagó el cobro único de implementación DE ESTE NEGOCIO (conectar
+  /// su número, cargar su información). Es por negocio, no por cliente: quien
+  /// maneja 2 negocios paga la implementación 2 veces. null = todavía no.
+  setupFeePaidAt DateTime?
 
   // Únicos: todos los números de todas las empresas llegan al mismo webhook y
   // se reparten por este ID; si dos empresas tuvieran el mismo, los mensajes

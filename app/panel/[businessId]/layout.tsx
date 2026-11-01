@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { BrandLockup } from '@/app/BrandMark'
 import { notFound, redirect } from 'next/navigation'
-import { canAccessBusiness, getCurrentUser } from '@/lib/auth'
+import { canAccessBusiness, getCurrentUser, isPlatformAdmin } from '@/lib/auth'
 import { getBusiness } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import { prisma } from '@/lib/db'
@@ -61,7 +61,16 @@ export default async function BusinessLayout({
           </span>
         </div>
 
-        <nav className="mt-8 flex flex-col gap-1">
+        {isPlatformAdmin(user) && (
+          <Link
+            href="/admin"
+            className="mt-4 block rounded-md border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-base font-medium text-amber-300 hover:bg-amber-500/20"
+          >
+            Panel del dueño
+          </Link>
+        )}
+
+        <nav className="mt-6 flex flex-col gap-1">
           {navItems.map((item) => (
             <Link
               key={item.href}

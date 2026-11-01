@@ -67,12 +67,14 @@ export default async function AdminPage() {
     <div className="mx-auto max-w-5xl px-8 py-12">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Administración</h1>
-          <p className="mt-1 text-sm text-gray-400">Todos los negocios de la plataforma.</p>
+          <h1 className="text-2xl font-bold text-white">Panel del dueño del sistema</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Todos los negocios, usuarios y cobros de la plataforma.
+          </p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/panel" className="text-sm text-gray-400 hover:text-amber-400">
-            Ir al panel →
+          <Link href="/panel" className="text-base text-gray-300 hover:text-amber-400">
+            ← Mis negocios
           </Link>
           <LogoutButton className="text-sm text-gray-500 hover:text-gray-300" />
         </div>

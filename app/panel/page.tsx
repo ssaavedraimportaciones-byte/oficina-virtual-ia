@@ -29,8 +29,11 @@ export default async function PanelPage() {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           {isPlatformAdmin(user) && (
-            <Link href="/admin" className="text-sm text-gray-400 hover:text-amber-400">
-              Administración
+            <Link
+              href="/admin"
+              className="rounded-md border border-amber-500/60 bg-amber-500/10 px-4 py-2 text-base font-medium text-amber-300 hover:bg-amber-500/20"
+            >
+              Panel del dueño
             </Link>
           )}
           <Link href="/account" className="text-sm text-gray-400 hover:text-amber-400">

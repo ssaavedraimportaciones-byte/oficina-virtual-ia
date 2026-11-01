@@ -16,7 +16,7 @@ export default function AdminNav({ active }: { active: string }) {
         <Link
           key={item.href}
           href={item.href}
-          className={`-mb-px border-b-2 px-4 py-2 text-sm ${
+          className={`-mb-px border-b-2 px-4 py-2.5 text-base ${
             item.href === active
               ? 'border-amber-500 text-amber-400'
               : 'border-transparent text-gray-400 hover:text-gray-200'

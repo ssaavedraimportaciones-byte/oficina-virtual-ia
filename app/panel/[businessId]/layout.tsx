@@ -42,7 +42,7 @@ export default async function BusinessLayout({
   ]
 
   return (
-    <div className="panel-grande flex min-h-screen">
+    <div className="flex min-h-screen">
       <aside className="w-64 shrink-0 border-r border-gray-800 bg-gray-900/40 p-6">
         <Link href="/">
           <BrandLockup />

@@ -18,7 +18,7 @@ export default async function PanelRootLayout({ children }: { children: React.Re
   const [announcements, maintenance] = await Promise.all([listActiveAnnouncements(), getMaintenance()])
 
   return (
-    <>
+    <div className="zv-legible">
       {maintenance.enabled && (
         <div className={`border-b px-6 py-2 text-center text-sm ${BANNER_STYLE.maintenance}`}>
           <strong>Mantenimiento en curso:</strong> los agentes están pausados y tus clientes reciben un
@@ -31,6 +31,6 @@ export default async function PanelRootLayout({ children }: { children: React.Re
         </div>
       ))}
       {children}
-    </>
+    </div>
   )
 }

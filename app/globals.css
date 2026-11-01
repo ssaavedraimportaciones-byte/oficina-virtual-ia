@@ -13,10 +13,16 @@
 }
 
 .input {
-  @apply w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-amber-500 focus:outline-none;
+  @apply w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-base text-gray-100 placeholder:text-gray-600 focus:border-amber-500 focus:outline-none;
 }
 
-/* Panel más legible para personas mayores: agranda todo el panel de cada negocio. */
-.panel-grande {
+/*
+ * Legibilidad del área privada (negocios, panel del dueño, mi cuenta). Tailwind
+ * dimensiona el texto en rem contra el <html>, así que subir la fuente de un
+ * contenedor no escala sus clases: `zoom` sí, y de paso acompaña el espaciado.
+ * Va solo acá adentro y no en la landing, que tiene su propia tipografía.
+ * No anidar: dos contenedores con esta clase multiplican el aumento.
+ */
+.zv-legible {
   zoom: 1.12;
 }

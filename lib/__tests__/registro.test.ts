@@ -1,3 +1,4 @@
+import { resetRateLimit } from '../rateLimit'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'crypto'
 import { NextRequest } from 'next/server'
@@ -93,6 +94,9 @@ describe('registro autoservicio', () => {
   it('frena el alta masiva: máximo 5 registros por hora desde la misma IP', async () => {
     process.env.ALLOW_SIGNUP = 'true'
     const ip = `203.0.113.${Math.floor(Math.random() * 250)}`
+    // La base de pruebas se reutiliza entre corridas: sin esto, una IP sorteada
+    // que ya registró en la última hora llegaba con el cupo gastado.
+    await resetRateLimit(`register:${ip}`)
     const statuses: number[] = []
     for (let i = 0; i < 7; i += 1) statuses.push((await register(valid(), ip)).status)
     expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200])

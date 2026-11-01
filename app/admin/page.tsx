@@ -29,7 +29,7 @@ function Dot({ ok }: { ok: boolean }) {
 
 function formatDate(value: string | null) {
   if (!value) return '—'
-  return new Date(value).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
+  return new Date(value).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 export default async function AdminPage() {

@@ -10,7 +10,7 @@ export function isOrderable(product: Product): boolean {
 }
 
 export function formatPrice(value: number): string {
-  return `$${value.toLocaleString('es-AR')}`
+  return `$${value.toLocaleString('es-CL')}`
 }
 
 export function stockLabel(product: Product): string {

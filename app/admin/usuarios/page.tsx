@@ -19,7 +19,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 
 function formatDate(date: Date | null) {
   if (!date) return '—'
-  return new Date(date).toLocaleString('es-AR', {
+  return new Date(date).toLocaleString('es-CL', {
     dateStyle: 'short',
     timeStyle: 'short',
   })

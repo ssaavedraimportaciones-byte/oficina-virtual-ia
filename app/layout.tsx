@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es-CL" className="dark" suppressHydrationWarning>
       <head>
         {/* Antes de pintar: si se permite el movimiento, la landing arma su escenario animado; si no, queda la versión estática. */}
         <script

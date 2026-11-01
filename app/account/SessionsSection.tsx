@@ -62,7 +62,7 @@ export default function SessionsSection() {
                 </div>
                 <p className="truncate text-xs text-gray-600">
                   {s.ipAddress ?? 'IP desconocida'} · desde{' '}
-                  {new Date(s.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                  {new Date(s.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
                 </p>
               </div>
               {!s.isCurrent && (

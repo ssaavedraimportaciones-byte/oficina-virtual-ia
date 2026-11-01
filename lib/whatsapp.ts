@@ -15,6 +15,19 @@ export function resolveCredentials(credentials?: ChannelCredentials) {
   }
 }
 
+/**
+ * Los modelos escriben en Markdown (`**negrita**`, `### título`, `[texto](url)`),
+ * pero WhatsApp tiene su propio formato: `*negrita*`, `_cursiva_`, y los links
+ * van sueltos. Sin esto el cliente ve los asteriscos dobles tal cual.
+ */
+export function toWhatsAppFormat(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '*$1*')
+    .replace(/__(.+?)__/g, '_$1_')
+    .replace(/^#{1,6}\s+(.+)$/gm, '*$1*')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1: $2')
+}
+
 export async function sendWhatsAppMessage(
   to: string,
   text: string,
@@ -37,7 +50,7 @@ export async function sendWhatsAppMessage(
         messaging_product: 'whatsapp',
         to,
         type: 'text',
-        text: { body: text },
+        text: { body: toWhatsAppFormat(text) },
       }),
     },
   )

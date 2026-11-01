@@ -154,21 +154,25 @@ export function createOpenAiProvider(apiKey: string): LlmProvider {
     describeError(error: unknown): string {
       const status = (error as { status?: number })?.status
       const raw = error instanceof Error ? error.message : String(error)
+      // Con OPENAI_BASE_URL el proveedor real es otro (Groq, OpenRouter...): se nombra ese
+      const name = host === 'api.openai.com' ? 'OpenAI' : host
 
       if (/not in allowlist|ENOTFOUND|ECONNREFUSED|fetch failed/i.test(raw)) {
         return `El servidor no puede conectarse a ${host}. Revisa que esté encendido y accesible desde el hosting.`
       }
       if (status === 401) {
-        return 'La API key de OpenAI es inválida. Revisa OPENAI_API_KEY.'
+        return `La API key de ${name} es inválida o fue revocada. Revisa OPENAI_API_KEY.`
       }
       if (status === 429 || /quota/i.test(raw)) {
-        return 'OpenAI rechazó la consulta por falta de saldo o límite de uso. Revisa el billing en platform.openai.com.'
+        return name === 'OpenAI'
+          ? 'OpenAI rechazó la consulta por falta de saldo o límite de uso. Revisa el billing en platform.openai.com.'
+          : `${name} rechazó la consulta por falta de saldo o límite de uso (${raw.slice(0, 160)}).`
       }
       if (status === 404 || /does not exist|model/i.test(raw)) {
         return `El modelo ${model} no está disponible para esta cuenta. Revisa OPENAI_MODEL.`
       }
       if (status && status >= 500) {
-        return 'OpenAI tuvo un error temporal. Reintenta en un momento.'
+        return `${name} tuvo un error temporal (${status}). Reintenta en un momento.`
       }
       return raw
     },

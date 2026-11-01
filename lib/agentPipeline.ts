@@ -1,4 +1,5 @@
-import { generateAgentReply } from './agentEngine'
+import { describeApiError, generateAgentReply } from './agentEngine'
+import { recordLlmError } from './llmLog'
 import { listFloors } from './mesasStore'
 import { updateContactNotes } from './contactNotes'
 import { notifyNewConversation, notifyQuotaReached } from './notifications'
@@ -163,6 +164,7 @@ export async function handleIncomingMessage(
     // cliente se quedaba sin respuesta; ahora recibe el mensaje de contingencia
     // y el error queda en los logs para quien administra la plataforma.
     console.error('[pipeline] falló la IA, se responde con el mensaje de contingencia:', error)
+    await recordLlmError(business.id, error, describeApiError(error))
     await sendCanned((await getMaintenance()).message)
     return { status: 'degraded', conversation }
   }

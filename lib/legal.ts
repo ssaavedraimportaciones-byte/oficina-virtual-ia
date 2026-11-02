@@ -30,6 +30,15 @@ export const COMPANY = {
 } as const
 
 /**
+ * Si el número de contacto ya atiende por WhatsApp. Mientras sea false, la web
+ * ofrece llamar en vez de un link de WhatsApp que abriría "este número no está
+ * en WhatsApp". Pasarlo a true apenas el número quede conectado.
+ */
+export const COMPANY_HAS_WHATSAPP = false
+
+export const COMPANY_PHONE_URL = `tel:+${COMPANY.phone.replace(/\D/g, '')}`
+
+/**
  * Link de WhatsApp para que un interesado escriba directo desde la web, con
  * un saludo ya escrito. Sale del mismo `phone`, para no tener el número dos veces.
  */

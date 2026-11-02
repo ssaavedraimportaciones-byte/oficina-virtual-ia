@@ -116,7 +116,7 @@ en el bloqueo del número por parte de Meta, decisión que es de Meta y no del P
 El Prestador se obliga a:
 
 1. Mantener la plataforma operativa y aplicar medidas de seguridad conforme al **Anexo A**.
-2. Prestar **soporte** por correo electrónico y WhatsApp en días hábiles, de lunes a viernes, de
+2. Prestar **soporte** por correo electrónico y teléfono en días hábiles, de lunes a viernes, de
    9:00 a 18:00 horas, respondiendo dentro del siguiente día hábil.
 3. Avisar al Cliente, sin demora injustificada, de cualquier **incidente de seguridad** que afecte
    sus datos o los de sus clientes finales.
@@ -183,7 +183,7 @@ el **Cliente es el responsable** del tratamiento y el **Prestador el encargado**
 
 Las comunicaciones entre las Partes se harán por correo electrónico a:
 
-- **Prestador:** contacto@zerovistochile.com — WhatsApp +56 9 2044 8651
+- **Prestador:** contacto@zerovistochile.com — teléfono +56 9 2044 8651
 - **Cliente:** [email] — [teléfono]
 
 ## DECIMOQUINTO: Ley aplicable y jurisdicción

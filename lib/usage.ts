@@ -1,5 +1,6 @@
 import { prisma } from './db'
 import { comparePlans, type PlanName } from './plans'
+import { monthlyLimit } from './planLimits'
 
 /**
  * Cupo mensual de respuestas del agente por empresa.
@@ -17,21 +18,7 @@ import { comparePlans, type PlanName } from './plans'
 
 export type { PlanName }
 
-const DEFAULT_LIMITS: Record<PlanName, number> = { FREE: 300, BASICO: 1500, NEGOCIOS: 4000, ILIMITADO: 10_000 }
-const ENV_VARS: Record<PlanName, string> = {
-  FREE: 'AGENT_REPLIES_FREE',
-  BASICO: 'AGENT_REPLIES_BASICO',
-  NEGOCIOS: 'AGENT_REPLIES_NEGOCIOS',
-  ILIMITADO: 'AGENT_REPLIES_ILIMITADO',
-}
-
-/** Respuestas por mes que incluye el plan. `null` = sin límite. */
-export function monthlyLimit(plan: PlanName): number | null {
-  const raw = process.env[ENV_VARS[plan]]
-  const parsed = raw === undefined || raw === '' ? NaN : Number(raw)
-  const value = Number.isFinite(parsed) ? Math.trunc(parsed) : DEFAULT_LIMITS[plan]
-  return value < 0 ? null : value
-}
+export { monthlyLimit } from './planLimits'
 
 /**
  * Plan de una empresa = el mejor plan entre sus dueños. Una empresa sin dueños

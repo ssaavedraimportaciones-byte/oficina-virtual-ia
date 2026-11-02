@@ -170,8 +170,10 @@ el **Cliente es el responsable** del tratamiento y el **Prestador el encargado**
 ## DECIMOTERCERO: Vigencia y término
 
 1. El contrato rige desde su firma y **se renueva automáticamente mes a mes**.
-2. Cualquiera de las Partes puede ponerle término **avisando con 30 días** de anticipación, por
-   correo electrónico a la dirección registrada. No se devuelven montos del período ya pagado.
+2. **Sin permanencia mínima.** El Cliente puede ponerle término **en cualquier momento**, desde su
+   cuenta o por correo electrónico; el servicio sigue activo hasta el final del período ya pagado y
+   no se devuelven montos de ese período. El Prestador puede ponerle término avisando con **30
+   días** de anticipación.
 3. El Prestador puede suspender o terminar el contrato de inmediato si el Cliente incumple la
    Cláusula Sexta o pone en riesgo la plataforma.
 4. Terminado el contrato, el Cliente dispone de **30 días** para solicitar la entrega de sus datos.

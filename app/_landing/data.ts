@@ -300,11 +300,12 @@ export const STREET: StreetShop[] = [
 export const streetX = (i: number) => 15.6 + i * 7
 
 /** Datos del producto (no métricas de clientes): lo que trae ZeroVisto hoy. */
+/** Solo cifras comprobables: ver app/_landing/resultados.ts. */
 export const FACTS = [
-  { value: '24/7', label: 'responde a cualquier hora' },
-  { value: '2', label: 'canales: WhatsApp e Instagram' },
-  { value: '10', label: 'plantillas de rubro' },
-  { value: '1', label: 'panel para tu equipo' },
+  { value: '3,3 s', label: 'en responder (mediana medida en respuestas reales)' },
+  { value: '24/7', label: 'agenda y vende de noche, fines de semana y feriados' },
+  { value: '3', label: 'bots en vivo para que los pruebes hoy' },
+  { value: '$0', label: 'para empezar, sin tarjeta' },
 ]
 
 /** Capítulos del riel lateral: toda la página. */
@@ -323,13 +324,12 @@ export const RAIL = [
 ]
 
 export const NAV = [
+  { id: 'demo', label: 'Pruébalo' },
   { id: 'noche', label: 'Una noche' },
   { id: 'rubros', label: 'Rubros' },
-  { id: 'foodtruck', label: 'Food truck' },
-  { id: 'negocios', label: 'Negocios' },
-  { id: 'integraciones', label: 'Integraciones' },
   { id: 'mesas', label: 'Reservas' },
   { id: 'ahorro', label: 'Ahorro' },
+  { id: 'precios', label: 'Precios' },
   { id: 'empieza', label: 'Cómo empieza' },
 ]
 

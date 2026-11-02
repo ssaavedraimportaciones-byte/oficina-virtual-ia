@@ -12,6 +12,8 @@ import StaticStory from './_landing/Static'
 import World from './_landing/World'
 import Ahorro from './_landing/Ahorro'
 import Mesas from './_landing/Mesas'
+import Demo from './_landing/Demo'
+import Precios from './_landing/Precios'
 import { CasoPhone, CasoSteps } from './_landing/CasoParts'
 import { BENEFITS, CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
 import '@fontsource-variable/archivo/wdth.css'
@@ -47,24 +49,24 @@ function Hero() {
         <div className="zv-hero-grid">
           <div className="zv-hero-main">
             <p className="zv-label zv-hero-k">
-              <span>00</span> — Agentes de IA para WhatsApp e Instagram
+              <span>00</span> — Atención con IA para WhatsApp e Instagram
             </p>
             <h1 id="zv-hero-title" className="zv-h1">
-              <SplitWords text={`Tu cliente escribe. ${BRAND.name} responde.`} accent={[4]} breakAfter={[2]} />
+              <SplitWords text="Más horas agendadas. Cero clientes en visto." accent={[2, 6]} breakAfter={[2]} />
             </h1>
           </div>
           <div className="zv-hero-side">
             <p className="zv-lead">
-              Un agente de IA que atiende tu WhatsApp e Instagram al tiro, a cualquier hora: responde dudas, agenda horas,
-              toma pedidos y te pasa el caso cuando hace falta una persona.
+              Tu WhatsApp e Instagram contestan en segundos, de día y de noche: agendan horas, reservan mesas y toman
+              pedidos mientras tú atiendes. El cliente que escribe a las 23:47 ya no se va con la competencia.
             </p>
             <div className="zv-cta-row">
-              <Link href="/registro" className="zv-btn" data-magnetic data-cursor="Empezar">
-                Probar gratis <span aria-hidden="true">↗</span>
-              </Link>
-              <a href="#noche" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Ver">
-                Ver una noche entera
+              <a href="#demo" className="zv-btn" data-magnetic data-cursor="Probar">
+                Pruébalo en tu WhatsApp <span aria-hidden="true">↓</span>
               </a>
+              <Link href="/registro" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Empezar">
+                Empezar gratis
+              </Link>
             </div>
           </div>
         </div>
@@ -317,11 +319,15 @@ function Final() {
           <SplitWords text="Que ningún cliente más quede en visto." accent={[6]} />
         </h2>
         <p className="zv-intro" data-reveal-item>
-          Crea tu agente en minutos y pruébalo en el simulador antes de conectar tus canales.
+          Escríbele a uno de nuestros bots y compruébalo en tu WhatsApp. Si te convence, creas el tuyo
+          gratis y sin tarjeta.
         </p>
         <div className="zv-cta-row" data-reveal-item>
-          <Link href="/registro" className="zv-btn" data-magnetic data-cursor="Empezar">
-            Probar gratis <span aria-hidden="true">↗</span>
+          <a href="#demo" className="zv-btn" data-magnetic data-cursor="Probar">
+            Probar un bot ahora <span aria-hidden="true">↑</span>
+          </a>
+          <Link href="/registro" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Empezar">
+            Empezar gratis
           </Link>
           <Link href="/panel" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Entrar">
             Ya tengo cuenta
@@ -393,6 +399,7 @@ export default function Home() {
       <Rail />
       <main id="contenido">
         <Hero />
+        <Demo />
         <div id="noche" data-section="noche">
           <Stage />
           <StaticStory />
@@ -406,6 +413,7 @@ export default function Home() {
         <Integraciones />
         <Mesas />
         <Resuelve />
+        <Precios />
         <Empieza />
         <Final />
       </main>

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { COMPANY_WHATSAPP_URL } from '@/lib/legal'
 import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, type PaidPlan } from '@/lib/plans'
 import { monthlyLimit } from '@/lib/planLimits'
 
@@ -61,19 +61,25 @@ export default function Precios() {
                   <li>Agenda, reservas de mesa, pedidos y notas de voz</li>
                   <li>WhatsApp e Instagram en un solo panel</li>
                 </ul>
-                <Link href="/registro" className={`zv-btn${featured ? '' : ' zv-btn--ghost'}`} data-magnetic data-cursor="Empezar">
-                  Empezar gratis <span aria-hidden="true">↗</span>
-                </Link>
+                <a
+                  href={COMPANY_WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`zv-btn${featured ? '' : ' zv-btn--ghost'}`}
+                  data-magnetic
+                  data-cursor="Contratar"
+                >
+                  Contratar <span aria-hidden="true">↗</span>
+                </a>
               </li>
             )
           })}
         </ul>
 
-        <div className="zv-price-notes" data-reveal>
+        <div className="zv-price-notes zv-precios-notes" data-reveal>
           <p data-reveal-item>
-            <strong>Empiezas gratis, sin tarjeta:</strong> {(monthlyLimit('FREE') ?? 0).toLocaleString('es-CL')}{' '}
-            respuestas del agente al mes para probarlo con tus clientes reales. Pagas recién cuando
-            quieres más.
+            <strong>Antes de contratar, pruébalo:</strong> escríbele a nuestros{' '}
+            <a href="#demo">bots en vivo</a> y mira cómo atenderían a tus clientes.
           </p>
           <p data-reveal-item>
             <strong>Implementación {clp(SETUP_FEE_CLP)} por número conectado</strong>, pago único: te

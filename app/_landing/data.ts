@@ -149,7 +149,7 @@ export const CHAPTERS: Chapter[] = [
 /** El resumen del panel, que se ve al final de la noche. */
 export const SUMMARY_SHOT = {
   src: '/landing/resumen.webp',
-  alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 de 300 respuestas del agente este mes en el plan gratis, 1 hora agendada y 1 pedido por $9.000.',
+  alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 respuestas del agente este mes, 1 hora agendada y 1 pedido por $9.000.',
   caption: 'Tu resumen de la mañana',
   width: 1600,
   height: 1000,
@@ -305,7 +305,7 @@ export const FACTS = [
   { value: '3,3 s', label: 'en responder (mediana medida en respuestas reales)' },
   { value: '24/7', label: 'agenda y vende de noche, fines de semana y feriados' },
   { value: '3', label: 'bots en vivo para que los pruebes hoy' },
-  { value: '$0', label: 'para empezar, sin tarjeta' },
+  { value: '$45.000', label: 'al mes, IVA incluido, sin permanencia' },
 ]
 
 /** Capítulos del riel lateral: toda la página. */

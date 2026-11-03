@@ -64,9 +64,9 @@ function Hero() {
               <a href="#demo" className="zv-btn" data-magnetic data-cursor="Probar">
                 Pruébalo en tu WhatsApp <span aria-hidden="true">↓</span>
               </a>
-              <Link href="/registro" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Empezar">
-                Empezar gratis
-              </Link>
+              <a href="#precios" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Ver">
+                Ver precios
+              </a>
             </div>
           </div>
         </div>
@@ -319,16 +319,16 @@ function Final() {
           <SplitWords text="Que ningún cliente más quede en visto." accent={[6]} />
         </h2>
         <p className="zv-intro" data-reveal-item>
-          Escríbele a uno de nuestros bots y compruébalo en tu WhatsApp. Si te convence, creas el tuyo
-          gratis y sin tarjeta.
+          Escríbele a uno de nuestros bots y compruébalo en tu WhatsApp. Si te convence, dejamos el tuyo
+          funcionando en tu número.
         </p>
         <div className="zv-cta-row" data-reveal-item>
           <a href="#demo" className="zv-btn" data-magnetic data-cursor="Probar">
             Probar un bot ahora <span aria-hidden="true">↑</span>
           </a>
-          <Link href="/registro" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Empezar">
-            Empezar gratis
-          </Link>
+          <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Contratar">
+            Contratar
+          </a>
           <Link href="/panel" className="zv-btn zv-btn--ghost" data-magnetic data-cursor="Entrar">
             Ya tengo cuenta
           </Link>

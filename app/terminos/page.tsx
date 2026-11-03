@@ -92,8 +92,8 @@ export default function TerminosPage() {
 
       <h2>7. Planes y facturación</h2>
       <p>
-        El plan gratuito permite un negocio propio, con hasta 300 respuestas del agente por mes.
-        Los planes pagos se diferencian por cuántos negocios propios puedes tener y por cuántas
+        El servicio se contrata con un pago único de implementación y una suscripción mensual. Los
+        planes se diferencian por cuántos negocios propios puedes tener y por cuántas
         respuestas del agente incluye cada mes: <strong>Básico</strong> (1 negocio, 1.500
         respuestas), <strong>Negocios</strong> (hasta 3 negocios, 4.000 respuestas) e{' '}
         <strong>Ilimitado</strong> (negocios sin límite, 10.000 respuestas). El nombre

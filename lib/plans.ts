@@ -6,7 +6,8 @@ import type { Plan } from './generated/prisma/enums'
  * entorno trae su precio de Stripe. `lib/billing.ts` (cobro) y `lib/usage.ts`
  * (cupo de respuestas) leen de acá para no definir los mismos tramos dos veces.
  *
- * FREE es la prueba gratis: 1 negocio, sin pago. Los tres planes pagos se
+ * FREE es la cuenta sin plan contratado: 1 negocio, sin pago. No se ofrece como
+ * plan: el modelo comercial es implementación más mensualidad. Los tres planes pagos se
  * diferencian por cuántos negocios puede tener el cliente, no por cupo de
  * mensajes (ese cupo también escala, pero es secundario a la razón de pagar
  * más: manejar más de un negocio).
@@ -38,7 +39,7 @@ export const BUSINESS_LIMIT: Record<PlanName, number | null> = {
 }
 
 export const PLAN_LABEL: Record<PlanName, string> = {
-  FREE: 'Prueba gratis',
+  FREE: 'Sin plan contratado',
   BASICO: 'Básico',
   NEGOCIOS: 'Negocios',
   ILIMITADO: 'Ilimitado',

@@ -41,7 +41,7 @@ export default function RegisterForm() {
       <div>
         <BrandLockup />
         <h1 className="mt-1 text-xl font-bold text-white">Crea tu cuenta</h1>
-        <p className="mt-1 text-sm text-gray-500">{BRAND.tagline}. Pruébalo gratis con tu negocio.</p>
+        <p className="mt-1 text-sm text-gray-500">{BRAND.tagline}. Crea tu cuenta y configura tu agente.</p>
       </div>
       <input
         required

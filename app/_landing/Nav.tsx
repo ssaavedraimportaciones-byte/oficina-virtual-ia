@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import BrandMark from '@/app/BrandMark'
 import { BRAND } from '@/lib/brand'
+import { COMPANY_WHATSAPP_URL } from '@/lib/legal'
 import { NAV } from './data'
 
 /** Barra superior: marca, secciones (con la activa marcada), ingreso y menú en el celular. */
@@ -43,9 +44,9 @@ export default function Nav() {
         <Link href="/panel" className="zv-navlogin" data-cursor="Entrar">
           Ingresar
         </Link>
-        <Link href="/registro" className="zv-btn zv-btn--sm" data-magnetic data-cursor="Empezar">
-          Probar gratis
-        </Link>
+        <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="zv-btn zv-btn--sm" data-magnetic data-cursor="Contratar">
+          Contratar
+        </a>
         <button type="button" className="zv-menu-btn" aria-expanded={open} aria-controls="zv-menu" onClick={() => setOpen((v) => !v)}>
           <span className="sr-only">{open ? 'Cerrar menú' : 'Abrir menú'}</span>
           <i />

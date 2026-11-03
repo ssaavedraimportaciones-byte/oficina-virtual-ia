@@ -1,4 +1,5 @@
 import QRCode from 'qrcode'
+import { COMPANY_SALES_LIVE, COMPANY_SALES_WHATSAPP, COMPANY_WHATSAPP_URL } from '@/lib/legal'
 import { DEMO_BOTS, MEASURED, waLink } from './resultados'
 
 /**
@@ -91,6 +92,16 @@ export default async function Demo() {
           mitad de los casos: medido sobre {MEASURED.sample} respuestas reales de estos agentes (
           {MEASURED.measuredOn}). Una persona ocupada tarda horas, o no contesta.
         </p>
+
+        {COMPANY_SALES_LIVE && (
+          <p className="zv-demo-sales" data-reveal>
+            ¿Quieres saber cuánto te costaría o si sirve para tu rubro? Nuestras ventas también las
+            atiende un agente de ZeroVisto:{' '}
+            <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" data-cursor="WhatsApp">
+              escríbele al {COMPANY_SALES_WHATSAPP} ↗
+            </a>
+          </p>
+        )}
       </div>
     </section>
   )

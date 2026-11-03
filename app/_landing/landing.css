@@ -3414,3 +3414,16 @@
     font-size: 0.85rem;
   }
 }
+.zv-demo-sales {
+  margin: 1rem 0 0;
+  max-width: 62ch;
+  color: var(--zv-soft);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.zv-demo-sales a {
+  color: var(--zv-amber);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

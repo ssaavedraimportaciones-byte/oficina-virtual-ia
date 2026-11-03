@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { BRAND } from '@/lib/brand'
-import { COMPANY, COMPANY_HAS_WHATSAPP, COMPANY_PHONE_URL, COMPANY_WHATSAPP_URL } from '@/lib/legal'
+import { COMPANY, COMPANY_PHONE_URL, COMPANY_SALES_LIVE, COMPANY_SALES_WHATSAPP, COMPANY_WHATSAPP_URL } from '@/lib/legal'
 import Foreground from './_landing/Foreground'
 import Motion from './_landing/Motion'
 import Nav from './_landing/Nav'
@@ -334,16 +334,15 @@ function Final() {
           </Link>
         </div>
         <div className="zv-contact" data-reveal-item>
-          <p>¿Prefieres hablar con una persona?</p>
-          {COMPANY_HAS_WHATSAPP ? (
+          <p>¿Dudas sobre precios o si sirve para tu negocio?</p>
+          {COMPANY_SALES_LIVE && (
             <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" data-cursor="WhatsApp">
-              <span aria-hidden="true">💬</span> WhatsApp {COMPANY.phone}
-            </a>
-          ) : (
-            <a href={COMPANY_PHONE_URL} data-cursor="Llamar">
-              <span aria-hidden="true">📞</span> Llámanos al {COMPANY.phone}
+              <span aria-hidden="true">💬</span> Pregúntale a nuestro agente: WhatsApp {COMPANY_SALES_WHATSAPP}
             </a>
           )}
+          <a href={COMPANY_PHONE_URL} data-cursor="Llamar">
+            <span aria-hidden="true">📞</span> Llámanos al {COMPANY.phone}
+          </a>
           <a href={`mailto:${COMPANY.email}`} data-cursor="Correo">
             <span aria-hidden="true">✉️</span> {COMPANY.email}
           </a>
@@ -364,13 +363,12 @@ function Footer() {
           {BRAND.name} · {BRAND.tagline}
         </span>
         <nav aria-label="Contacto y legal" className="zv-foot-nav">
-          {COMPANY_HAS_WHATSAPP ? (
+          {COMPANY_SALES_LIVE && (
             <a href={COMPANY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-              WhatsApp {COMPANY.phone}
+              WhatsApp ventas {COMPANY_SALES_WHATSAPP}
             </a>
-          ) : (
-            <a href={COMPANY_PHONE_URL}>Teléfono {COMPANY.phone}</a>
           )}
+          <a href={COMPANY_PHONE_URL}>Teléfono {COMPANY.phone}</a>
           <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
           <Link href="/terminos">Términos</Link>
           <Link href="/privacidad">Privacidad</Link>

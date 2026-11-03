@@ -30,11 +30,14 @@ export const COMPANY = {
 } as const
 
 /**
- * Si el número de contacto ya atiende por WhatsApp. Mientras sea false, la web
- * ofrece llamar en vez de un link de WhatsApp que abriría "este número no está
- * en WhatsApp". Pasarlo a true apenas el número quede conectado.
+ * WhatsApp de ventas: lo atiende el agente de ZeroVisto, que explica planes,
+ * manda a probar los bots de demostración y deriva a una persona al que quiere
+ * contratar. Es un número distinto de `COMPANY.phone`, que es solo para llamar.
  */
-export const COMPANY_HAS_WHATSAPP = false
+export const COMPANY_SALES_WHATSAPP = '+56 9 3036 1852'
+
+/** Mientras sea false, la web no muestra el WhatsApp de ventas (por ejemplo, si se desconecta). */
+export const COMPANY_SALES_LIVE = true
 
 export const COMPANY_PHONE_URL = `tel:+${COMPANY.phone.replace(/\D/g, '')}`
 
@@ -42,7 +45,7 @@ export const COMPANY_PHONE_URL = `tel:+${COMPANY.phone.replace(/\D/g, '')}`
  * Link de WhatsApp para que un interesado escriba directo desde la web, con
  * un saludo ya escrito. Sale del mismo `phone`, para no tener el número dos veces.
  */
-export const COMPANY_WHATSAPP_URL = `https://wa.me/${COMPANY.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+export const COMPANY_WHATSAPP_URL = `https://wa.me/${COMPANY_SALES_WHATSAPP.replace(/\D/g, '')}?text=${encodeURIComponent(
   'Hola, quiero saber más de ZeroVisto.',
 )}`
 

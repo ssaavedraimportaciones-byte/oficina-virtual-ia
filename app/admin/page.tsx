@@ -173,9 +173,19 @@ export default async function AdminPage() {
                       <td className="px-4 py-3">
                         <Link
                           href={`/panel/${item.business.id}`}
-                          className="font-medium text-white hover:text-amber-400"
+                          className="flex items-center gap-2 font-medium text-white hover:text-amber-400"
                         >
-                          {template?.emoji} {item.business.config.businessName}
+                          {item.business.logoVersion ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`/api/imagenes/negocio/${item.business.id}?v=${item.business.logoVersion}`}
+                              alt=""
+                              className="h-5 w-5 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span>{template?.emoji}</span>
+                          )}
+                          {item.business.config.businessName}
                         </Link>
                         <div className="text-xs text-gray-500">{item.business.config.industry}</div>
                       </td>

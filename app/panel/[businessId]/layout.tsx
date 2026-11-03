@@ -55,7 +55,16 @@ export default async function BusinessLayout({
           ← Todos los negocios
         </Link>
         <div className="mt-2 flex items-center gap-2">
-          <span>{template?.emoji ?? '✨'}</span>
+          {business.logoVersion ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/imagenes/negocio/${businessId}?v=${business.logoVersion}`}
+              alt=""
+              className="h-6 w-6 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span>{template?.emoji ?? '✨'}</span>
+          )}
           <span className="truncate text-base font-medium text-white">
             {business.config.businessName}
           </span>

@@ -3,13 +3,17 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import type { Business } from '@/lib/types'
+import type { PublicBusiness } from '@/lib/publicBusiness'
+import { getIndustryTemplate } from '@/lib/industries'
 import AgentConfigForm, { type ConfigFormState } from '../../AgentConfigForm'
+import LogoUploader from './LogoUploader'
 
 export default function ConfigurarPage() {
   const params = useParams<{ businessId: string }>()
   const router = useRouter()
   const [form, setForm] = useState<ConfigFormState | null>(null)
+  const [templateId, setTemplateId] = useState('otro')
+  const [logoVersion, setLogoVersion] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -17,10 +21,12 @@ export default function ConfigurarPage() {
   useEffect(() => {
     fetch(`/api/businesses/${params.businessId}`)
       .then((res) => res.json())
-      .then((data: { business?: Business }) => {
+      .then((data: { business?: PublicBusiness }) => {
         if (data.business) {
           const { configuredAt: _configuredAt, ...rest } = data.business.config
           setForm(rest)
+          setTemplateId(data.business.templateId)
+          setLogoVersion(data.business.logoVersion)
         }
       })
   }, [params.businessId])
@@ -69,7 +75,16 @@ export default function ConfigurarPage() {
         .
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-6">
+      <div className="mt-10">
+        <LogoUploader
+          businessId={params.businessId}
+          emoji={getIndustryTemplate(templateId)?.emoji ?? '✨'}
+          logoVersion={logoVersion}
+          onChange={setLogoVersion}
+        />
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
         <AgentConfigForm form={form} onChange={setForm} />
 
         {error && <p className="text-sm text-danger">{error}</p>}

@@ -56,10 +56,12 @@ function mapBusiness(row: {
   instagramAccessToken: string | null
   hours: unknown
   createdAt: Date
+  logo?: { updatedAt: Date } | null
 }): Business {
   return {
     id: row.id,
     templateId: row.templateId,
+    logoVersion: row.logo ? row.logo.updatedAt.getTime() : null,
     config: {
       agentName: row.agentName,
       businessName: row.businessName,
@@ -236,8 +238,11 @@ function mapOrder(row: {
 
 // --- Negocios (tenants) ---
 
+/** Sin los bytes: listar negocios solo necesita saber si hay logo y de cuándo es. */
+const WITH_LOGO_VERSION = { logo: { select: { updatedAt: true } } } as const
+
 export async function listBusinesses(): Promise<Business[]> {
-  const rows = await prisma.business.findMany({ orderBy: { businessName: 'asc' } })
+  const rows = await prisma.business.findMany({ orderBy: { businessName: 'asc' }, include: WITH_LOGO_VERSION })
   return rows.map(mapBusiness)
 }
 
@@ -251,12 +256,13 @@ export async function listBusinessesForUser(user: SessionUser): Promise<Business
   const rows = await prisma.business.findMany({
     where: { id: { in: ids } },
     orderBy: { businessName: 'asc' },
+    include: WITH_LOGO_VERSION,
   })
   return rows.map(mapBusiness)
 }
 
 export async function getBusiness(id: string): Promise<Business | null> {
-  const row = await prisma.business.findUnique({ where: { id } })
+  const row = await prisma.business.findUnique({ where: { id }, include: WITH_LOGO_VERSION })
   return row ? mapBusiness(row) : null
 }
 
@@ -675,6 +681,36 @@ export async function deleteProductImage(productId: string): Promise<void> {
   await prisma.productImage.delete({ where: { productId } }).catch(() => {})
 }
 
+// --- Logo del negocio ---
+
+export interface BusinessLogoData {
+  contentType: string
+  data: Buffer
+  updatedAt: Date
+}
+
+export async function getBusinessLogo(businessId: string): Promise<BusinessLogoData | null> {
+  const row = await prisma.businessLogo.findUnique({ where: { businessId } })
+  return row ? { contentType: row.contentType, data: Buffer.from(row.data), updatedAt: row.updatedAt } : null
+}
+
+export async function setBusinessLogo(
+  businessId: string,
+  image: { contentType: string; data: Buffer },
+): Promise<number> {
+  const bytes = new Uint8Array(image.data)
+  const row = await prisma.businessLogo.upsert({
+    where: { businessId },
+    create: { businessId, contentType: image.contentType, data: bytes },
+    update: { contentType: image.contentType, data: bytes },
+  })
+  return row.updatedAt.getTime()
+}
+
+export async function deleteBusinessLogo(businessId: string): Promise<void> {
+  await prisma.businessLogo.delete({ where: { businessId } }).catch(() => {})
+}
+
 export async function deleteProduct(id: string): Promise<void> {
   await prisma.product.delete({ where: { id } }).catch(() => {})
 }
@@ -816,7 +852,7 @@ export interface BusinessOverview {
  */
 export async function getAdminOverview(): Promise<BusinessOverview[]> {
   const [businesses, conversations, messages, knowledge, orders, products] = await Promise.all([
-    prisma.business.findMany(),
+    prisma.business.findMany({ include: WITH_LOGO_VERSION }),
     prisma.conversation.groupBy({
       by: ['businessId'],
       _count: { _all: true },

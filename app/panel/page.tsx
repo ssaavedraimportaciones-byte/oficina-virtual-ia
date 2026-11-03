@@ -72,7 +72,16 @@ export default async function PanelPage() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{template?.emoji ?? '✨'}</span>
+                    {business.logoVersion ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/imagenes/negocio/${business.id}?v=${business.logoVersion}`}
+                        alt=""
+                        className="h-6 w-6 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl">{template?.emoji ?? '✨'}</span>
+                    )}
                     <h2 className="font-medium text-white">{business.config.businessName}</h2>
                   </div>
                   {openCount > 0 && (

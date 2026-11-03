@@ -5,6 +5,7 @@ export interface PublicBusiness {
   templateId: string
   config: AgentConfig
   createdAt: string
+  logoVersion: number | null
   /** Estado de los canales, sin exponer nunca los tokens al navegador. */
   channels: {
     whatsapp: { connected: boolean; accountId: string | null }
@@ -19,6 +20,7 @@ export function toPublicBusiness(business: Business): PublicBusiness {
     templateId: business.templateId,
     config: business.config,
     createdAt: business.createdAt,
+    logoVersion: business.logoVersion,
     channels: {
       whatsapp: {
         connected: Boolean(credentials.whatsappPhoneNumberId),

@@ -131,6 +131,8 @@ export interface Business {
   credentials: ChannelCredentials
   hours: WeekHours
   createdAt: string
+  /** null = sin logo cargado; usa el emoji del rubro como respaldo. */
+  logoVersion: number | null
 }
 
 export type MessageSender = 'contact' | 'agent' | 'human'

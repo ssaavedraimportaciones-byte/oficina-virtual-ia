@@ -21,6 +21,7 @@ import * as knowledgeRoute from '@/app/api/knowledge/[id]/route'
 import * as appointmentRoute from '@/app/api/appointments/[id]/route'
 import * as equipoRoute from '@/app/api/businesses/[id]/equipo/route'
 import * as professionalRoute from '@/app/api/professionals/[id]/route'
+import * as logoRoute from '@/app/api/businesses/[id]/logo/route'
 import * as businessesRoute from '@/app/api/businesses/route'
 
 /**
@@ -224,6 +225,13 @@ describe('aislamiento entre empresas: escrituras', () => {
     expect((await orderRoute.PATCH(req('PATCH', { status: 'entregado' }), ctx(B.orderId))).status).toBe(200)
     expect((await conversationRoute.PATCH(req('PATCH', { agentPaused: true }), ctx(B.conversationId))).status).toBe(200)
     expect((await equipoRoute.POST(req('POST', { name: 'Nueva' }), ctx(B.business.id))).status).toBe(201)
+  })
+
+  it('A no puede borrar el logo de B (y B sí puede borrar el suyo)', async () => {
+    actAs(A.user)
+    expect((await logoRoute.DELETE(req('DELETE'), ctx(B.business.id))).status).toBe(404)
+    actAs(B.user)
+    expect((await logoRoute.DELETE(req('DELETE'), ctx(B.business.id))).status).toBe(200)
   })
 })
 

@@ -186,6 +186,7 @@ model Business {
   floors        Floor[]
   professionals Professional[]
   reservations  TableReservation[]
+  logo          BusinessLogo?
 
   /// Cuánto se guarda una mesa por reserva, en minutos.
   reservationMinutes Int @default(120)
@@ -421,6 +422,19 @@ model ProductImage {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
+}
+
+/// Logo del negocio: mismo patrón que ProductImage, en su propia tabla para
+/// que cargar la lista de negocios no arrastre los bytes de cada logo.
+model BusinessLogo {
+  businessId  String   @id
+  contentType String
+  data        Bytes
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("business_logos")
 }
 
 model Order {

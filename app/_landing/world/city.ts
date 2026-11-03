@@ -477,10 +477,24 @@ export function createCity(scene: THREE.Scene, opts: { lite: boolean; reserved: 
       leafMatrices.push(dummy.matrix.clone())
     }
   }
-  const trunks = new THREE.Mesh(mergeGeometries(trunkGeos), new THREE.MeshStandardMaterial({ map: bark, roughness: 0.9 }))
+  // De noche hemi/key bajan tanto (ver palette.ts, NIGHT) que troncos y ramas, sin luz
+  // propia, se funden en negro contra el cielo y no se distinguen. Un emissive tenue los
+  // mantiene oscuros (no es de día) pero legibles como forma, como se ven bajo luna real.
+  const trunks = new THREE.Mesh(
+    mergeGeometries(trunkGeos),
+    new THREE.MeshStandardMaterial({ map: bark, roughness: 0.9, emissive: '#2a3550', emissiveIntensity: 0.3 }),
+  )
   trunks.castShadow = true
   scene.add(trunks)
-  const leafMat = new THREE.MeshStandardMaterial({ map: leafClusterTexture(), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.75, color: '#9fb88a' })
+  const leafMat = new THREE.MeshStandardMaterial({
+    map: leafClusterTexture(),
+    alphaTest: 0.45,
+    side: THREE.DoubleSide,
+    roughness: 0.75,
+    color: '#9fb88a',
+    emissive: '#2c3a2c',
+    emissiveIntensity: 0.3,
+  })
   const leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.4, 1.4), leafMat, leafMatrices.length)
   leafMatrices.forEach((m, i) => leaves.setMatrixAt(i, m))
   leaves.instanceMatrix.needsUpdate = true

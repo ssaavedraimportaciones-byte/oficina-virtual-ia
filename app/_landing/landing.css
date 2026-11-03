@@ -112,6 +112,21 @@
     radial-gradient(120% 70% at 50% 100%, rgba(255, 179, 71, 0.16), transparent 60%),
     linear-gradient(180deg, #03050c 0%, #0a1226 55%, #142141 100%);
 }
+/*
+ * En celular el titular ocupa casi todo el ancho (sin una columna propia como
+ * en escritorio), así que el "72% 20%" de la luna cae directo sobre las
+ * letras y compite con el texto en el primer vistazo, antes de que cargue la
+ * escena 3D real. Se saca de ese rango, no se achica: a ese tamaño sigue
+ * tapando una palabra igual.
+ */
+@media (max-width: 899px) {
+  .zv-poster {
+    background:
+      radial-gradient(circle at 88% 6%, rgba(239, 231, 216, 0.95) 0 2.4%, rgba(159, 180, 255, 0.24) 2.6% 7%, transparent 16%),
+      radial-gradient(120% 70% at 50% 100%, rgba(255, 179, 71, 0.16), transparent 60%),
+      linear-gradient(180deg, #03050c 0%, #0a1226 55%, #142141 100%);
+  }
+}
 .zv-canvas {
   position: absolute;
   inset: 0;
@@ -1314,6 +1329,23 @@
 .zv-sec .zv-head .zv-h2,
 .zv-final .zv-col .zv-h2 {
   filter: drop-shadow(0 2px 16px rgba(3, 5, 12, 0.6));
+}
+/*
+ * El titular del inicio es la única pieza grande de texto que queda sobre la
+ * escena 3D desde el primer segundo, sin scroll ni tarjeta detrás (a
+ * diferencia del resto, que ya tiene esta sombra vía ".zv-sec"): compite
+ * directo con la calle, la luna y las luces de las ventanas. Mismo arreglo
+ * que arriba — drop-shadow, no text-shadow, porque SplitWords parte el
+ * título en palabras con máscara (.zv-wm) y un text-shadow por palabra se
+ * recorta en rectángulos.
+ */
+.zv-hero-main .zv-h1 {
+  filter: drop-shadow(0 4px 28px rgba(3, 5, 12, 0.85)) drop-shadow(0 1px 3px rgba(3, 5, 12, 0.9));
+}
+.zv-hero-k {
+  text-shadow:
+    0 1px 2px rgba(3, 5, 12, 0.9),
+    0 0 16px rgba(3, 5, 12, 0.6);
 }
 .zv-sticky::before {
   content: '';

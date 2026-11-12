@@ -4,6 +4,7 @@ import { AGENDA_TOOLS, HANDOFF_TOOL, MESAS_TOOLS, PEDIDO_TOOLS, runAgentTool, ty
 import { reservableTables, type Floor } from './mesas'
 import { getProvider, type LlmMessage } from './llm'
 import { businessNow } from './timezone'
+import { fixVoseo } from './voseo'
 
 /**
  * Cuántos mensajes de historial se le pasan al modelo. Lo anterior ya está
@@ -117,13 +118,13 @@ export async function generateAgentReply(
     if (completion.toolCalls.length === 0 || !toolContext) {
       // Una respuesta cortada o vacía no se le manda al cliente así.
       if (completion.incomplete || !completion.text) return FALLBACK_REPLY
-      return completion.text
+      return fixVoseo(completion.text)
     }
 
     // Última vuelta: se corta el encadenado y se responde con lo que haya, para
     // no quedar en un ciclo de herramientas sin contestarle nunca al cliente.
     if (round === MAX_TOOL_ROUNDS) {
-      return completion.text || FALLBACK_REPLY
+      return completion.text ? fixVoseo(completion.text) : FALLBACK_REPLY
     }
 
     messages.push({

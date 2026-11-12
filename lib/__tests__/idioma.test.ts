@@ -1,30 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
+import { VOSEO } from '../voseo'
 
 /**
  * El producto se escribe en español latino con trato de tú (y "usted" en el tono
  * formal), pensando en Chile. El voseo ("tenés", "elegí", "vos") suena a
  * Argentina y no se quiere en pantallas, mails ni en el prompt del agente: si
  * está en el prompt, el modelo lo imita al hablarle al cliente.
+ *
+ * El diccionario de formas vive en lib/voseo.ts, compartido con fixVoseo
+ * (que corrige el voseo que igual se cuele en una respuesta del agente).
  */
 const ROOT = join(__dirname, '..', '..')
 const DIRS = ['app', 'lib']
-
-const LETTERS = 'A-Za-zñÑáéíóúÁÉÍÓÚ'
-const VOSEO = new RegExp(
-  `(?<![${LETTERS}])(vos|sos|tenés|podés|querés|sabés|necesitás|preferís|elegís|hacés|decís|ponés|venís|llegás|usás|cargás|mirás|confirmás|derivás|respondés|mantenés|` +
-    // imperativos: "cargá", "elegí", "respondé", "escribilo", "decile", "preguntale"…
-    `(?:agregá|ajustá|cargá|completá|configurá|confirmá|consultá|copiá|dejá|devolvé|elegí|escribí|esperá|generá|ignorá|ingresá|iniciá|llamá|pasá|pegá|poné|probá|registrá|reintentá|reservá|respondé|revisá|seguí|tené|usá|volvé|` +
-    `escribilo|escribinos|decile|decilo|preguntale|ofrecele|avisale|confirmale|tomale|contale|pedile|usalo|confirmalo)` +
-    `)(?![${LETTERS}])`,
-  'i',
-)
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name)
     if (name === 'node_modules' || name === 'generated' || name === '__tests__') return []
+    // El diccionario mismo tiene que contener estas palabras para poder corregirlas.
+    if (name === 'voseo.ts') return []
     if (statSync(path).isDirectory()) return sourceFiles(path)
     return /\.(ts|tsx)$/.test(name) ? [path] : []
   })

@@ -34,6 +34,7 @@ beforeEach(() => {
     STRIPE_PRICE_ID_NEGOCIOS: 'price_negocios',
     STRIPE_PRICE_ID_ILIMITADO: 'price_ilimitado',
     STRIPE_PRICE_ID_SETUP: 'price_setup',
+    STRIPE_PRICE_ID_SETUP_EXTRA: 'price_setup_extra',
   }
   sessionsCreate.mockReset().mockResolvedValue({ url: 'https://checkout.stripe.test/x' })
   customersCreate.mockReset().mockResolvedValue({ id: 'cus_nuevo' })
@@ -109,7 +110,7 @@ describe('createUpgradeCheckout: la implementación se cobra por negocio', () =>
     )
   })
 
-  it('con 2 negocios sin pagar, cobra la implementación 2 veces (cantidad 2)', async () => {
+  it('con 2 locales sin pagar, cobra el primero completo y el segundo como local adicional', async () => {
     const { createUpgradeCheckout } = await import('../billing')
     const userId = await newUser()
     const a = await newBusiness(userId)
@@ -126,11 +127,37 @@ describe('createUpgradeCheckout: la implementación se cobra por negocio', () =>
       expect.objectContaining({
         line_items: [
           { price: 'price_negocios', quantity: 1 },
-          { price: 'price_setup', quantity: 2 },
+          { price: 'price_setup', quantity: 1 },
+          { price: 'price_setup_extra', quantity: 1 },
         ],
         metadata: { plan: 'NEGOCIOS', setupFeeBusinessIds: `${a},${b}` },
       }),
     )
+  })
+
+  it('si ya pagó el primer local, los nuevos van todos a precio de local adicional', async () => {
+    const { createUpgradeCheckout } = await import('../billing')
+    const userId = await newUser()
+    const a = await newBusiness(userId)
+    const b = await newBusiness(userId)
+    await createUpgradeCheckout({ id: userId, email: 'a@b.test', stripeCustomerId: 'cus_1' }, [a, b], 'NEGOCIOS', 'https://x/ok', 'https://x/cancel', true)
+    expect(sessionsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        line_items: [
+          { price: 'price_negocios', quantity: 1 },
+          { price: 'price_setup_extra', quantity: 2 },
+        ],
+      }),
+    )
+  })
+
+  it('el total de implementación: primer local completo, los demás a precio de adicional', async () => {
+    const { setupFeeTotal, SETUP_FEE_CLP, SETUP_FEE_EXTRA_CLP } = await import('../plans')
+    expect(setupFeeTotal(1)).toBe(SETUP_FEE_CLP)
+    expect(setupFeeTotal(3)).toBe(SETUP_FEE_CLP + 2 * SETUP_FEE_EXTRA_CLP)
+    expect(setupFeeTotal(2, true)).toBe(2 * SETUP_FEE_EXTRA_CLP)
+    expect(setupFeeTotal(0)).toBe(0)
+    expect(SETUP_FEE_EXTRA_CLP).toBeLessThan(SETUP_FEE_CLP)
   })
 
   it('si todos sus negocios ya pagaron la implementación, el checkout no la vuelve a cobrar', async () => {

@@ -3720,3 +3720,97 @@
     height: calc(var(--rh) * var(--mz) * var(--mhw) * var(--mar) * 1%) !important;
   }
 }
+
+/* ---------- Implementación: a la vista, no en letra chica ---------- */
+.zv-price-setup {
+  margin: 0.55rem 0 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--zv-amber) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--zv-amber) 35%, transparent);
+  color: var(--zv-bone);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.zv-price-setup span {
+  display: block;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--zv-dim);
+}
+.zv-setup {
+  margin-top: 1.8rem;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+  gap: 1.4rem 2rem;
+  align-items: center;
+  padding: 1.4rem 1.6rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--zv-amber) 40%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--zv-amber) 10%, transparent), color-mix(in srgb, var(--zv-coral) 6%, transparent));
+}
+.zv-setup-k {
+  margin: 0;
+  font-family: var(--zv-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--zv-amber);
+}
+.zv-setup-v {
+  margin: 0.3rem 0 0;
+  font-family: var(--zv-serif);
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  line-height: 1;
+  color: var(--zv-bone);
+}
+.zv-setup-s {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--zv-dim);
+}
+.zv-setup-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+  color: var(--zv-soft);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+.zv-setup-list li {
+  display: flex;
+  gap: 0.55rem;
+}
+.zv-setup-list li::before {
+  content: '✓';
+  color: var(--zv-amber);
+}
+@media (max-width: 760px) {
+  .zv-setup {
+    grid-template-columns: 1fr;
+    padding: 1.2rem;
+  }
+}
+.zv-setup-v2 {
+  margin: 0.8rem 0 0;
+  font-family: var(--zv-serif);
+  font-size: 1.35rem;
+  color: var(--zv-bone);
+}
+.zv-setup-v2 span {
+  font-family: var(--zv-sans);
+  font-size: 0.85rem;
+  color: var(--zv-dim);
+}
+.zv-setup-lead {
+  margin: 0 0 0.6rem;
+  color: var(--zv-bone);
+  font-weight: 600;
+}
+.zv-setup-note {
+  margin: 0.8rem 0 0;
+  font-size: 0.88rem;
+  color: var(--zv-dim);
+}

@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     select: { business: { select: { id: true, setupFeePaidAt: true } } },
   })
   const unbilledBusinessIds = owned.filter((m) => !m.business.setupFeePaidAt).map((m) => m.business.id)
+  const firstSetupPaid = owned.some((m) => m.business.setupFeePaidAt)
 
   const result = await createUpgradeCheckout(
     { id: user.id, email: user.email, stripeCustomerId: row.stripeCustomerId },
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
     parsed.data.plan,
     `${appUrl()}/account?upgrade=ok`,
     `${appUrl()}/account?upgrade=cancelado`,
+    firstSetupPaid,
   )
 
   if (!result.ok) {

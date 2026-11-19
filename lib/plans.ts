@@ -64,13 +64,23 @@ export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
 }
 
 /**
- * Pago único de implementación, informativo (el monto real lo trae
- * `STRIPE_PRICE_ID_SETUP`). Es POR NEGOCIO, no por cliente: conectar un
- * segundo número (verificación de Meta, SII, cargar catálogo o agenda,
- * probarlo) es trabajo aparte del primero, así que quien maneja 2 negocios
- * paga la implementación 2 veces.
+ * Pago único de implementación, informativo (los montos reales los traen
+ * `STRIPE_PRICE_ID_SETUP` y `STRIPE_PRICE_ID_SETUP_EXTRA`). Es POR LOCAL: cada
+ * local nuevo es trabajo aparte (su número verificado ante Meta, su carta o
+ * agenda, probarlo), pero el segundo en adelante reutiliza la configuración
+ * del primero (tono, rubro, buena parte de la información), así que cuesta
+ * menos. Referencia de mercado en Chile (2026): implementaciones de agentes
+ * con IA para pymes desde $300.000.
  */
-export const SETUP_FEE_CLP = 120_000
+export const SETUP_FEE_CLP = 190_000
+/** Cada local adicional del mismo cliente. */
+export const SETUP_FEE_EXTRA_CLP = 90_000
+
+/** Total de implementación por `locales` locales nuevos; si ya pagó el primero, todos van a precio adicional. */
+export function setupFeeTotal(locales: number, firstAlreadyPaid = false): number {
+  if (locales <= 0) return 0
+  return firstAlreadyPaid ? locales * SETUP_FEE_EXTRA_CLP : SETUP_FEE_CLP + (locales - 1) * SETUP_FEE_EXTRA_CLP
+}
 
 /** Variable de entorno que trae el Price de Stripe de cada plan pago. */
 export const PLAN_PRICE_ENV: Record<PaidPlan, string> = {

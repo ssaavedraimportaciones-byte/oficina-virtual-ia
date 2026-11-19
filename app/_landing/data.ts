@@ -1,3 +1,4 @@
+import { SETUP_FEE_CLP } from '@/lib/plans'
 export type Who = 'contact' | 'agent' | 'human'
 
 export interface Message {
@@ -313,7 +314,7 @@ export const FACTS = [
   { value: '3,3 s', label: 'en responder (mediana medida en respuestas reales)' },
   { value: '24/7', label: 'agenda y vende de noche, fines de semana y feriados' },
   { value: '3', label: 'bots en vivo para que los pruebes hoy' },
-  { value: '$45.000', label: 'al mes, IVA incluido, sin permanencia' },
+  { value: '$45.000', label: `al mes + $${SETUP_FEE_CLP.toLocaleString('es-CL')} de implementación, una sola vez` },
 ]
 
 /** Capítulos del riel lateral: toda la página. */

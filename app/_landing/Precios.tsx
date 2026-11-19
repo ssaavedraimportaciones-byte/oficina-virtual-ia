@@ -1,5 +1,5 @@
 import { COMPANY_WHATSAPP_URL } from '@/lib/legal'
-import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, type PaidPlan } from '@/lib/plans'
+import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, SETUP_FEE_EXTRA_CLP, type PaidPlan } from '@/lib/plans'
 import { monthlyLimit } from '@/lib/planLimits'
 
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`
@@ -52,6 +52,10 @@ export default function Precios() {
                   <span>/mes</span>
                 </p>
                 <p className="zv-price-iva">IVA incluido</p>
+                <p className="zv-price-setup">
+                  + {clp(SETUP_FEE_CLP)} de implementación, una vez
+                  <span>{negocios === 1 ? 'pago único' : `cada local adicional: ${clp(SETUP_FEE_EXTRA_CLP)}`}</span>
+                </p>
                 <ul className="zv-price-list">
                   <li>{negocios === null ? 'Negocios sin límite' : negocios === 1 ? '1 negocio' : `Hasta ${negocios} negocios`}</li>
                   <li>
@@ -76,15 +80,37 @@ export default function Precios() {
           })}
         </ul>
 
+        <div className="zv-setup" data-reveal>
+          <div className="zv-setup-amount" data-reveal-item>
+            <p className="zv-setup-k">Implementación · pago único</p>
+            <p className="zv-setup-v">{clp(SETUP_FEE_CLP)}</p>
+            <p className="zv-setup-s">tu primer local · IVA incluido</p>
+            <p className="zv-setup-v2">
+              + {clp(SETUP_FEE_EXTRA_CLP)} <span>cada local adicional</span>
+            </p>
+          </div>
+          <div data-reveal-item>
+            <p className="zv-setup-lead">Te lo dejamos funcionando, no te pasamos un programa para que te arregles solo:</p>
+            <ul className="zv-setup-list">
+              <li>Conectamos tu WhatsApp Business y lo dejamos verificado ante Meta.</li>
+              <li>Cargamos tu negocio: servicios o carta, precios, horarios y preguntas frecuentes.</li>
+              <li>Probamos al agente contigo antes de que hable con tus clientes.</li>
+              <li>
+                ¿Más locales? Cada uno suma {clp(SETUP_FEE_EXTRA_CLP)}: reutilizamos tu configuración y solo cargamos lo
+                propio de ese local (su número, su carta o su agenda).
+              </li>
+            </ul>
+            <p className="zv-setup-note">
+              Un agente con IA hecho a medida suele costar desde $300.000 en Chile. Esta implementación se recupera con unos{' '}
+              {Math.ceil(SETUP_FEE_CLP / TICKET_EJEMPLO)} clientes que antes se perdían, y se paga una sola vez.
+            </p>
+          </div>
+        </div>
+
         <div className="zv-price-notes zv-precios-notes" data-reveal>
           <p data-reveal-item>
             <strong>Antes de contratar, pruébalo:</strong> escríbele a nuestros{' '}
             <a href="#demo">bots en vivo</a> y mira cómo atenderían a tus clientes.
-          </p>
-          <p data-reveal-item>
-            <strong>Implementación {clp(SETUP_FEE_CLP)} por número conectado</strong>, pago único: te
-            dejamos el WhatsApp verificado ante Meta, tu negocio cargado y probado. Si conectas dos
-            números, son dos implementaciones.
           </p>
           <p data-reveal-item>
             <strong>Sin permanencia:</strong> cancelas cuando quieras desde tu cuenta y sigues usándolo hasta el final del mes ya pagado.

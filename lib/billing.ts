@@ -68,6 +68,8 @@ export async function createUpgradeCheckout(
   plan: PaidPlan,
   successUrl: string,
   cancelUrl: string,
+  /** Si ya pagó la implementación de algún local: entonces todos los nuevos van a precio de local adicional. */
+  firstSetupPaid = false,
 ): Promise<BillingLinkResult> {
   const stripe = getStripe()
   if (!stripe) return { ok: false, reason: 'La facturación no está configurada todavía.' }
@@ -76,14 +78,21 @@ export async function createUpgradeCheckout(
   if (!priceId) return { ok: false, reason: `Falta configurar el plan ${plan} (${PLAN_PRICE_ENV[plan]}).` }
 
   const setupPriceId = process.env.STRIPE_PRICE_ID_SETUP
-  if (unbilledBusinessIds.length > 0 && !setupPriceId) {
-    return { ok: false, reason: 'Falta configurar el cobro de implementación (STRIPE_PRICE_ID_SETUP).' }
-  }
+  const extraPriceId = process.env.STRIPE_PRICE_ID_SETUP_EXTRA
   // El metadata de Stripe tiene 500 caracteres por valor: con más negocios no
   // entrarían todos los ids. No pasa en la práctica (el plan con más negocios
   // tiene 3), pero se corta la lista antes que mandar algo que el webhook no
   // pueda leer entero.
   const toBill = unbilledBusinessIds.slice(0, MAX_SETUP_FEE_BUSINESSES)
+  // El primer local paga la implementación completa; los demás, la de local adicional.
+  const firstQty = toBill.length > 0 && !firstSetupPaid ? 1 : 0
+  const extraQty = toBill.length - firstQty
+  if (firstQty > 0 && !setupPriceId) {
+    return { ok: false, reason: 'Falta configurar el cobro de implementación (STRIPE_PRICE_ID_SETUP).' }
+  }
+  if (extraQty > 0 && !extraPriceId) {
+    return { ok: false, reason: 'Falta configurar el cobro de local adicional (STRIPE_PRICE_ID_SETUP_EXTRA).' }
+  }
 
   let customerId = user.stripeCustomerId
   if (!customerId) {
@@ -97,7 +106,8 @@ export async function createUpgradeCheckout(
     customer: customerId,
     line_items: [
       { price: priceId, quantity: 1 },
-      ...(toBill.length > 0 && setupPriceId ? [{ price: setupPriceId, quantity: toBill.length }] : []),
+      ...(firstQty > 0 && setupPriceId ? [{ price: setupPriceId, quantity: 1 }] : []),
+      ...(extraQty > 0 && extraPriceId ? [{ price: extraPriceId, quantity: extraQty }] : []),
     ],
     success_url: successUrl,
     cancel_url: cancelUrl,

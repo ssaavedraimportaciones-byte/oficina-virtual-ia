@@ -69,8 +69,10 @@ El Cliente contrata el plan marcado:
 | ☐ | Negocios | hasta 3 | 4.000 | $95.000 |
 | ☐ | Ilimitado | sin límite | 10.000 | $160.000 |
 
-**Implementación:** $120.000 (IVA incluido) **por cada negocio o número conectado**.
-Negocios a conectar: **[cantidad]** → total implementación: **$[monto]**.
+**Implementación (pago único, IVA incluido):** **$190.000 por el primer local** y **$90.000 por
+cada local adicional** (cada local con su propio número de WhatsApp).
+Locales a conectar: **[cantidad]** → total implementación: **$[monto]**
+(ejemplo: 3 locales = $190.000 + 2 × $90.000 = $370.000).
 
 1. Todos los valores están expresados en **pesos chilenos e incluyen el IVA**.
 2. La denominación "Ilimitado" se refiere a la cantidad de negocios, **no** a la de respuestas del

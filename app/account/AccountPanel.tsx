@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { UserProfile } from '@/lib/auth'
-import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, type PaidPlan } from '@/lib/plans'
+import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, SETUP_FEE_EXTRA_CLP, type PaidPlan } from '@/lib/plans'
 import SessionsSection from './SessionsSection'
 import TwoFactorSection from './TwoFactorSection'
 
@@ -118,7 +118,7 @@ export default function AccountPanel({ profile }: { profile: UserProfile }) {
               <p className="mt-2 text-xs text-gray-500">
                 Tienes {profile.unbilledBusinesses}{' '}
                 {profile.unbilledBusinesses === 1 ? 'negocio nuevo' : 'negocios nuevos'} sin el cobro de
-                implementación ({clp(SETUP_FEE_CLP)} cada uno). Escríbenos a{' '}
+                implementación ({clp(SETUP_FEE_EXTRA_CLP)} cada local adicional). Escríbenos a{' '}
                 <a href="mailto:contacto@zerovistochile.com" className="text-amber-400 hover:underline">
                   contacto@zerovistochile.com
                 </a>{' '}
@@ -130,8 +130,9 @@ export default function AccountPanel({ profile }: { profile: UserProfile }) {
           <>
             <p className="mt-1 text-xs text-gray-500">
               Más de un negocio, cupo mayor de respuestas del agente y soporte prioritario. La
-              implementación ({clp(SETUP_FEE_CLP)}) se cobra una vez por cada negocio: dejamos su
-              WhatsApp conectado y su información cargada.
+              implementación se paga una vez: {clp(SETUP_FEE_CLP)} el primer local y{' '}
+              {clp(SETUP_FEE_EXTRA_CLP)} cada local adicional. Dejamos su WhatsApp conectado y su
+              información cargada.
               {profile.unbilledBusinesses > 0 &&
                 ` Al elegir un plan se te cobra la de ${profile.unbilledBusinesses === 1 ? 'tu negocio actual' : `tus ${profile.unbilledBusinesses} negocios`}.`}
             </p>

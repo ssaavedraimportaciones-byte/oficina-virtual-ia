@@ -23,6 +23,9 @@ import * as equipoRoute from '@/app/api/businesses/[id]/equipo/route'
 import * as professionalRoute from '@/app/api/professionals/[id]/route'
 import * as logoRoute from '@/app/api/businesses/[id]/logo/route'
 import * as businessesRoute from '@/app/api/businesses/route'
+import * as ventasRoute from '@/app/api/businesses/[id]/ventas/route'
+import * as cocinaRoute from '@/app/api/businesses/[id]/cocina/route'
+import * as pagoRoute from '@/app/api/orders/[id]/pago/route'
 
 /**
  * Multi-tenant: la regla que no se puede romper es que una empresa nunca vea
@@ -132,6 +135,8 @@ describe('aislamiento entre empresas: lecturas', () => {
     ['GET agenda', (t) => agendaRoute.GET(req('GET'), ctx(t.business.id))],
     ['GET conversaciones', (t) => conversationsRoute.GET(req('GET'), ctx(t.business.id))],
     ['GET conversación', (t) => conversationRoute.GET(req('GET'), ctx(t.conversationId))],
+    ['GET cobros y cocina', (t) => ventasRoute.GET(req('GET'), ctx(t.business.id))],
+    ['GET cola de cocina', (t) => cocinaRoute.GET(req('GET'), ctx(t.business.id))],
   ]
 
   it.each(reads)('%s: A no puede leer lo de B', async (_name, call) => {
@@ -300,5 +305,21 @@ describe('aislamiento entre empresas: el agente y los canales', () => {
     expect(await store.getBusiness(temp.business.id)).toBeNull()
     expect(await store.listProducts(B.business.id)).toHaveLength(1)
     expect(await prisma.conversation.count({ where: { businessId: B.business.id } })).toBeGreaterThan(0)
+  })
+})
+
+describe('aislamiento entre empresas: cobros y cocina', () => {
+  it('A no puede marcar pagado un pedido de B, ni cambiar sus cobros, ni imprimir sus tickets', async () => {
+    actAs(A.user)
+    expect((await pagoRoute.POST(req('POST'), ctx(B.orderId))).status).toBe(404)
+    expect((await ventasRoute.PUT(req('PUT', { kitchenEnabled: true }), ctx(B.business.id))).status).toBe(404)
+    expect((await cocinaRoute.POST(req('POST', { orderId: B.orderId }), ctx(B.business.id))).status).toBe(404)
+    const orderB = await prisma.order.findUniqueOrThrow({ where: { id: B.orderId } })
+    expect(orderB.paymentStatus).not.toBe('pagado')
+    expect(orderB.kitchenPrintedAt).toBeNull()
+    expect(await prisma.salesSettings.findUnique({ where: { businessId: B.business.id } })).toBeNull()
+    // Imprimir apuntando a su propio negocio con un pedido de B tampoco marca nada.
+    expect((await cocinaRoute.POST(req('POST', { orderId: B.orderId }), ctx(A.business.id))).status).toBe(200)
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: B.orderId } })).kitchenPrintedAt).toBeNull()
   })
 })

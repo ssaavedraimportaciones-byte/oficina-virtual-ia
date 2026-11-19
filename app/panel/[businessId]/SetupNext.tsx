@@ -1,21 +1,17 @@
-import Link from "next/link";
-import { getSetupFacts } from "@/lib/store";
-import { getSetupProgress } from "@/lib/onboarding";
+import Link from 'next/link'
+import { getSetupFacts } from '@/lib/store'
+import { getSetupProgress } from '@/lib/onboarding'
 
 /**
  * Tarjeta corta con el próximo paso para dejar el agente listo. Desaparece
  * sola cuando ya están todos los pasos obligatorios.
  */
-export default async function SetupNext({
-  businessId,
-}: {
-  businessId: string;
-}) {
-  const facts = await getSetupFacts(businessId);
-  if (!facts) return null;
-  const progress = getSetupProgress(businessId, facts);
-  if (!progress.next) return null;
-  const pct = Math.round((progress.completed / progress.required) * 100);
+export default async function SetupNext({ businessId }: { businessId: string }) {
+  const facts = await getSetupFacts(businessId)
+  if (!facts) return null
+  const progress = getSetupProgress(businessId, facts)
+  if (!progress.next) return null
+  const pct = Math.round((progress.completed / progress.required) * 100)
 
   return (
     <div className="mb-8 rounded-xl border border-amber-500/40 bg-amber-500/[0.06] p-5">
@@ -23,10 +19,7 @@ export default async function SetupNext({
         <p className="text-sm font-medium text-amber-300">
           🚀 Tu agente: {progress.completed} de {progress.required} pasos listos
         </p>
-        <Link
-          href={`/panel/${businessId}/primeros-pasos`}
-          className="text-xs text-gray-400 hover:text-amber-300"
-        >
+        <Link href={`/panel/${businessId}/primeros-pasos`} className="text-xs text-gray-400 hover:text-amber-300">
           Ver todos los pasos →
         </Link>
       </div>
@@ -36,9 +29,7 @@ export default async function SetupNext({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="mt-4 text-lg font-semibold text-white">
-        Siguiente: {progress.next.title}
-      </p>
+      <p className="mt-4 text-lg font-semibold text-white">Siguiente: {progress.next.title}</p>
       <p className="mt-1 text-sm text-gray-300">{progress.next.why}</p>
       <Link
         href={progress.next.href}
@@ -47,5 +38,5 @@ export default async function SetupNext({
         {progress.next.cta} →
       </Link>
     </div>
-  );
+  )
 }

@@ -168,3 +168,31 @@ export function quotaReachedEmail(
     text: `${businessName} llegó al límite de ${usage.limit} respuestas automáticas de este mes. Los mensajes nuevos se guardan pero el agente no responde hasta el día 1.${upgrade}\n\nVer mi plan: ${accountUrl}`,
   }
 }
+
+/** El cliente dice que ya transfirió: alguien tiene que mirar la cuenta y confirmar. */
+export function paymentToReviewEmail(businessName: string, contactName: string, total: string, ordersUrl: string) {
+  return {
+    subject: `Revisa la transferencia de ${contactName} (${total}) — ${businessName}`,
+    html: emailShell(
+      'Un cliente dice que ya pagó',
+      `<strong>${escapeHtml(contactName)}</strong> avisó que transfirió <strong>${escapeHtml(total)}</strong> por su pedido en <strong>${escapeHtml(businessName)}</strong>.<br /><br />Revisa tu cuenta y, si llegó, aprieta «Pago recibido»: el pedido pasa a cocina y el agente le confirma al cliente. Si no llegó, déjalo como está o anúlalo.`,
+      ordersUrl,
+      'Revisar el pedido',
+    ),
+    text: `${contactName} avisó que transfirió ${total} por su pedido en ${businessName}. Revisa tu cuenta y confírmalo en el panel: ${ordersUrl}`,
+  }
+}
+
+/** Un producto bajó del mínimo o se agotó. */
+export function stockAlertEmail(businessName: string, lines: string[], catalogUrl: string) {
+  return {
+    subject: `Inventario: ${lines.length === 1 ? lines[0] : `${lines.length} productos por reponer`} — ${businessName}`,
+    html: emailShell(
+      'Quedan pocas unidades',
+      `En <strong>${escapeHtml(businessName)}</strong>:<br /><br />${lines.map((l) => `• ${escapeHtml(l)}`).join('<br />')}<br /><br />El agente ya no ofrece lo agotado. Cuando repongas, actualiza el stock en tu catálogo.`,
+      catalogUrl,
+      'Ver mi catálogo',
+    ),
+    text: `En ${businessName}:\n${lines.map((l) => `- ${l}`).join('\n')}\n\nActualiza el stock: ${catalogUrl}`,
+  }
+}

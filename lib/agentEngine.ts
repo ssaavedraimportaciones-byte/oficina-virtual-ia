@@ -1,6 +1,6 @@
 import type { AgentConfig, KnowledgeEntry, Message, Product, Professional, Service } from './types'
 import { buildConversationContext, buildSystemPrompt } from './agentPrompt'
-import { AGENDA_TOOLS, HANDOFF_TOOL, MESAS_TOOLS, PEDIDO_TOOLS, runAgentTool, type ToolContext } from './agentTools'
+import { AGENDA_TOOLS, HANDOFF_TOOL, MESAS_TOOLS, PAGO_TOOL, PEDIDO_TOOLS, runAgentTool, type ToolContext } from './agentTools'
 import { reservableTables, type Floor } from './mesas'
 import { getProvider, type LlmMessage } from './llm'
 import { businessNow } from './timezone'
@@ -76,6 +76,8 @@ export async function generateAgentReply(
     team?: Professional[]
     toolContext?: ToolContext
     contactNotes?: string
+    /** Si cobra antes de preparar, el agente da las formas de pago y puede avisar transferencias. */
+    paymentsEnabled?: boolean
   },
 ): Promise<string> {
   const provider = getProvider()
@@ -92,6 +94,7 @@ export async function generateAgentReply(
     ? [
         ...(services.length > 0 ? AGENDA_TOOLS : []),
         ...(products.length > 0 ? PEDIDO_TOOLS : []),
+        ...(products.length > 0 && options?.paymentsEnabled ? [PAGO_TOOL] : []),
         ...(hasTables ? MESAS_TOOLS : []),
         HANDOFF_TOOL,
       ]
@@ -100,7 +103,9 @@ export async function generateAgentReply(
   const messages = toLlmMessages(history)
   if (messages.length === 0) return FALLBACK_REPLY
 
-  const system = buildSystemPrompt(config, knowledge, services, products, floors, options?.team ?? [])
+  const system = buildSystemPrompt(config, knowledge, services, products, floors, options?.team ?? [], {
+    paymentsEnabled: Boolean(options?.paymentsEnabled),
+  })
   const context = buildConversationContext(businessNow(), options?.contactNotes)
 
   const startedAt = Date.now()

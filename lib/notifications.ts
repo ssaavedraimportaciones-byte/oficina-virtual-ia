@@ -1,6 +1,6 @@
 import { appUrl } from './auth'
 import { prisma } from './db'
-import { handoffEmail, newConversationEmail, quotaReachedEmail, sendEmail } from './email'
+import { handoffEmail, newConversationEmail, paymentToReviewEmail, quotaReachedEmail, sendEmail, stockAlertEmail } from './email'
 import type { AgentUsage } from './usage'
 import type { Business, Conversation } from './types'
 
@@ -45,6 +45,22 @@ export async function notifyQuotaReached(business: Business, usage: AgentUsage):
     business.id,
     quotaReachedEmail(business.config.businessName, usage, `${appUrl()}/account`),
   )
+}
+
+/** El cliente avisó que transfirió: hay que revisar la cuenta y confirmar en el panel. */
+export async function notifyPaymentToReview(
+  businessId: string,
+  businessName: string,
+  contactName: string,
+  total: string,
+): Promise<void> {
+  await emailOwners(businessId, paymentToReviewEmail(businessName, contactName, total, `${appUrl()}/panel/${businessId}/pedidos`))
+}
+
+/** Productos que bajaron del mínimo o se agotaron con el último pedido. */
+export async function notifyStockAlert(businessId: string, businessName: string, lines: string[]): Promise<void> {
+  if (lines.length === 0) return
+  await emailOwners(businessId, stockAlertEmail(businessName, lines, `${appUrl()}/panel/${businessId}/pedidos`))
 }
 
 async function emailOwners(

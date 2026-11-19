@@ -111,6 +111,10 @@ export interface OrderItem {
 
 export type OrderStatus = 'pendiente' | 'entregado' | 'cancelado'
 
+/** Cobro antes de preparar: no_aplica = el negocio no lo pide. */
+export type PaymentStatus = 'no_aplica' | 'esperando' | 'revisar' | 'pagado' | 'vencido'
+export type PaymentMethod = 'transferencia' | 'mercadopago'
+
 export interface Order {
   id: string
   businessId: string
@@ -122,6 +126,24 @@ export interface Order {
   note: string
   status: OrderStatus
   createdAt: string
+  paymentStatus: PaymentStatus
+  paymentMethod: PaymentMethod | null
+  paymentDeadline: string | null
+  paymentLink: string | null
+  paidAt: string | null
+  kitchenPrintedAt: string | null
+}
+
+/** Cobros, cocina e inventario (ver SalesSettings en el esquema). */
+export interface SalesSettings {
+  paymentsEnabled: boolean
+  transferInfo: string
+  holdMinutes: number
+  /** El token nunca sale del servidor: solo si está conectado. */
+  mercadoPagoConnected: boolean
+  kitchenEnabled: boolean
+  stockAlertsEnabled: boolean
+  stockAlertThreshold: number
 }
 
 export interface Business {

@@ -187,6 +187,7 @@ model Business {
   professionals Professional[]
   reservations  TableReservation[]
   logo          BusinessLogo?
+  sales         SalesSettings?
 
   /// Cuánto se guarda una mesa por reserva, en minutos.
   reservationMinutes Int @default(120)
@@ -448,6 +449,18 @@ model Order {
   status         String   @default("pendiente")
   createdAt      DateTime @default(now())
 
+  /// Cobro antes de preparar (ver lib/payments.ts): no_aplica | esperando |
+  /// revisar (el cliente dice que pagó) | pagado | vencido.
+  paymentStatus   String    @default("no_aplica")
+  /// transferencia | mercadopago (cómo quedó pagado).
+  paymentMethod   String?
+  /// Si no se paga antes de esto, se anula y el stock vuelve.
+  paymentDeadline DateTime?
+  paymentLink     String?
+  paidAt          DateTime?
+  /// Cuándo salió el ticket en la pantalla de cocina. null = falta imprimir.
+  kitchenPrintedAt DateTime?
+
   business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   items    OrderItem[]
 
@@ -491,4 +504,30 @@ model PlatformSetting {
   updatedAt DateTime @updatedAt
 
   @@map("platform_settings")
+}
+
+/// Cobros, cocina e inventario de un negocio que vende (comida, tienda). Todo
+/// viene apagado: cada negocio activa lo que le sirve.
+model SalesSettings {
+  businessId String @id
+
+  /// Pedir el pago antes de preparar.
+  paymentsEnabled     Boolean @default(false)
+  /// Datos para transferir (banco, tipo y número de cuenta, RUT, nombre, mail).
+  transferInfo        String  @default("")
+  /// Minutos que se guarda un pedido sin pagar antes de anularlo.
+  holdMinutes         Int     @default(20)
+  /// Access token de Mercado Pago del negocio, cifrado (lib/secrets.ts).
+  /// null = solo transferencia.
+  mercadoPagoToken    String?
+  /// Pantalla de cocina con impresión de tickets.
+  kitchenEnabled      Boolean @default(false)
+  /// Avisar cuando un producto baja del mínimo o se agota.
+  stockAlertsEnabled  Boolean @default(false)
+  stockAlertThreshold Int     @default(5)
+  updatedAt           DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("sales_settings")
 }

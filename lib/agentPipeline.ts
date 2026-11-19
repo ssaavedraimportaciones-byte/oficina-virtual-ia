@@ -1,4 +1,5 @@
 import { describeApiError, generateAgentReply } from './agentEngine'
+import { expireUnpaidOrders, getSalesSettings } from './payments'
 import { recordLlmError } from './llmLog'
 import { listFloors } from './mesasStore'
 import { updateContactNotes } from './contactNotes'
@@ -145,12 +146,15 @@ export async function handleIncomingMessage(
     return { status: 'quota', conversation }
   }
 
-  const [knowledge, services, products, floors, team] = await Promise.all([
+  // Antes de leer el catálogo: los pedidos vencidos sin pago devuelven su stock.
+  await expireUnpaidOrders(business.id).catch((error) => console.error('[pipeline] vencer pedidos impagos:', error))
+  const [knowledge, services, products, floors, team, sales] = await Promise.all([
     listKnowledge(business.id),
     listServices(business.id),
     listProducts(business.id),
     listFloors(business.id),
     listProfessionals(business.id),
+    getSalesSettings(business.id),
   ])
   let reply: string
   try {
@@ -161,6 +165,7 @@ export async function handleIncomingMessage(
       team,
       toolContext: { business, conversation },
       contactNotes: conversation.notes,
+      paymentsEnabled: sales.paymentsEnabled,
     })
   } catch (error) {
     // La IA falló (caída del proveedor, sin saldo, límite de uso…). Antes el

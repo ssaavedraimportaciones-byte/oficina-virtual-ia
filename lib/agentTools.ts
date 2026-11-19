@@ -10,6 +10,7 @@ import {
   getAvailableTeamSlots,
   isSlotFree,
 } from './agenda'
+import { alertLowStock, claimPayment, requestPayment } from './payments'
 import { formatPrice, isOrderable, isSoldOut, stockLabel } from './catalog'
 import {
   describeTable,
@@ -159,6 +160,14 @@ export const PEDIDO_TOOLS: LlmTool[] = [
     },
   },
 ]
+
+/** Solo si el negocio cobra antes de preparar (ver lib/payments.ts). */
+export const PAGO_TOOL: LlmTool = {
+  name: 'avisar_pago',
+  description:
+    'Úsala cuando el cliente dice que ya transfirió o pagó, o manda una imagen o comprobante mientras tiene un pedido esperando pago. Deja el pago para que el local lo revise. NO confirma el pago.',
+  parameters: { type: 'object', properties: {} },
+}
 
 export const MESAS_TOOLS: LlmTool[] = [
   {
@@ -452,7 +461,27 @@ async function runCrearPedido(
     .map((i) => `${i.quantity}x ${i.name} (${formatPrice(i.unitPrice * i.quantity)})`)
     .join(', ')
 
-  return `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}. Confírmaselo al cliente con el total.`
+  const summary = `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}.`
+
+  // Best-effort: que falle el aviso de stock no puede dejar al cliente sin respuesta.
+  await alertLowStock(
+    ctx.business.id,
+    ctx.business.config.businessName,
+    result.order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+  ).catch((error) => console.error('[crear_pedido] aviso de stock:', error))
+
+  const payment = await requestPayment(result.order, ctx.business.config.businessName)
+  if (payment) return `${summary}\n\n${payment}`
+  return `${summary} Confírmaselo al cliente con el total.`
+}
+
+async function runAvisarPago(ctx: ToolContext): Promise<string> {
+  const result = await claimPayment(ctx.business.id, ctx.conversation.id)
+  if (!result.ok) return `${result.reason} Pregúntale con amabilidad a qué pedido se refiere.`
+  if (result.order.paymentStatus === 'pagado') {
+    return 'Ese pedido ya figura pagado y está en cocina. Confírmaselo al cliente.'
+  }
+  return 'Listo: el local va a revisar la transferencia. Dile al cliente, con buena onda, que apenas el local la vea su pedido entra a cocina y le avisas por acá. No digas que el pago ya está confirmado.'
 }
 
 async function runDerivarAHumano(ctx: ToolContext, input: { motivo?: string }): Promise<string> {
@@ -592,6 +621,9 @@ export async function runAgentTool(
     }
     if (name === 'crear_pedido') {
       return await runCrearPedido(ctx, input as Parameters<typeof runCrearPedido>[1])
+    }
+    if (name === 'avisar_pago') {
+      return await runAvisarPago(ctx)
     }
     if (name === 'consultar_mesas') {
       return await runConsultarMesas(ctx, input)

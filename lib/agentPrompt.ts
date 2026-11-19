@@ -78,7 +78,7 @@ Las personas que atienden en este negocio son: ${team.map((p) => p.name).join(',
 - Al confirmar una hora, dile con quién queda.`
 }
 
-function buildCatalogSection(products: Product[]): string {
+function buildCatalogSection(products: Product[], paymentsEnabled = false): string {
   const active = products.filter((p) => p.active)
   if (active.length === 0) return ''
 
@@ -105,7 +105,23 @@ Tienes herramientas para tomar pedidos de verdad:
   cantidad, y sabes su nombre. Si no te lo dijo, pregúntaselo antes.
 - Si la herramienta te avisa que no alcanza el stock, cuéntale al cliente cuántas unidades quedan
   en vez de registrar un pedido que no se puede cumplir.
-- Después de registrar, confírmale el detalle y el total.`
+- Después de registrar, confírmale el detalle y el total.${
+    paymentsEnabled
+      ? `
+
+# Cobro antes de preparar
+Este local cobra ANTES de preparar, para no perder comida de pedidos que nadie retira.
+- Al registrar el pedido, crear_pedido te devuelve las formas de pago con los datos exactos:
+  pásaselas al cliente tal cual, junto con el total, y explícale que el pedido entra a cocina
+  apenas se confirme el pago. No inventes cuentas, links ni otras formas de pago.
+- Si el cliente dice que ya transfirió o pagó, o manda una imagen o un comprobante mientras tiene
+  un pedido esperando pago, usa avisar_pago.
+- Nunca digas que un pago está confirmado: lo confirma el local (transferencia) o el link de pago,
+  y al cliente le llega un aviso automático por acá.
+- Si pide pagar al retirar, explícale con amabilidad que el local pide el pago antes para asegurar
+  su pedido.`
+      : ''
+  }`
 }
 
 function buildMesasSection(floors: Floor[]): string {
@@ -152,6 +168,7 @@ export function buildSystemPrompt(
   products: Product[] = [],
   floors: Floor[] = [],
   team: Professional[] = [],
+  sales: { paymentsEnabled: boolean } = { paymentsEnabled: false },
 ): string {
   return `Eres ${config.agentName}, la persona que responde los mensajes de ${config.businessName} por chat.
 
@@ -188,7 +205,7 @@ Después de derivar, avísale en una frase que alguien del equipo le va a respon
 
 ${buildKnowledgeSection(knowledge)}
 
-${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildTeamSection(team)}${buildCatalogSection(products)}${buildMesasSection(floors)}
+${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildTeamSection(team)}${buildCatalogSection(products, sales.paymentsEnabled)}${buildMesasSection(floors)}
 
 Responde siempre en el idioma en el que te escribe el contacto.`
 }

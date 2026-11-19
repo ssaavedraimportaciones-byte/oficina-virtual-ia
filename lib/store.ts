@@ -19,6 +19,8 @@ import type {
   Order,
   OrderItem,
   OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
   Product,
   Professional,
   Service,
@@ -206,7 +208,7 @@ function mapProduct(row: {
 /** Sin los bytes: listar el catálogo solo necesita saber si hay foto y de cuándo es. */
 const WITH_IMAGE_VERSION = { image: { select: { updatedAt: true } } } as const
 
-function mapOrder(row: {
+export function mapOrder(row: {
   id: string
   businessId: string
   conversationId: string | null
@@ -216,6 +218,12 @@ function mapOrder(row: {
   note: string
   status: string
   createdAt: Date
+  paymentStatus: string
+  paymentMethod: string | null
+  paymentDeadline: Date | null
+  paymentLink: string | null
+  paidAt: Date | null
+  kitchenPrintedAt: Date | null
   items: Array<{ productId: string; name: string; unitPrice: number; quantity: number }>
 }): Order {
   return {
@@ -234,6 +242,12 @@ function mapOrder(row: {
     note: row.note,
     status: row.status as OrderStatus,
     createdAt: row.createdAt.toISOString(),
+    paymentStatus: row.paymentStatus as PaymentStatus,
+    paymentMethod: row.paymentMethod as PaymentMethod | null,
+    paymentDeadline: row.paymentDeadline?.toISOString() ?? null,
+    paymentLink: row.paymentLink,
+    paidAt: row.paidAt?.toISOString() ?? null,
+    kitchenPrintedAt: row.kitchenPrintedAt?.toISOString() ?? null,
   }
 }
 

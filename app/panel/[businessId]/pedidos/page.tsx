@@ -4,14 +4,23 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { formatPrice, isSoldOut } from '@/lib/catalog'
 import { resizeForUpload } from '@/lib/imageResize'
-import type { Order, OrderStatus, Product } from '@/lib/types'
+import type { Order, OrderStatus, PaymentStatus, Product, SalesSettings } from '@/lib/types'
 import ImportCatalog from './ImportCatalog'
 import StepIntro from '../StepIntro'
+import SalesSettingsPanel from './SalesSettingsPanel'
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pendiente: 'text-amber-400 border-amber-500/40',
   entregado: 'text-success border-success/40',
   cancelado: 'text-gray-500 border-gray-700',
+}
+
+const PAYMENT_BADGE: Record<PaymentStatus, { label: string; style: string } | null> = {
+  no_aplica: null,
+  esperando: { label: '⏳ Esperando pago', style: 'text-amber-300 border-amber-500/40' },
+  revisar: { label: '👀 Dice que pagó: revisa tu cuenta', style: 'text-sky-300 border-sky-500/50 bg-sky-500/10' },
+  pagado: { label: '✓ Pagado', style: 'text-emerald-400 border-emerald-500/40' },
+  vencido: { label: 'No pagó a tiempo', style: 'text-gray-500 border-gray-700' },
 }
 
 export default function PedidosPage() {
@@ -20,6 +29,7 @@ export default function PedidosPage() {
 
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [sales, setSales] = useState<SalesSettings | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [name, setName] = useState('')
@@ -36,6 +46,7 @@ export default function PedidosPage() {
       const data = await res.json()
       setProducts(data.products ?? [])
       setOrders(data.orders ?? [])
+      setSales(data.sales ?? null)
     }
     setLoading(false)
   }, [businessId])
@@ -103,6 +114,12 @@ export default function PedidosPage() {
     await load()
   }
 
+  async function confirmPaid(id: string) {
+    if (!window.confirm('¿Ya viste la plata en tu cuenta? El pedido pasa a cocina y le avisamos al cliente.')) return
+    await fetch(`/api/orders/${id}/pago`, { method: 'POST' })
+    await load()
+  }
+
   async function setStatus(id: string, status: OrderStatus) {
     await fetch(`/api/orders/${id}`, {
       method: 'PATCH',
@@ -163,6 +180,8 @@ export default function PedidosPage() {
           </div>
         </div>
       )}
+
+      {sales && <SalesSettingsPanel businessId={businessId} initial={sales} onSaved={setSales} />}
 
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Productos</h2>
@@ -230,6 +249,15 @@ export default function PedidosPage() {
                           Pausado
                         </span>
                       )}
+                      {!agotado &&
+                        product.active &&
+                        sales?.stockAlertsEnabled &&
+                        product.stock !== null &&
+                        product.stock <= sales.stockAlertThreshold && (
+                          <span className="rounded-full border border-amber-500/50 px-2 py-0.5 text-[10px] font-medium uppercase text-amber-400">
+                            Quedan {product.stock}
+                          </span>
+                        )}
                     </div>
                     <div className="text-xs text-gray-500">{formatPrice(product.price)}</div>
                   </div>
@@ -328,11 +356,19 @@ export default function PedidosPage() {
                     <div className="font-medium text-white">{order.contactName}</div>
                     <div className="text-xs text-gray-500">{order.contactHandle}</div>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full border px-3 py-1 text-xs ${STATUS_STYLE[order.status]}`}
-                  >
-                    {order.status}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className={`rounded-full border px-3 py-1 text-xs ${STATUS_STYLE[order.status]}`}>
+                      {order.status}
+                    </span>
+                    {PAYMENT_BADGE[order.paymentStatus] && order.status !== 'cancelado' && (
+                      <span className={`rounded-full border px-3 py-1 text-xs ${PAYMENT_BADGE[order.paymentStatus]!.style}`}>
+                        {PAYMENT_BADGE[order.paymentStatus]!.label}
+                      </span>
+                    )}
+                    {order.paymentStatus === 'vencido' && order.status === 'cancelado' && (
+                      <span className="text-xs text-gray-500">Se anuló por no pagar a tiempo</span>
+                    )}
+                  </div>
                 </div>
 
                 <ul className="mt-3 flex flex-col gap-0.5 text-sm text-gray-300">
@@ -355,7 +391,15 @@ export default function PedidosPage() {
                     Total {formatPrice(order.total)}
                   </span>
                   {order.status === 'pendiente' && (
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                      {(order.paymentStatus === 'esperando' || order.paymentStatus === 'revisar') && (
+                        <button
+                          onClick={() => confirmPaid(order.id)}
+                          className="rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-gray-950 hover:bg-emerald-400"
+                        >
+                          Pago recibido
+                        </button>
+                      )}
                       <button
                         onClick={() => setStatus(order.id, 'entregado')}
                         className="text-xs text-gray-400 hover:text-success"

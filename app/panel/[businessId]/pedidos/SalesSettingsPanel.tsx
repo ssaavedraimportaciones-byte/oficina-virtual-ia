@@ -159,6 +159,38 @@ export default function SalesSettingsPanel({
               </div>
             )}
           </div>
+          <div className="rounded-md border border-gray-800 p-3">
+            <p className="text-sm font-medium text-gray-200">🧾 Comprobantes</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Cuando el cliente manda la foto del comprobante, el agente la lee y revisa que calcen el monto, la cuenta o RUT de
+              destino, la fecha y el estado, y que el código de operación no se haya usado en otro pedido. Te llega el resultado y
+              la imagen queda en el pedido.
+            </p>
+            <label className="mt-3 flex items-start gap-3 text-sm text-gray-300">
+              <input
+                type="checkbox"
+                checked={s.autoConfirmReceipts}
+                onChange={(e) => {
+                  const v = e.target.checked
+                  if (
+                    v &&
+                    !window.confirm(
+                      'Con esto el pedido pasa a cocina solo si el comprobante calza en todo, sin que revises tu cuenta. Una imagen bien editada podría pasar. ¿Activar igual?',
+                    )
+                  )
+                    return
+                  save({ autoConfirmReceipts: v })
+                }}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-amber-500"
+              />
+              <span>
+                Confirmar el pago automáticamente cuando el comprobante calza en todo
+                <span className="block text-xs text-amber-400/80">
+                  Más rápido, pero con riesgo: una imagen editada podría pasar. Recomendado solo si confías en tus clientes.
+                </span>
+              </span>
+            </label>
+          </div>
           <button
             type="button"
             disabled={saving}

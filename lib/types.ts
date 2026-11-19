@@ -132,6 +132,12 @@ export interface Order {
   paymentLink: string | null
   paidAt: string | null
   kitchenPrintedAt: string | null
+  /** Revisión automática del comprobante que mandó el cliente (ver lib/receipts.ts). */
+  receiptCheck: {
+    verdict: 'coincide' | 'dudoso' | 'no_coincide' | 'ilegible'
+    items: { label: string; ok: boolean | null; detail: string }[]
+    readAt: string
+  } | null
 }
 
 /** Cobros, cocina e inventario (ver SalesSettings en el esquema). */
@@ -142,6 +148,8 @@ export interface SalesSettings {
   /** El token nunca sale del servidor: solo si está conectado. */
   mercadoPagoConnected: boolean
   kitchenEnabled: boolean
+  /** Confirmar solo cuando el comprobante calza en todo. */
+  autoConfirmReceipts: boolean
   stockAlertsEnabled: boolean
   stockAlertThreshold: number
 }

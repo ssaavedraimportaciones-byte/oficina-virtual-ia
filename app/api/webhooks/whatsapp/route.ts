@@ -6,6 +6,7 @@ import type { Business } from '@/lib/types'
 import { verifyMetaSignature } from '@/lib/webhookSignature'
 import { recordWebhook, type WebhookChangeOutcome } from '@/lib/webhookLog'
 import { audioMessageText } from '@/lib/incomingMedia'
+import { receiptMessageText } from '@/lib/receipts'
 
 // Handshake de verificación que pide Meta al configurar el webhook.
 export async function GET(request: NextRequest) {
@@ -26,6 +27,7 @@ interface WhatsAppMessage {
   type: string
   text?: { body: string }
   audio?: { id?: string }
+  image?: { id?: string }
   button?: { text?: string }
   interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } }
 }
@@ -77,6 +79,15 @@ function messageText(message: WhatsAppMessage): string | null {
  * el aviso de siempre y el agente le pide al cliente que lo escriba.
  */
 async function resolveText(message: WhatsAppMessage, business: Business): Promise<string | null> {
+  // Una foto de un cliente con un pedido esperando pago es su comprobante: se lee y se verifica.
+  if (message.type === 'image' && message.image?.id) {
+    try {
+      const receipt = await receiptMessageText(business, message.from, message.image.id, decryptCredentials(business.credentials))
+      if (receipt) return receipt
+    } catch (error) {
+      console.error('[webhook whatsapp] no se pudo revisar el comprobante:', error)
+    }
+  }
   if (message.type === 'audio' && message.audio?.id) {
     try {
       const transcript = await audioMessageText(message.audio.id, decryptCredentials(business.credentials))

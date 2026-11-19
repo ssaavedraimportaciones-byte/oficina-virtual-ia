@@ -460,11 +460,17 @@ model Order {
   paidAt          DateTime?
   /// Cuándo salió el ticket en la pantalla de cocina. null = falta imprimir.
   kitchenPrintedAt DateTime?
+  /// Lo que se leyó del comprobante y cómo se cruzó con el pedido (ver lib/receipts.ts).
+  receiptCheck    Json?
+  /// Código de operación del comprobante: uno repetido es señal de trampa.
+  receiptCode     String?
+  receipt         OrderReceipt?
 
   business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   items    OrderItem[]
 
   @@index([businessId, createdAt])
+  @@index([businessId, receiptCode])
   @@map("orders")
 }
 
@@ -522,6 +528,9 @@ model SalesSettings {
   mercadoPagoToken    String?
   /// Pantalla de cocina con impresión de tickets.
   kitchenEnabled      Boolean @default(false)
+  /// Confirmar el pago solo cuando el comprobante calza en todo (riesgoso:
+  /// una imagen editada puede pasar). Apagado por defecto.
+  autoConfirmReceipts Boolean @default(false)
   /// Avisar cuando un producto baja del mínimo o se agota.
   stockAlertsEnabled  Boolean @default(false)
   stockAlertThreshold Int     @default(5)
@@ -530,4 +539,17 @@ model SalesSettings {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("sales_settings")
+}
+
+/// Imagen del comprobante que mandó el cliente, para que el local la vea.
+/// En su propia tabla: listar pedidos no arrastra los bytes.
+model OrderReceipt {
+  orderId     String   @id
+  contentType String
+  data        Bytes
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_receipts")
 }

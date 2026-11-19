@@ -26,6 +26,7 @@ import * as businessesRoute from '@/app/api/businesses/route'
 import * as ventasRoute from '@/app/api/businesses/[id]/ventas/route'
 import * as cocinaRoute from '@/app/api/businesses/[id]/cocina/route'
 import * as pagoRoute from '@/app/api/orders/[id]/pago/route'
+import * as comprobanteRoute from '@/app/api/orders/[id]/comprobante/route'
 
 /**
  * Multi-tenant: la regla que no se puede romper es que una empresa nunca vea
@@ -309,9 +310,15 @@ describe('aislamiento entre empresas: el agente y los canales', () => {
 })
 
 describe('aislamiento entre empresas: cobros y cocina', () => {
-  it('A no puede marcar pagado un pedido de B, ni cambiar sus cobros, ni imprimir sus tickets', async () => {
+  it('A no puede marcar pagado un pedido de B, ver su comprobante, cambiar sus cobros ni imprimir sus tickets', async () => {
     actAs(A.user)
     expect((await pagoRoute.POST(req('POST'), ctx(B.orderId))).status).toBe(404)
+    await prisma.orderReceipt.upsert({
+      where: { orderId: B.orderId },
+      create: { orderId: B.orderId, contentType: 'image/jpeg', data: Buffer.from([1, 2, 3]) },
+      update: {},
+    })
+    expect((await comprobanteRoute.GET(req('GET'), ctx(B.orderId))).status).toBe(404)
     expect((await ventasRoute.PUT(req('PUT', { kitchenEnabled: true }), ctx(B.business.id))).status).toBe(404)
     expect((await cocinaRoute.POST(req('POST', { orderId: B.orderId }), ctx(B.business.id))).status).toBe(404)
     const orderB = await prisma.order.findUniqueOrThrow({ where: { id: B.orderId } })
@@ -323,3 +330,15 @@ describe('aislamiento entre empresas: cobros y cocina', () => {
     expect((await prisma.order.findUniqueOrThrow({ where: { id: B.orderId } })).kitchenPrintedAt).toBeNull()
   })
 })
+
+  it('control: B sí ve el comprobante de su pedido', async () => {
+    actAs(B.user)
+    await prisma.orderReceipt.upsert({
+      where: { orderId: B.orderId },
+      create: { orderId: B.orderId, contentType: 'image/jpeg', data: Buffer.from([1, 2, 3]) },
+      update: {},
+    })
+    const res = await comprobanteRoute.GET(req('GET'), ctx(B.orderId))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('cache-control')).toContain('private')
+  })

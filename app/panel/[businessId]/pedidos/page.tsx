@@ -386,6 +386,50 @@ export default function PedidosPage() {
                   <p className="mt-2 text-sm text-gray-500">Nota: {order.note}</p>
                 )}
 
+                {order.receiptCheck && order.status !== 'cancelado' && (
+                  <div
+                    className={`mt-3 rounded-md border p-3 text-sm ${
+                      order.receiptCheck.verdict === 'coincide'
+                        ? 'border-emerald-500/40 bg-emerald-500/5'
+                        : order.receiptCheck.verdict === 'no_coincide'
+                          ? 'border-danger/50 bg-danger/5'
+                          : 'border-amber-500/40 bg-amber-500/5'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium text-white">
+                        🧾 Comprobante:{' '}
+                        {
+                          {
+                            coincide: 'calza con el pedido',
+                            dudoso: 'faltan datos por ver',
+                            no_coincide: 'NO calza',
+                            ilegible: 'no se pudo leer',
+                          }[order.receiptCheck.verdict]
+                        }
+                      </span>
+                      <a
+                        href={`/api/orders/${order.id}/comprobante`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-amber-300 hover:text-amber-200"
+                      >
+                        Ver imagen ↗
+                      </a>
+                    </div>
+                    <ul className="mt-2 flex flex-col gap-1 text-xs">
+                      {order.receiptCheck.items.map((i) => (
+                        <li key={i.label} className={i.ok === false ? 'text-red-300' : i.ok ? 'text-gray-300' : 'text-gray-500'}>
+                          {i.ok === true ? '✓' : i.ok === false ? '✗' : '?'} {i.label}: {i.detail}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Revisión automática: ayuda, pero una imagen editada puede pasar. Confirma cuando veas la plata en tu cuenta.
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm font-medium text-amber-400">
                     Total {formatPrice(order.total)}

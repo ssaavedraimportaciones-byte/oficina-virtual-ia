@@ -17,6 +17,7 @@ const schema = z.object({
   holdMinutes: z.number().int().min(5).max(240).optional(),
   mercadoPagoToken: z.string().min(10).max(300).nullable().optional(),
   kitchenEnabled: z.boolean().optional(),
+  autoConfirmReceipts: z.boolean().optional(),
   stockAlertsEnabled: z.boolean().optional(),
   stockAlertThreshold: z.number().int().min(0).max(10000).optional(),
 })

@@ -33,6 +33,7 @@ const DEFAULTS: Omit<SalesSettings, 'mercadoPagoConnected'> = {
   transferInfo: '',
   holdMinutes: 20,
   kitchenEnabled: false,
+  autoConfirmReceipts: false,
   stockAlertsEnabled: false,
   stockAlertThreshold: 5,
 }
@@ -46,6 +47,7 @@ export async function getSalesSettings(businessId: string): Promise<SalesSetting
     holdMinutes: row.holdMinutes,
     mercadoPagoConnected: Boolean(row.mercadoPagoToken),
     kitchenEnabled: row.kitchenEnabled,
+    autoConfirmReceipts: row.autoConfirmReceipts,
     stockAlertsEnabled: row.stockAlertsEnabled,
     stockAlertThreshold: row.stockAlertThreshold,
   }

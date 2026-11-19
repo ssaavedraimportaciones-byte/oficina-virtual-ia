@@ -224,6 +224,7 @@ export function mapOrder(row: {
   paymentLink: string | null
   paidAt: Date | null
   kitchenPrintedAt: Date | null
+  receiptCheck?: unknown
   items: Array<{ productId: string; name: string; unitPrice: number; quantity: number }>
 }): Order {
   return {
@@ -248,6 +249,7 @@ export function mapOrder(row: {
     paymentLink: row.paymentLink,
     paidAt: row.paidAt?.toISOString() ?? null,
     kitchenPrintedAt: row.kitchenPrintedAt?.toISOString() ?? null,
+    receiptCheck: row.receiptCheck ? (row.receiptCheck as Order['receiptCheck']) : null,
   }
 }
 

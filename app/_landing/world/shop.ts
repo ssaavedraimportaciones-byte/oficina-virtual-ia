@@ -172,7 +172,10 @@ export function createShop(scene: THREE.Scene) {
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.17, 0.42, 14), new THREE.MeshStandardMaterial({ color: '#c8b8a6', roughness: 0.8 }))
   pot.position.set(2.6, 0.21, 2.4)
   group.add(pot)
-  const plantMat = new THREE.MeshStandardMaterial({ map: leafClusterTexture(), alphaTest: 0.45, side: THREE.DoubleSide, color: '#7fa86a' })
+  // A contraluz de la vitrina la planta quedaba como mancha negra: un emissive con su
+  // propia textura deja ver las hojas.
+  const plantTex = leafClusterTexture()
+  const plantMat = new THREE.MeshStandardMaterial({ map: plantTex, alphaTest: 0.45, side: THREE.DoubleSide, color: '#7fa86a', emissive: '#9fd08a', emissiveMap: plantTex, emissiveIntensity: 0.5 })
   for (let i = 0; i < 6; i += 1) {
     const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.7), plantMat)
     leaf.position.set(2.6 + (rand() - 0.5) * 0.3, 0.75 + rand() * 0.45, 2.4 + (rand() - 0.5) * 0.3)

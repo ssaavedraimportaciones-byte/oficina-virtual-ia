@@ -223,7 +223,17 @@ export function createCity(scene: THREE.Scene, opts: { lite: boolean; reserved: 
     add({ x, w: 10 + rand() * 10, h, z: -95 - rand() * 50, d: 12, color: rand() > 0.5 ? '#4f5866' : '#5d636b', lit: 0.3 })
   }
 
-  const buildingMat = new THREE.MeshStandardMaterial({ map: facade, vertexColors: true, roughness: 0.92, metalness: 0 })
+  // Un brillo de luna tenue en la fachada (con su propia textura): de noche se leen
+  // ladrillos, pisos y balcones en vez de bloques negros; de día no se nota.
+  const buildingMat = new THREE.MeshStandardMaterial({
+    map: facade,
+    vertexColors: true,
+    roughness: 0.92,
+    metalness: 0,
+    emissive: '#56627e',
+    emissiveMap: facade,
+    emissiveIntensity: 0.32,
+  })
   const buildings = new THREE.Mesh(mergeGeometries(buildingGeos), buildingMat)
   buildings.castShadow = true
   buildings.receiveShadow = true
@@ -482,18 +492,22 @@ export function createCity(scene: THREE.Scene, opts: { lite: boolean; reserved: 
   // mantiene oscuros (no es de día) pero legibles como forma, como se ven bajo luna real.
   const trunks = new THREE.Mesh(
     mergeGeometries(trunkGeos),
-    new THREE.MeshStandardMaterial({ map: bark, roughness: 0.9, emissive: '#2a3550', emissiveIntensity: 0.3 }),
+    new THREE.MeshStandardMaterial({ map: bark, roughness: 0.9, emissive: '#3a4566', emissiveIntensity: 0.45 }),
   )
   trunks.castShadow = true
   scene.add(trunks)
+  // El emissive lleva la misma textura de hojas: brilla el follaje con su dibujo, no
+  // una mancha pareja (se nota sobre todo en la vista aérea de noche).
+  const leafTex = leafClusterTexture()
   const leafMat = new THREE.MeshStandardMaterial({
-    map: leafClusterTexture(),
+    map: leafTex,
     alphaTest: 0.45,
     side: THREE.DoubleSide,
     roughness: 0.75,
     color: '#9fb88a',
-    emissive: '#2c3a2c',
-    emissiveIntensity: 0.3,
+    emissive: '#a6d79a',
+    emissiveMap: leafTex,
+    emissiveIntensity: 0.75,
   })
   const leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.4, 1.4), leafMat, leafMatrices.length)
   leafMatrices.forEach((m, i) => leaves.setMatrixAt(i, m))

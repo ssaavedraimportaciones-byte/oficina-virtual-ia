@@ -34,24 +34,26 @@ export interface Light {
 
 const C = (hex: string) => new THREE.Color(hex)
 
+// Noche de luna llena: oscura, pero con fachadas, árboles, plantas y autos legibles.
+// Con hemi 0.55 / key 0.5 todo lo que no tocaba un farol se iba a negro.
 const NIGHT: Light = {
   skyTop: C('#03050c'),
   skyMid: C('#0a1226'),
   skyHorizon: C('#142141'),
   fog: C('#0a1122'),
   fogDensity: 0.005,
-  hemiSky: C('#4d6aa8'),
-  hemiGround: C('#1a1410'),
-  hemi: 0.55,
-  key: C('#8fa6e8'),
-  keyIntensity: 0.5,
+  hemiSky: C('#6582c4'),
+  hemiGround: C('#2c241b'),
+  hemi: 0.95,
+  key: C('#a3b7f0'),
+  keyIntensity: 0.95,
   sunHeight: -1,
   moon: 1,
   stars: 1,
   lamps: 1,
   windows: 1,
   ridge: new THREE.Color(1, 1, 1),
-  exposure: 1,
+  exposure: 1.1,
   wet: 1,
   mist: 1,
 }

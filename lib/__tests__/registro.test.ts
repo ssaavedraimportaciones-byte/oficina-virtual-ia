@@ -137,7 +137,7 @@ describe('un cliente nuevo de punta a punta', () => {
     expect(member.role).toBe('OWNER')
 
     const second = await createBusiness()
-    expect(second.status).toBe(402) // plan gratis: un solo negocio propio
+    expect(second.status).toBe(402) // el plan sin pagar permite un solo negocio propio
     expect(await prisma.businessMember.count({ where: { userId: session!.id } })).toBe(1)
   })
 })

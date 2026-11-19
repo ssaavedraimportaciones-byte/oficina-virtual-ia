@@ -114,6 +114,7 @@ export default async function BusinessLayout({
         businessName={business.config.businessName}
         logo={logo}
         adminLink={isPlatformAdmin(user)}
+        canPickBusiness={isPlatformAdmin(user) || new Set(user.businesses.map((b) => b.businessId)).size > 1}
         setup={
           progress && !progress.ready
             ? {

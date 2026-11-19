@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, isPlatformAdmin } from '@/lib/auth'
 import { countOpenConversationsByBusiness, listBusinessesForUser } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
+import { panelLanding } from '@/lib/newBusiness'
 import LogoutButton from '../LogoutButton'
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +11,10 @@ export const dynamic = 'force-dynamic'
 export default async function PanelPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+
+  // Un solo negocio: se entra directo a su panel. Ninguno: a crear el primero.
+  const landing = panelLanding(user)
+  if (landing) redirect(landing)
 
   const businesses = await listBusinessesForUser(user)
   const openByBusiness = await countOpenConversationsByBusiness(businesses.map((b) => b.id))

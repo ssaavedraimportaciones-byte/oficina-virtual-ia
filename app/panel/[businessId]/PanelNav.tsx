@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BrandLockup } from '@/app/BrandMark'
+import LogoutButton from '@/app/LogoutButton'
 
 export interface NavItem {
   href: string
@@ -18,6 +19,8 @@ export interface NavProps {
   businessName: string
   logo: React.ReactNode
   adminLink: boolean
+  /** Quien maneja varios negocios (o administra la plataforma) puede volver a la lista para elegir. */
+  canPickBusiness: boolean
   /** Primeros pasos: cuántos lleva. null = ya terminó y no se muestra. */
   setup: { href: string; completed: number; required: number } | null
   daily: NavItem[]
@@ -64,7 +67,7 @@ function Item({ item, active, onNavigate }: { item: NavItem; active: boolean; on
  * al agente (lo que el dueño le enseña), en vez de una lista plana de opciones.
  * En celular se abre como cajón desde la barra de arriba.
  */
-export default function PanelNav({ businessName, logo, adminLink, setup, daily, agent }: NavProps) {
+export default function PanelNav({ businessName, logo, adminLink, canPickBusiness, setup, daily, agent }: NavProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -82,9 +85,11 @@ export default function PanelNav({ businessName, logo, adminLink, setup, daily, 
       <Link href="/" onClick={close} className="mb-6 block">
         <BrandLockup />
       </Link>
-      <Link href="/panel" onClick={close} className="block text-xs text-gray-500 hover:text-gray-300">
-        ← Todos mis negocios
-      </Link>
+      {canPickBusiness && (
+        <Link href="/panel" onClick={close} className="block text-xs text-gray-500 hover:text-gray-300">
+          ← Todos mis negocios
+        </Link>
+      )}
       <div className="mt-2 flex items-center gap-2">
         {logo}
         <span className="truncate text-base font-semibold text-white">{businessName}</span>
@@ -169,6 +174,17 @@ export default function PanelNav({ businessName, logo, adminLink, setup, daily, 
           </nav>
         </>
       )}
+
+      {/* Lo de la persona, no del negocio: la cuenta, otro negocio y salir. */}
+      <div className="mt-8 flex flex-col gap-0.5 border-t border-gray-800 pt-4 text-sm">
+        <Link href="/account" onClick={close} className="rounded-md px-3 py-2 text-gray-300 hover:bg-gray-800/70 hover:text-white">
+          👤 Mi cuenta y mi plan
+        </Link>
+        <Link href="/panel/nuevo" onClick={close} className="rounded-md px-3 py-2 text-gray-300 hover:bg-gray-800/70 hover:text-white">
+          ＋ Agregar otro negocio
+        </Link>
+        <LogoutButton className="rounded-md px-3 py-2 text-left text-gray-500 hover:bg-gray-800/70 hover:text-gray-300" />
+      </div>
     </>
   )
 

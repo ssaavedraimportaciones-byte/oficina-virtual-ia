@@ -45,10 +45,9 @@ const SELLS_PRODUCTS = new Set(['gastronomia', 'ecommerce'])
 const MIN_TEXT = 40
 const MIN_KNOWLEDGE = 3
 
-/** Si el texto es el de la plantilla tal cual, todavía no lo adaptó a su negocio. */
-function customized(value: string, templateValue: string | undefined): boolean {
-  const v = value.trim()
-  return v.length >= MIN_TEXT && v !== (templateValue ?? '').trim()
+/** Hay texto suficiente para que el agente sepa de qué trata el negocio. */
+function filled(value: string): boolean {
+  return value.trim().length >= MIN_TEXT
 }
 
 export function getSetupSteps(businessId: string, f: SetupFacts): SetupStep[] {
@@ -57,7 +56,9 @@ export function getSetupSteps(businessId: string, f: SetupFacts): SetupStep[] {
   const sells = SELLS_PRODUCTS.has(f.templateId)
   const hints = template?.knowledgeHints ?? []
 
-  const perfilDone = customized(f.description, template?.description) && customized(f.goals, template?.goals)
+  // Al crear el negocio ya se pidió el nombre, el tono y el objetivo, y la descripción parte de la
+  // plantilla del rubro: el perfil queda hecho desde el principio y este paso es para revisarlo.
+  const perfilDone = filled(f.description) && filled(f.goals)
 
   const operacion: SetupStep = sells
     ? {

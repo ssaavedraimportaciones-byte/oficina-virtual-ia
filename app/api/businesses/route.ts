@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   if (!(await canOwnAnotherBusiness(user.id, user.role))) {
     return NextResponse.json(
-      { error: 'El plan gratuito permite un solo negocio propio. Pásate a un plan pago para crear más.' },
+      { error: 'Tu plan ya alcanzó su límite de negocios. Cambia de plan en «Mi cuenta» para agregar más.' },
       { status: 402 },
     )
   }

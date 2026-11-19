@@ -19,20 +19,20 @@ const fresh: SetupFacts = {
 }
 
 describe('primeros pasos del agente', () => {
-  it('un negocio recién creado empieza por contarle al agente quién es', () => {
+  it('un negocio recién creado ya tiene su perfil (se pidió al crearlo) y sigue por enseñarle lo que sabe', () => {
     const p = getSetupProgress('b1', fresh)
-    expect(p.completed).toBe(0)
+    expect(p.steps.find((s) => s.id === 'perfil')?.done).toBe(true)
+    expect(p.completed).toBe(1)
     expect(p.required).toBe(5)
-    expect(p.next?.id).toBe('perfil')
-    expect(p.next?.href).toBe('/panel/b1/configurar')
+    expect(p.next?.id).toBe('conocimiento')
+    expect(p.next?.href).toBe('/panel/b1/conocimiento')
   })
 
-  it('el texto de la plantilla sin tocar no cuenta como listo', () => {
-    const p = getSetupProgress('b1', {
-      ...fresh,
-      description: fresh.description,
-    })
+  it('un perfil vacío o muy corto no cuenta como listo', () => {
+    const p = getSetupProgress('b1', { ...fresh, description: 'x', goals: '' })
     expect(p.steps.find((s) => s.id === 'perfil')?.done).toBe(false)
+    expect(p.next?.id).toBe('perfil')
+    expect(p.next?.href).toBe('/panel/b1/configurar')
   })
 
   it('se marca solo con lo que ya está cargado', () => {

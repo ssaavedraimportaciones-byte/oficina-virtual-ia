@@ -6,8 +6,8 @@
  * `scripts/landing/primeros-planos.html` (código, no fotos).
  */
 export const FOREGROUND: { id: string; src: string; owners: string[]; place: string; depth: number; w: number; h: number }[] = [
-  { id: 'cables', src: '/landing/fg/cables.webp', owners: ['inicio', 'final'], place: 'tl', depth: 1.2, w: 1600, h: 900 },
-  { id: 'platano', src: '/landing/fg/platano.webp', owners: ['inicio', 'final'], place: 'tr', depth: 1.8, w: 1400, h: 1100 },
+  { id: 'cables', src: '/landing/fg/cables-luna.webp', owners: ['inicio', 'final'], place: 'tl', depth: 1.2, w: 1600, h: 900 },
+  { id: 'platano', src: '/landing/fg/platano-luna.webp', owners: ['inicio', 'final'], place: 'tr', depth: 1.8, w: 1400, h: 1100 },
   { id: 'jacaranda', src: '/landing/fg/jacaranda.webp', owners: ['rubros', 'limites'], place: 'tr', depth: 1.6, w: 1400, h: 1100 },
   { id: 'techo', src: '/landing/fg/techo.webp', owners: ['negocios'], place: 'b', depth: 0.9, w: 2400, h: 700 },
   { id: 'baranda', src: '/landing/fg/baranda.webp', owners: ['empieza'], place: 'bl', depth: 1.4, w: 1600, h: 1000 },

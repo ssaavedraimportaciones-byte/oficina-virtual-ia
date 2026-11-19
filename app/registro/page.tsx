@@ -13,7 +13,7 @@ export default async function RegistroPage() {
   const user = await getCurrentUser()
   if (user) redirect('/panel')
 
-  if (!signupOpen()) {
+  if (!(await signupOpen())) {
     return (
       <div className="flex min-h-screen items-center justify-center px-8">
         <div className="flex w-full max-w-sm flex-col gap-4">

@@ -19,7 +19,7 @@ const MAX_SIGNUPS = 5
 const WINDOW_MS = 60 * 60 * 1000
 
 export async function POST(request: NextRequest) {
-  if (!signupOpen()) {
+  if (!(await signupOpen())) {
     return NextResponse.json({ error: 'El registro está cerrado por ahora.' }, { status: 403 })
   }
 

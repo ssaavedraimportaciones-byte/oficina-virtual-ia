@@ -11,7 +11,7 @@ export default async function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-8">
-      <LoginForm signupOpen={signupOpen()} />
+      <LoginForm signupOpen={await signupOpen()} />
     </div>
   )
 }

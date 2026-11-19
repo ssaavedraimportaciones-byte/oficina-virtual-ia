@@ -2,11 +2,13 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUser, isPlatformAdmin } from '@/lib/auth'
 import { getMaintenance, listAnnouncements, listBusinessAdminRows } from '@/lib/platform'
+import { signupForcedOpenByEnv, signupOpen } from '@/lib/signup'
 import LogoutButton from '../../LogoutButton'
 import AdminNav from '../AdminNav'
 import AnnouncementsCard from './AnnouncementsCard'
 import BusinessLimitsTable from './BusinessLimitsTable'
 import MaintenanceCard from './MaintenanceCard'
+import SignupCard from './SignupCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,10 +17,11 @@ export default async function SistemaPage() {
   if (!user) redirect('/login')
   if (!isPlatformAdmin(user)) redirect('/panel')
 
-  const [maintenance, announcements, rows] = await Promise.all([
+  const [maintenance, announcements, rows, registroAbierto] = await Promise.all([
     getMaintenance(),
     listAnnouncements(),
     listBusinessAdminRows(),
+    signupOpen(),
   ])
 
   return (
@@ -39,6 +42,7 @@ export default async function SistemaPage() {
       <AdminNav active="/admin/sistema" />
 
       <div className="mt-8 flex flex-col gap-6">
+        <SignupCard initialOpen={registroAbierto} forcedByEnv={signupForcedOpenByEnv()} />
         <MaintenanceCard initialEnabled={maintenance.enabled} initialMessage={maintenance.message} />
         <AnnouncementsCard initial={announcements} />
 

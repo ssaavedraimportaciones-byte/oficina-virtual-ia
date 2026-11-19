@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'crypto'
 import { NextRequest } from 'next/server'
 import * as auth from '../auth'
-import { SESSION_COOKIE, getUserByToken } from '../auth'
+import { SESSION_COOKIE, getUserByToken, type SessionUser } from '../auth'
 import { prisma } from '../db'
+import { setSignupOpen, signupOpen } from '../signup'
 import * as registerRoute from '@/app/api/auth/register/route'
 import * as businessesRoute from '@/app/api/businesses/route'
 
@@ -30,6 +31,7 @@ const valid = () => ({ email: `nuevo-${randomUUID()}@registro.test`, password: '
 describe('registro autoservicio', () => {
   it('está cerrado por defecto: no crea cuentas aunque los datos sean válidos', async () => {
     delete process.env.ALLOW_SIGNUP
+    await setSignupOpen(false)
     const body = valid()
     const res = await register(body)
     expect(res.status).toBe(403)
@@ -139,5 +141,63 @@ describe('un cliente nuevo de punta a punta', () => {
     const second = await createBusiness()
     expect(second.status).toBe(402) // el plan sin pagar permite un solo negocio propio
     expect(await prisma.businessMember.count({ where: { userId: session!.id } })).toBe(1)
+  })
+})
+
+describe('interruptor del registro', () => {
+  const route = async (method: 'GET' | 'PUT', body?: unknown) => {
+    const admin: SessionUser = { id: randomUUID(), email: 'a@t.cl', role: 'PLATFORM_ADMIN', plan: 'ILIMITADO', businesses: [] }
+    vi.spyOn(auth, 'getCurrentUser').mockResolvedValue(admin)
+    const mod = await import('@/app/api/admin/signup/route')
+    const req = new NextRequest('http://localhost/api/admin/signup', {
+      method,
+      headers: { 'content-type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+    return method === 'GET' ? mod.GET() : mod.PUT(req)
+  }
+
+  afterEach(async () => {
+    vi.restoreAllMocks()
+    await setSignupOpen(false)
+    delete process.env.ALLOW_SIGNUP
+  })
+
+  it('el administrador lo abre y lo cierra, y eso decide si se puede crear cuenta', async () => {
+    delete process.env.ALLOW_SIGNUP
+    await setSignupOpen(false)
+    expect(await signupOpen()).toBe(false)
+    expect((await register(valid())).status).toBe(403)
+
+    const abrir = await route('PUT', { open: true })
+    expect(abrir.status).toBe(200)
+    expect(await abrir.json()).toMatchObject({ open: true, forcedByEnv: false })
+    expect(await signupOpen()).toBe(true)
+    expect((await register(valid())).status).toBe(200)
+
+    await route('PUT', { open: false })
+    expect(await signupOpen()).toBe(false)
+    expect((await register(valid())).status).toBe(403)
+  })
+
+  it('ALLOW_SIGNUP=true lo fuerza abierto y el panel lo avisa', async () => {
+    await setSignupOpen(false)
+    process.env.ALLOW_SIGNUP = 'true'
+    expect(await signupOpen()).toBe(true)
+    expect(await (await route('GET')).json()).toMatchObject({ open: true, forcedByEnv: true })
+  })
+
+  it('solo el administrador de la plataforma puede tocarlo', async () => {
+    const mod = await import('@/app/api/admin/signup/route')
+    const req = () => new NextRequest('http://localhost/api/admin/signup', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ open: true }) })
+
+    vi.spyOn(auth, 'getCurrentUser').mockResolvedValue(null)
+    expect((await mod.PUT(req())).status).toBe(401)
+
+    const normal: SessionUser = { id: randomUUID(), email: 'u@t.cl', role: 'USER', plan: 'BASICO', businesses: [] }
+    vi.spyOn(auth, 'getCurrentUser').mockResolvedValue(normal)
+    expect((await mod.PUT(req())).status).toBe(403)
+    expect((await mod.GET()).status).toBe(403)
+    expect(await signupOpen()).toBe(false)
   })
 })

@@ -26,8 +26,12 @@ export interface Chapter {
     height: number
     /** Recuadro que marca lo importante de la captura, en % de la imagen. */
     ring: { left: number; top: number; width: number; height: number }
+    /** En celular: acercamiento (zoom ×, desde x%/y% de la imagen, en un marco ancho/alto = ratio). */
+    mobile?: ShotZoom
   }
 }
+
+export type ShotZoom = { zoom: number; x: number; y: number; ratio: number }
 
 // Los mensajes son, palabra por palabra, los de la conversación de demostración
 // que quedó guardada en el panel (negocio ficticio «Uñas Bella»).
@@ -142,18 +146,21 @@ export const CHAPTERS: Chapter[] = [
       width: 1600,
       height: 1000,
       ring: { left: 16.6, top: 8, width: 63.6, height: 3.8 },
+      // En celular la captura entera no se lee: se muestra un acercamiento al chat
+      mobile: { zoom: 1.85, x: 25, y: 4, ratio: 1.2 },
     },
   },
 ]
 
 /** El resumen del panel, que se ve al final de la noche. */
-export const SUMMARY_SHOT = {
+export const SUMMARY_SHOT: { src: string; alt: string; caption: string; width: number; height: number; ring: { left: number; top: number; width: number; height: number }; mobile?: ShotZoom } = {
   src: '/landing/resumen.webp',
   alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 respuestas del agente este mes, 1 hora agendada y 1 pedido por $9.000.',
   caption: 'Tu resumen de la mañana',
   width: 1600,
   height: 1000,
   ring: { left: 18.8, top: 32.5, width: 19.1, height: 12.6 },
+  mobile: { zoom: 2.4, x: 16, y: 15, ratio: 1.35 },
 }
 
 export type Place = 'ana' | 'shop' | 'owner'

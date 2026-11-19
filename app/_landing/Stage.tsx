@@ -41,7 +41,7 @@ const FLIGHT_CUES: Record<string, { in: number; fly: number; land: number; out: 
   f7: { in: 31.8, fly: 32.3, land: 33.6, out: 35.4 },
   f8: { in: 34.0, fly: 34.6, land: 35.9, out: 37.6 },
   f9: { in: 36.6, fly: 37.0, land: 38.3, out: 39.6 },
-  f10: { in: 44.4, fly: 44.9, land: 46.2, out: 47.6 },
+  f10: { in: 44.4, fly: 44.9, land: 46.2, out: 47.1 },
 }
 const INSERTS: { id: string; in: number; out?: number }[] = [
   { id: 'agenda', in: 16.6, out: 19.4 },
@@ -280,7 +280,28 @@ export default function Stage() {
       {/* Insertos: capturas reales del panel */}
       <div className="zv-inserts">
         {shots.map((shot) => (
-          <figure key={shot.id} className="zv-shot" data-shot={shot.id} data-tilt>
+          <figure
+            key={shot.id}
+            className="zv-shot"
+            data-shot={shot.id}
+            data-tilt
+            data-zoom={shot.mobile ? '' : undefined}
+            style={
+              shot.mobile
+                ? ({
+                    '--mz': shot.mobile.zoom,
+                    '--mx': shot.mobile.x,
+                    '--my': shot.mobile.y,
+                    '--mar': shot.mobile.ratio,
+                    '--mhw': shot.height / shot.width,
+                    '--rl': shot.ring.left,
+                    '--rt': shot.ring.top,
+                    '--rw': shot.ring.width,
+                    '--rh': shot.ring.height,
+                  } as React.CSSProperties)
+                : undefined
+            }
+          >
             <figcaption>
               <span>{shot.caption}</span>
               <span>panel real · datos de demostración</span>

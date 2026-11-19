@@ -3676,3 +3676,47 @@
     transform: none;
   }
 }
+
+/* ---------- La noche en celular ----------
+ * En una pantalla angosta los mensajes que "vuelan" de ventana en ventana caían
+ * unos sobre otros (la respuesta tapaba la pregunta) y encima del reloj y de los
+ * rótulos. Acá se anclan como un chat: quien escribe arriba a la izquierda, el
+ * agente debajo a la derecha. Nunca se pisan: cada tipo tiene su fila.
+ * Y las capturas anchas del panel muestran un acercamiento legible. */
+@media (max-width: 820px) {
+  .zv-flights {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: start;
+    row-gap: 10px;
+    padding: calc(var(--zv-bar) + 9.6rem) 16px 0;
+  }
+  .zv-flight {
+    position: relative;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    transform: none;
+  }
+  .zv-flight[data-kind='agent'] {
+    grid-row: 2;
+    justify-self: end;
+  }
+  .zv-inserts .zv-shot[data-zoom] .zv-shot-img {
+    aspect-ratio: var(--mar);
+  }
+  .zv-inserts .zv-shot[data-zoom] img {
+    width: calc(var(--mz) * 100%);
+    max-width: none;
+    max-height: none;
+    height: auto;
+    transform: translate(calc(var(--mx) * -1%), calc(var(--my) * -1%));
+  }
+  .zv-inserts .zv-shot[data-zoom] .zv-ring {
+    left: calc((var(--rl) - var(--mx)) * var(--mz) * 1%) !important;
+    top: calc((var(--rt) - var(--my)) * var(--mz) * var(--mhw) * var(--mar) * 1%) !important;
+    width: min(calc(var(--rw) * var(--mz) * 1%), calc(98% - (var(--rl) - var(--mx)) * var(--mz) * 1%)) !important;
+    height: calc(var(--rh) * var(--mz) * var(--mhw) * var(--mar) * 1%) !important;
+  }
+}

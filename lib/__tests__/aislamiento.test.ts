@@ -227,6 +227,29 @@ describe('aislamiento entre empresas: escrituras', () => {
     expect((await equipoRoute.POST(req('POST', { name: 'Nueva' }), ctx(B.business.id))).status).toBe(201)
   })
 
+  it('A no puede borrar conversaciones de B, ni metiendo el id de B en su propio negocio', async () => {
+    actAs(A.user)
+    expect((await conversationsRoute.DELETE(req('DELETE', { ids: [B.conversationId] }), ctx(B.business.id))).status).toBe(404)
+    const viaOwn = await conversationsRoute.DELETE(req('DELETE', { ids: [B.conversationId] }), ctx(A.business.id))
+    expect(viaOwn.status).toBe(200)
+    expect((await viaOwn.json()).deleted).toBe(0)
+    expect(await store.getConversation(B.conversationId)).not.toBeNull()
+  })
+
+  it('el dueño borra varias conversaciones suyas de una vez', async () => {
+    actAs(B.user)
+    const extra = await store.createConversation({
+      businessId: B.business.id, channel: 'simulador', contactName: 'Borrar', contactHandle: randomUUID(),
+    })
+    const extra2 = await store.createConversation({
+      businessId: B.business.id, channel: 'simulador', contactName: 'Borrar 2', contactHandle: randomUUID(),
+    })
+    const res = await conversationsRoute.DELETE(req('DELETE', { ids: [extra.id, extra2.id] }), ctx(B.business.id))
+    expect((await res.json()).deleted).toBe(2)
+    expect(await store.getConversation(extra.id)).toBeNull()
+    expect(await store.getConversation(B.conversationId)).not.toBeNull()
+  })
+
   it('A no puede borrar el logo de B (y B sí puede borrar el suyo)', async () => {
     actAs(A.user)
     expect((await logoRoute.DELETE(req('DELETE'), ctx(B.business.id))).status).toBe(404)

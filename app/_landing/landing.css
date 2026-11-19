@@ -3464,3 +3464,215 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Capa de color: más vida sin perder lo profesional. Se suma a la noche
+ * ámbar con la paleta del logo (el doble visto es menta) y tonos cálidos.
+ * Todo lo animado se apaga con "reducir movimiento".
+ * ═══════════════════════════════════════════════════════════════════ */
+.zv {
+  --zv-coral: #ff8a5c;
+  --zv-pink: #ff6fa8;
+  --zv-mint: #34e0a8;
+  --zv-violet: #a78bfa;
+  --zv-joy: linear-gradient(100deg, #ffb347 0%, #ff8a5c 35%, #ff6fa8 68%, #a78bfa 100%);
+}
+
+/* Palabras de acento: degradado cálido que se desplaza lento */
+.zv-acc {
+  background: linear-gradient(100deg, #ffc56b 0%, #ff8a5c 30%, #ff6fa8 60%, #ffc56b 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: zv-joy-shift 9s ease-in-out infinite;
+}
+.zv-h2 em {
+  font-family: var(--zv-serif);
+  font-style: italic;
+  font-weight: 380;
+  text-transform: none;
+  background: var(--zv-joy);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes zv-joy-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Botón principal: del ámbar al coral */
+.zv-btn:not(.zv-btn--ghost) {
+  background-image: linear-gradient(100deg, #ffb347 0%, #ff9a52 55%, #ff7f6a 100%);
+  box-shadow: 0 10px 30px -12px rgba(255, 127, 106, 0.65);
+}
+
+/* Cifras del inicio, cada una con su color */
+.zv-fact:nth-child(1) dt { color: var(--zv-mint); }
+.zv-fact:nth-child(2) dt { color: #ffc56b; }
+.zv-fact:nth-child(3) dt { color: var(--zv-pink); }
+.zv-fact:nth-child(4) dt { color: var(--zv-violet); }
+
+/* Franja de rubros */
+.zv-ticker {
+  position: relative;
+  z-index: 6;
+  overflow: hidden;
+  padding: 1.1rem 0;
+  border-block: 1px solid var(--zv-line);
+  background: rgba(5, 9, 19, 0.78);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+}
+.zv-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: zv-ticker 48s linear infinite;
+}
+.zv-ticker:hover .zv-ticker-track {
+  animation-play-state: paused;
+}
+.zv-ticker-list {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0 0.375rem;
+  list-style: none;
+}
+.zv-ticker-chip {
+  --tone: #ffb347;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 14%, rgba(5, 9, 19, 0.6));
+  color: var(--zv-bone);
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.zv-ticker-chip[data-tone='1'] { --tone: #ff8a5c; }
+.zv-ticker-chip[data-tone='2'] { --tone: #ff6fa8; }
+.zv-ticker-chip[data-tone='3'] { --tone: #34e0a8; }
+.zv-ticker-chip[data-tone='4'] { --tone: #a78bfa; }
+@keyframes zv-ticker {
+  to { transform: translateX(-50%); }
+}
+
+/* Bots en vivo: cada negocio con su color */
+.zv-demo-card {
+  --tone: #ffb347;
+  border-top: 3px solid var(--tone);
+  background:
+    radial-gradient(120% 60% at 0% 0%, color-mix(in srgb, var(--tone) 16%, transparent), transparent 60%),
+    rgba(5, 9, 19, 0.78);
+  transition: transform 0.35s var(--zv-ease), box-shadow 0.35s var(--zv-ease);
+}
+.zv-demo-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 50px -26px color-mix(in srgb, var(--tone) 70%, transparent);
+}
+.zv-demo-card[data-bot='glam'] { --tone: #ff6fa8; }
+.zv-demo-card[data-bot='altura'] { --tone: #ffb347; }
+.zv-demo-card[data-bot='pancho'] { --tone: #ff8a5c; }
+.zv-demo-emoji {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--tone) 22%, transparent);
+  font-size: 1.6rem;
+}
+.zv-demo-try-k {
+  color: var(--tone);
+}
+.zv-demo-try {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0;
+  list-style: none;
+}
+.zv-demo-try li {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.zv-demo-card .zv-btn {
+  background-image: none;
+  background-color: var(--tone);
+  box-shadow: 0 10px 26px -14px var(--tone);
+}
+
+/* Beneficios: un color por tarjeta, con el ícono en una placa */
+.zv-benefit { --tone: #ffb347; border-top: 3px solid var(--tone); }
+.zv-benefit:nth-child(2) { --tone: #a78bfa; }
+.zv-benefit:nth-child(3) { --tone: #34e0a8; }
+.zv-benefit:nth-child(4) { --tone: #ff8a5c; }
+.zv-benefit:nth-child(5) { --tone: #53bdeb; }
+.zv-benefit:nth-child(6) { --tone: #ff6fa8; }
+.zv-benefit-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone) 22%, transparent);
+}
+.zv-benefit-text {
+  font-size: 0.95rem;
+}
+
+/* Pasos: número en el color de cada etapa */
+.zv-step:nth-child(1) .zv-step-n { color: #ffb347; }
+.zv-step:nth-child(2) .zv-step-n { color: #ff8a5c; }
+.zv-step:nth-child(3) .zv-step-n { color: #ff6fa8; }
+.zv-step:nth-child(4) .zv-step-n { color: #34e0a8; }
+
+/* Precios: el recomendado con borde degradado; checks en menta */
+.zv-price--featured {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(rgba(8, 12, 24, 0.94), rgba(8, 12, 24, 0.94)) padding-box,
+    var(--zv-joy) border-box;
+  box-shadow: 0 26px 70px -32px rgba(255, 111, 168, 0.6);
+}
+.zv-price-badge {
+  background: var(--zv-joy);
+  color: #1a0e12;
+}
+.zv-price-list li::before {
+  color: var(--zv-mint);
+}
+
+/* Cierre: un brillo cálido detrás del llamado a la acción */
+.zv-final .zv-col::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -10%;
+  right: -10%;
+  bottom: -20%;
+  height: 70%;
+  background:
+    radial-gradient(50% 60% at 30% 60%, rgba(255, 138, 92, 0.22), transparent 70%),
+    radial-gradient(45% 55% at 70% 50%, rgba(167, 139, 250, 0.2), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zv-acc,
+  .zv-ticker-track {
+    animation: none;
+  }
+  .zv-demo-card:hover {
+    transform: none;
+  }
+}

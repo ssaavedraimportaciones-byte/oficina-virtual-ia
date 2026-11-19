@@ -1,20 +1,9 @@
 import Link from 'next/link'
 import { getBusiness, listConversations } from '@/lib/store'
 import NewConversationButton from './NewConversationButton'
+import ConversationList from './ConversationList'
 
 export const dynamic = 'force-dynamic'
-
-const CHANNEL_LABEL: Record<string, string> = {
-  whatsapp: 'WhatsApp',
-  instagram: 'Instagram',
-  simulador: 'Simulador',
-}
-
-const STATUS_STYLE: Record<string, string> = {
-  abierta: 'text-amber-400 border-amber-500/40',
-  calificada: 'text-success border-success/40',
-  cerrada: 'text-gray-500 border-gray-700',
-}
 
 export default async function ConversacionesPage({
   params,
@@ -47,40 +36,17 @@ export default async function ConversacionesPage({
           .
         </p>
       ) : (
-        <div className="flex flex-col divide-y divide-gray-800 rounded-lg border border-gray-800">
-          {conversations.map((conversation) => {
-            const last = conversation.messages[conversation.messages.length - 1]
-            return (
-              <Link
-                key={conversation.id}
-                href={`/panel/${businessId}/conversaciones/${conversation.id}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-900/60"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{conversation.contactName}</span>
-                    <span className="rounded-full border border-gray-700 px-2 py-0.5 text-xs text-gray-400">
-                      {CHANNEL_LABEL[conversation.channel]}
-                    </span>
-                    {conversation.agentPaused && (
-                      <span className="rounded-full border border-amber-700 px-2 py-0.5 text-xs text-amber-400">
-                        Atiende una persona
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 truncate text-sm text-gray-500">
-                    {last ? last.text : 'Sin mensajes todavía'}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs ${STATUS_STYLE[conversation.status]}`}
-                >
-                  {conversation.status}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
+        <ConversationList
+          businessId={businessId}
+          rows={conversations.map((c) => ({
+            id: c.id,
+            contactName: c.contactName,
+            channel: c.channel,
+            status: c.status,
+            agentPaused: c.agentPaused,
+            lastText: c.messages[c.messages.length - 1]?.text ?? null,
+          }))}
+        />
       )}
     </div>
   )

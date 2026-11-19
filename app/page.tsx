@@ -13,6 +13,7 @@ import World from './_landing/World'
 import Ahorro from './_landing/Ahorro'
 import Mesas from './_landing/Mesas'
 import Demo from './_landing/Demo'
+import Ticker from './_landing/Ticker'
 import Precios from './_landing/Precios'
 import { CasoPhone, CasoSteps } from './_landing/CasoParts'
 import { BENEFITS, CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
@@ -407,6 +408,7 @@ export default function Home() {
       <Rail />
       <main id="contenido">
         <Hero />
+        <Ticker />
         <Demo />
         <div id="noche" data-section="noche">
           <Stage />

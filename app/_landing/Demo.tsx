@@ -40,7 +40,7 @@ export default async function Demo() {
 
         <ul className="zv-demo-grid" data-reveal>
           {bots.map(({ bot, href, qr }) => (
-            <li key={bot.id} className="zv-demo-card" data-reveal-item>
+            <li key={bot.id} className="zv-demo-card" data-reveal-item data-bot={bot.id}>
               <div className="zv-demo-top">
                 <span className="zv-demo-emoji" aria-hidden="true">
                   {bot.emoji}

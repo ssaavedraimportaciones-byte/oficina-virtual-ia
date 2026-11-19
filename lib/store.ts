@@ -398,6 +398,18 @@ export async function listConversations(businessId: string): Promise<Conversatio
   return rows.map(mapConversation)
 }
 
+/**
+ * Borra varias conversaciones (y sus mensajes, en cascada) de UN negocio. El
+ * filtro por businessId es la defensa: un id de otro negocio en la lista
+ * simplemente no se borra. Las horas, pedidos y reservas que salieron de esas
+ * conversaciones quedan: solo guardan el id, no cuelgan de ella.
+ */
+export async function deleteConversations(businessId: string, ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0
+  const { count } = await prisma.conversation.deleteMany({ where: { businessId, id: { in: ids } } })
+  return count
+}
+
 /** Para el badge de "atención" en /panel: cuántas conversaciones siguen abiertas. */
 export async function countOpenConversations(businessId: string): Promise<number> {
   return prisma.conversation.count({ where: { businessId, status: 'abierta' } })

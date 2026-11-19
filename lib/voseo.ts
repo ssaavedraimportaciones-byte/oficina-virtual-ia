@@ -97,6 +97,21 @@ export const VOSEO_MAP: Record<string, string> = {
   avisale: 'avísale',
   tomale: 'tómale',
   contale: 'cuéntale',
+  // Imperativo con pronombre pegado: salió "Decime qué quieres" en una respuesta real
+  decime: 'dime',
+  decinos: 'dinos',
+  contame: 'cuéntame',
+  contanos: 'cuéntanos',
+  avisame: 'avísame',
+  avisanos: 'avísanos',
+  mandame: 'mándame',
+  escribime: 'escríbeme',
+  pasame: 'pásame',
+  mostrame: 'muéstrame',
+  fijate: 'fíjate',
+  esperame: 'espérame',
+  llamame: 'llámame',
+  confirmame: 'confírmame',
 }
 
 const LETTERS = 'A-Za-zñÑáéíóúÁÉÍÓÚ'
@@ -120,4 +135,16 @@ function matchCase(original: string, replacement: string): string {
  */
 export function fixVoseo(text: string): string {
   return text.replace(VOSEO, (match) => matchCase(match, VOSEO_MAP[match.toLowerCase()]))
+}
+
+/**
+ * Deja la respuesta lista para un chat: sin voseo y sin Markdown, que WhatsApp
+ * no entiende ("**Retiro**" llega con los asteriscos a la vista). La negrita
+ * de WhatsApp es un asterisco a cada lado; los títulos "# ..." quedan como texto.
+ */
+export function toChatText(text: string): string {
+  return fixVoseo(text)
+    .replace(/\*\*(.+?)\*\*/g, '*$1*')
+    .replace(/__(.+?)__/g, '_$1_')
+    .replace(/^#{1,6}\s+/gm, '')
 }

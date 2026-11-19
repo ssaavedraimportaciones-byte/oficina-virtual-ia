@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fixVoseo } from '../voseo'
+import { fixVoseo, toChatText } from '../voseo'
 
 describe('fixVoseo: corrige lo que el modelo igual se mande, pese a la instrucción', () => {
   it('corrige exactamente lo que salió en producción', () => {
@@ -23,5 +23,22 @@ describe('fixVoseo: corrige lo que el modelo igual se mande, pese a la instrucci
   it('no toca el texto sin voseo', () => {
     const frase = 'Hola, ¿qué servicio te gustaría reservar? Cuéntame.'
     expect(fixVoseo(frase)).toBe(frase)
+  })
+})
+
+describe('toChatText: la respuesta queda lista para WhatsApp', () => {
+  it('corrige el imperativo voseante que salió en Pancho Rodante', () => {
+    expect(toChatText('¿Qué te tinca de la carta? Decime qué quieres')).toBe('¿Qué te tinca de la carta? Dime qué quieres')
+  })
+
+  it('cambia las negritas de Markdown por las de WhatsApp y saca los títulos', () => {
+    expect(toChatText('**¿Qué tamaño te viene?**\n## Carta\n- Mediana a $10.500')).toBe(
+      '*¿Qué tamaño te viene?*\nCarta\n- Mediana a $10.500',
+    )
+  })
+
+  it('no toca un precio ni una negrita de WhatsApp ya bien puesta', () => {
+    const frase = 'Total *$9.000*, retiro a las 21:55 🔥'
+    expect(toChatText(frase)).toBe(frase)
   })
 })

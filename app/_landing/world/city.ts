@@ -516,31 +516,47 @@ export function createCity(scene: THREE.Scene, opts: { lite: boolean; reserved: 
   scene.add(leaves)
 
   // --- Autos estacionados -----------------------------------------------------------
-  const carProfile = new THREE.Shape()
-  carProfile.moveTo(-2.15, 0.28)
-  carProfile.lineTo(2.1, 0.28)
-  carProfile.quadraticCurveTo(2.25, 0.3, 2.22, 0.62)
-  carProfile.quadraticCurveTo(2.15, 0.82, 1.4, 0.86)
-  carProfile.quadraticCurveTo(0.9, 1.34, 0.2, 1.36)
-  carProfile.lineTo(-0.9, 1.34)
-  carProfile.quadraticCurveTo(-1.55, 1.3, -1.85, 0.9)
-  carProfile.quadraticCurveTo(-2.2, 0.82, -2.2, 0.5)
-  carProfile.closePath()
-  const carBody = new THREE.ExtrudeGeometry(carProfile, { depth: 1.7, bevelEnabled: true, bevelSize: 0.06, bevelThickness: 0.06, bevelSegments: 2 })
+  // Por partes, como un auto de verdad: carrocería baja, cabina de vidrio con techo y
+  // pilares, focos, luces traseras y llantas con tapa. Antes el vidrio quedaba DENTRO de
+  // la carrocería (más ancha por el biselado) y los autos se veían como bloques sin ventanas.
+  const lowerProfile = new THREE.Shape()
+  lowerProfile.moveTo(-2.15, 0.28)
+  lowerProfile.lineTo(2.1, 0.28)
+  lowerProfile.quadraticCurveTo(2.25, 0.3, 2.22, 0.62)
+  lowerProfile.quadraticCurveTo(2.15, 0.84, 1.4, 0.88)
+  lowerProfile.lineTo(-1.85, 0.9)
+  lowerProfile.quadraticCurveTo(-2.2, 0.84, -2.2, 0.5)
+  lowerProfile.closePath()
+  const carBody = new THREE.ExtrudeGeometry(lowerProfile, { depth: 1.7, bevelEnabled: true, bevelSize: 0.06, bevelThickness: 0.06, bevelSegments: 2 })
   carBody.translate(0, 0, -0.85)
-  const glassShape = new THREE.Shape()
-  glassShape.moveTo(1.28, 0.9)
-  glassShape.quadraticCurveTo(0.85, 1.28, 0.2, 1.3)
-  glassShape.lineTo(-0.85, 1.28)
-  glassShape.quadraticCurveTo(-1.4, 1.24, -1.66, 0.92)
-  glassShape.closePath()
-  const carGlass = new THREE.ExtrudeGeometry(glassShape, { depth: 1.76, bevelEnabled: false })
-  carGlass.translate(0, 0, -0.88)
-  const wheelGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.24, 16)
+  const cabinShape = new THREE.Shape()
+  cabinShape.moveTo(1.36, 0.88)
+  cabinShape.quadraticCurveTo(0.9, 1.28, 0.2, 1.3)
+  cabinShape.lineTo(-0.9, 1.28)
+  cabinShape.quadraticCurveTo(-1.5, 1.24, -1.8, 0.9)
+  cabinShape.closePath()
+  const carGlass = new THREE.ExtrudeGeometry(cabinShape, { depth: 1.5, bevelEnabled: false })
+  carGlass.translate(0, 0, -0.75)
+  const roofGeo = new THREE.BoxGeometry(1.2, 0.07, 1.54)
+  const pillarGeo = new THREE.BoxGeometry(0.1, 0.42, 1.54)
+  const wheelGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.24, 18)
   wheelGeo.rotateX(Math.PI / 2)
-  const wheelMat = new THREE.MeshStandardMaterial({ color: '#121214', roughness: 0.8 })
-  const glassMat = new THREE.MeshStandardMaterial({ color: '#0d1117', roughness: 0.08, metalness: 0.9, envMapIntensity: 1.4 })
-  const tailMat = new THREE.MeshBasicMaterial({ color: '#5a0f0f' })
+  const hubGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.26, 14)
+  hubGeo.rotateX(Math.PI / 2)
+  const wheelMat = new THREE.MeshStandardMaterial({ color: '#141416', roughness: 0.85 })
+  const hubMat = new THREE.MeshStandardMaterial({ color: '#a7abb2', roughness: 0.35, metalness: 0.8, envMapIntensity: 1.2 })
+  // Vidrio claro y azulado que refleja el cielo: se distingue de la carrocería de día y de noche.
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: '#8ea6c4',
+    roughness: 0.06,
+    metalness: 0.25,
+    envMapIntensity: 1.6,
+    emissive: '#1d2c44',
+    emissiveIntensity: 0.6,
+  })
+  const headMat = new THREE.MeshStandardMaterial({ color: '#f2efe4', emissive: '#fff1c8', emissiveIntensity: 0.35, roughness: 0.2 })
+  const tailMat = new THREE.MeshStandardMaterial({ color: '#7a1010', emissive: '#ff2a2a', emissiveIntensity: 0.55, roughness: 0.3 })
+  const lampGeo = new THREE.BoxGeometry(0.06, 0.13, 0.38)
   const cars: [number, number, string, number][] = [
     [-12.9, -1.25, '#6b1a1f', 1],
     [9.9, -1.3, '#d9d8d4', -1],
@@ -552,7 +568,11 @@ export function createCity(scene: THREE.Scene, opts: { lite: boolean; reserved: 
     const paint = new THREE.MeshStandardMaterial({ color, roughness: 0.32, metalness: 0.55, envMapIntensity: 1.3 })
     const body = new THREE.Mesh(carBody, paint)
     body.castShadow = true
-    car.add(body, new THREE.Mesh(carGlass, glassMat))
+    const roof = new THREE.Mesh(roofGeo, paint)
+    roof.position.set(-0.33, 1.32, 0)
+    const pillar = new THREE.Mesh(pillarGeo, paint)
+    pillar.position.set(-0.32, 1.09, 0)
+    car.add(body, new THREE.Mesh(carGlass, glassMat), roof, pillar)
     for (const [wx, wz] of [
       [1.35, 0.8],
       [-1.35, 0.8],
@@ -561,12 +581,16 @@ export function createCity(scene: THREE.Scene, opts: { lite: boolean; reserved: 
     ]) {
       const w = new THREE.Mesh(wheelGeo, wheelMat)
       w.position.set(wx, 0.34, wz)
-      car.add(w)
+      const hub = new THREE.Mesh(hubGeo, hubMat)
+      hub.position.set(wx, 0.34, wz)
+      car.add(w, hub)
     }
-    for (const tz of [-0.6, 0.6]) {
-      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.32), tailMat)
-      tail.position.set(-2.2, 0.7, tz)
-      car.add(tail)
+    for (const lz of [-0.55, 0.55]) {
+      const head = new THREE.Mesh(lampGeo, headMat)
+      head.position.set(2.22, 0.62, lz)
+      const tail = new THREE.Mesh(lampGeo, tailMat)
+      tail.position.set(-2.22, 0.68, lz)
+      car.add(head, tail)
     }
     car.position.set(x, 0, z)
     car.rotation.y = dir === 1 ? 0 : Math.PI

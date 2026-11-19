@@ -213,6 +213,8 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   })
   const mirrored = new THREE.Vector3()
   const rayDir = new THREE.Vector3()
+  const REFLECT_MAX_DIST = 28
+  const REFLECT_MIN_SIZE = 0.06
   const updateReflections = (wet: number) => {
     for (const { e, s } of reflections) {
       const level = e.level() * wet
@@ -227,10 +229,19 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
         s.visible = false
         continue
       }
-      s.visible = true
       s.position.copy(camera.position).addScaledVector(rayDir, k)
       const ratio = k // la distancia al punto en el suelo vs. a la luz espejada
       s.scale.set(e.size * ratio * 0.9, e.size * ratio * 2.8, 1)
+      // Solo luces cercanas y de un tamaño visible: las lejanas (o tapadas por un
+      // edificio) se proyectaban igual y, en pantallas nítidas, quedaban como una
+      // lluvia de puntitos de colores bajo la vitrina que no correspondía a nada.
+      const dist = camera.position.distanceTo(e.pos)
+      const onScreen = s.scale.x / Math.max(1, camera.position.distanceTo(s.position))
+      if (dist > REFLECT_MAX_DIST || onScreen < REFLECT_MIN_SIZE) {
+        s.visible = false
+        continue
+      }
+      s.visible = true
       s.material.opacity = Math.min(0.75, level * 0.55)
     }
   }

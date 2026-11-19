@@ -96,8 +96,8 @@ function Rubros() {
             id="zv-rubros-title"
             n="06"
             label="Rubros"
-            title="Se adapta a cualquier rubro."
-            intro="Cada negocio parte con una plantilla: el tono, lo que el agente pregunta y lo que conviene cargarle. Todo se edita después."
+            title="Sirve para tu negocio, sea cual sea."
+            intro="Uñas, dentistas, talleres, restaurantes… Cada negocio parte con su plantilla: el agente ya sabe qué preguntar en tu rubro. Tú solo ajustas."
           />
           <ol className="zv-index" data-reveal>
             {/* El local de esta noche: queda activo hasta que la calle empieza a encenderse */}
@@ -175,8 +175,8 @@ function Limites() {
           id="zv-limites-title"
           n="08"
           label="Con los pies en la tierra"
-          title="Lo que el agente no hace."
-          intro="Un agente que contesta a las once de la noche tiene que saber cuándo parar. Esto ya viene resuelto."
+          title="Tranquilo: no inventa ni se manda solo."
+          intro="Si no sabe algo, lo dice. Si el cliente reclama, te lo pasa. Un agente que atiende a las once de la noche tiene que saber cuándo parar, y este ya viene así."
         />
         <ol className="zv-list" data-reveal>
           {GUARDRAILS.map((g, i) => (

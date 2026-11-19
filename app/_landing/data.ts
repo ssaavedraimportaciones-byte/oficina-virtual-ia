@@ -33,8 +33,9 @@ export interface Chapter {
 
 export type ShotZoom = { zoom: number; x: number; y: number; ratio: number }
 
-// Los mensajes son, palabra por palabra, los de la conversación de demostración
-// que quedó guardada en el panel (negocio ficticio «Uñas Bella»).
+// Los mensajes siguen la conversación de demostración que quedó guardada en el
+// panel (negocio ficticio «Uñas Bella»), contada como pasa de verdad: de noche,
+// con el local cerrado, el cliente pide hora para mañana.
 export const MESSAGES: Message[] = [
   { id: 'm01', who: 'contact', chapter: 0, text: 'Hola!' },
   {
@@ -43,15 +44,15 @@ export const MESSAGES: Message[] = [
     chapter: 0,
     text: '¡Hola! Soy Bella, de Uñas Bella 💅 ¿En qué te puedo ayudar? Puedo darte precios, agendarte una hora o tomar un pedido de esmaltes.',
   },
-  { id: 'm03', who: 'contact', chapter: 0, text: 'Hola, quiero agendar una hora para semipermanente el martes en la tarde' },
+  { id: 'm03', who: 'contact', chapter: 0, text: 'Hola! ¿tienes hora mañana en la tarde para semipermanente?' },
   {
     id: 'm04',
     who: 'agent',
     chapter: 0,
-    text: 'Ya, el martes 6/10/2026 tengo estas horas en la tarde para semipermanente 💅\n• 14:00\n• 14:30\n• 15:00\n¿Cuál te acomoda más? Si me dices tu nombre te la dejo agendada.',
+    text: '¡Hola! Sí 💅 Mañana martes en la tarde tengo:\n• 14:00\n• 14:30\n• 15:00\n¿Cuál te acomoda? Dime tu nombre y te la dejo agendada.',
   },
-  { id: 'm05', who: 'contact', chapter: 1, text: 'Ya, el martes a las 15:00. Me llamo Ana' },
-  { id: 'm06', who: 'agent', chapter: 1, text: '¡Listo Ana! Quedó agendada tu hora de semipermanente 🎉 Te esperamos.' },
+  { id: 'm05', who: 'contact', chapter: 1, text: 'Las 15:00 porfa. Soy Ana' },
+  { id: 'm06', who: 'agent', chapter: 1, text: '¡Listo Ana! Mañana a las 15:00 te esperamos para tu semipermanente 🎉' },
   { id: 'm07', who: 'contact', chapter: 2, text: 'Quiero comprar esmaltes' },
   {
     id: 'm08',
@@ -84,17 +85,17 @@ export const CHAPTERS: Chapter[] = [
     minutes: 23 * 60 + 47,
     time: '23:47',
     kicker: 'Tu local ya cerró',
-    title: 'Tu local cerró. Ana te escribe igual.',
-    body: 'Antes ese mensaje esperaba hasta mañana. Ahora ZeroVisto le responde al tiro, con lo que tú le cargaste.',
+    title: 'Cerraste hace rato. Ana quiere una hora.',
+    body: 'Sin agente, su mensaje espera hasta mañana… y Ana agenda con otro. Con ZeroVisto le contestan al tiro.',
     vertical: 'Llega',
   },
   {
     id: 'agenda',
     minutes: 23 * 60 + 52,
     time: '23:52',
-    kicker: 'Una hora, agendada',
-    title: 'Le agenda la hora. Sin pisar otra.',
-    body: 'Mira tus horarios reales, ofrece solo horas libres y deja la reserva en tu agenda, no en una libreta.',
+    kicker: 'Mientras duermes',
+    title: 'Ana ya tiene hora para mañana.',
+    body: 'Y tú no moviste un dedo: el agente revisó tu agenda real, le ofreció solo horas libres y se la dejó anotada. Ningún cliente se pierde por estar cerrado u ocupado.',
     vertical: 'Agenda',
     shot: {
       src: '/landing/agenda-recorte.webp',
@@ -109,9 +110,9 @@ export const CHAPTERS: Chapter[] = [
     id: 'venta',
     minutes: 24 * 60 + 6,
     time: '00:06',
-    kicker: 'Una venta, registrada',
-    title: 'Vende. Y descuenta el stock.',
-    body: 'Confirma precio y disponibilidad, registra el pedido a nombre de Ana y baja el stock. Solo afirma lo que tú cargaste.',
+    kicker: 'Una venta a medianoche',
+    title: 'A medianoche, Ana te compra dos esmaltes.',
+    body: 'El agente le da el precio, anota el pedido y descuenta el stock. Plata que antes se iba con la competencia.',
     vertical: 'Vende',
     shot: {
       src: '/landing/pedidos-recorte.webp',
@@ -126,18 +127,18 @@ export const CHAPTERS: Chapter[] = [
     id: 'persona',
     minutes: 26 * 60 + 31,
     time: '02:31',
-    kicker: 'Un reclamo',
-    title: 'Un reclamo. El agente para y te avisa.',
-    body: 'Se pausa, le dice a Ana que una persona la va a atender y te manda un correo con el motivo.',
+    kicker: 'Una clienta molesta',
+    title: 'Ana reclama. El agente la calma y te avisa.',
+    body: 'No discute ni inventa: le dice que una persona la va a atender, se hace a un lado y te manda el motivo por correo.',
     vertical: 'Avisa',
   },
   {
     id: 'amanece',
     minutes: 32 * 60 + 5,
     time: '08:05',
-    kicker: 'Amanece',
-    title: 'Amaneces con todo hecho. Tú solo respondes lo difícil.',
-    body: 'Contestas el reclamo desde el panel. La hora y el pedido ya estaban listos.',
+    kicker: 'Buenos días',
+    title: 'Despiertas con todo resuelto.',
+    body: 'Una hora agendada y una venta hecha mientras dormías. Solo te queda contestar el reclamo.',
     vertical: 'Amanece',
     shot: {
       src: '/landing/conversacion.webp',
@@ -405,11 +406,11 @@ export const CASES: Caso[] = [
   {
     id: 'foodtruck',
     tag: '＋',
-    label: 'Otro rubro, en vivo',
-    title: 'El mismo agente, otro negocio.',
-    accent: [3],
+    label: 'Viernes, hora peak',
+    title: 'Fila larga, celular sonando. Igual nadie se queda sin pedir.',
+    accent: [5],
     intro:
-      'No es solo para uñas. Mira la misma atención en un food truck un viernes por la noche: responde dónde está, muestra la carta, toma el pedido y lo deja listo para retirar.',
+      'Estás con las manos en la plancha y no puedes mirar el teléfono. El agente le dice a Nico dónde estás, le muestra la carta, toma su pedido y se lo deja listo para retirar. Una venta que antes se perdía.',
     name: 'Pancho Rodante',
     place: 'Food truck · Plaza Ñuñoa · viernes 21:34',
     messages: [
@@ -436,11 +437,11 @@ export const CASES: Caso[] = [
   {
     id: 'dentista',
     tag: '＋',
-    label: 'Y cuando es urgente',
-    title: 'Una urgencia, resuelta al tiro.',
-    accent: [1],
+    label: 'Una urgencia de noche',
+    title: 'Le duele una muela a las 22:10. Mañana es tu paciente.',
+    accent: [10, 11],
     intro:
-      'Un paciente con dolor escribe a las diez de la noche, con la clínica cerrada. El agente entiende la urgencia, agenda la primera hora y avisa al equipo para que lo prioricen.',
+      'La clínica cerró y Camila no puede dormir del dolor. Si nadie le contesta, mañana a primera hora llama a otra clínica. El agente entiende la urgencia, le agenda la primera hora y avisa al equipo para que la prioricen.',
     name: 'Clínica Sonrisa',
     place: 'Clínica dental · martes 22:10',
     messages: [
@@ -475,10 +476,10 @@ export const RESERVA_CASO: Caso = {
   id: 'mesas',
   tag: 'Nuevo',
   label: 'Restaurantes',
-  title: 'Tu salón, mesa por mesa, dentro del chat.',
-  accent: [1],
+  title: 'Te piden mesa en plena hora peak. El agente la reserva.',
+  accent: [10],
   intro:
-    'Dibuja cada piso de tu restaurante y el agente reserva solo, a cualquier hora. Al cliente le dice exactamente dónde se va a sentar —frente al ventanal con vista a la torre, al sol o a la sombra, en la terraza— y le avisa hasta cuándo se le guarda la mesa.',
+    'Tú estás atendiendo el salón y no alcanzas a contestar. El agente le ofrece una mesa libre, le dice exactamente dónde se va a sentar —frente al ventanal, al sol o a la sombra, en la terraza— y se la deja reservada. Una mesa que antes quedaba vacía.',
   name: 'Altura Bistró',
   place: 'Restaurante · pisos 11 y 12 · jueves 18:42',
   messages: [

@@ -1,97 +1,131 @@
-import Link from 'next/link'
-import { BrandLockup } from '@/app/BrandMark'
-import { notFound, redirect } from 'next/navigation'
-import { canAccessBusiness, getCurrentUser, isPlatformAdmin } from '@/lib/auth'
-import { getBusiness } from '@/lib/store'
-import { getIndustryTemplate } from '@/lib/industries'
-import { prisma } from '@/lib/db'
+import { notFound, redirect } from "next/navigation";
+import { canAccessBusiness, getCurrentUser, isPlatformAdmin } from "@/lib/auth";
+import { getBusiness, getSetupFacts } from "@/lib/store";
+import { getIndustryTemplate } from "@/lib/industries";
+import { getSetupProgress } from "@/lib/onboarding";
+import { prisma } from "@/lib/db";
+import PanelNav, { type NavItem } from "./PanelNav";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 export default async function BusinessLayout({
   children,
   params,
 }: {
-  children: React.ReactNode
-  params: Promise<{ businessId: string }>
+  children: React.ReactNode;
+  params: Promise<{ businessId: string }>;
 }) {
-  const { businessId } = await params
+  const { businessId } = await params;
 
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-  const business = await getBusiness(businessId)
+  const business = await getBusiness(businessId);
   // Mismo 404 tanto si el negocio no existe como si el usuario no tiene
   // acceso: no le confirma a nadie que un negocio ajeno existe.
-  if (!business || !canAccessBusiness(user, businessId)) notFound()
+  if (!business || !canAccessBusiness(user, businessId)) notFound();
 
-  const template = getIndustryTemplate(business.templateId)
+  const template = getIndustryTemplate(business.templateId);
+  const facts = await getSetupFacts(businessId);
+  const progress = facts ? getSetupProgress(businessId, facts) : null;
+  const stepDone = (id: string) =>
+    progress?.steps.find((s) => s.id === id)?.done;
 
   const hasTables =
-    business.templateId === 'gastronomia' || (await prisma.floor.count({ where: { businessId } })) > 0
+    business.templateId === "gastronomia" ||
+    (await prisma.floor.count({ where: { businessId } })) > 0;
+  const base = `/panel/${businessId}`;
 
-  const navItems = [
-    { href: `/panel/${businessId}/resumen`, label: 'Resumen' },
-    { href: `/panel/${businessId}`, label: 'Conversaciones' },
-    { href: `/panel/${businessId}/agenda`, label: 'Agenda y horas' },
-    { href: `/panel/${businessId}/pedidos`, label: 'Catálogo y pedidos' },
-    ...(hasTables ? [{ href: `/panel/${businessId}/mesas`, label: 'Mesas y reservas' }] : []),
-    { href: `/panel/${businessId}/configurar`, label: 'Configurar agente' },
-    { href: `/panel/${businessId}/conocimiento`, label: 'Base de conocimiento' },
-    { href: `/panel/${businessId}/conexiones`, label: 'Conexiones' },
-  ]
+  const daily: NavItem[] = [
+    {
+      href: `${base}/resumen`,
+      label: "Resumen",
+      hint: "Cómo va tu negocio, de un vistazo",
+      icon: "📊",
+    },
+    {
+      href: base,
+      label: "Conversaciones",
+      hint: "Lo que hablan tus clientes con el agente",
+      icon: "💬",
+    },
+    {
+      href: `${base}/agenda`,
+      label: "Agenda y horas",
+      hint: "Horas agendadas, servicios y horarios",
+      icon: "📅",
+    },
+    {
+      href: `${base}/pedidos`,
+      label: "Catálogo y pedidos",
+      hint: "Tus productos, precios y pedidos",
+      icon: "🛍️",
+    },
+    ...(hasTables
+      ? [
+          {
+            href: `${base}/mesas`,
+            label: "Mesas y reservas",
+            hint: "El plano de tu local y las reservas",
+            icon: "🍽️",
+          },
+        ]
+      : []),
+  ];
+  const agent: NavItem[] = [
+    {
+      href: `${base}/configurar`,
+      label: "Quién es y cómo habla",
+      hint: "Nombre, tono, tu negocio y su objetivo",
+      icon: "🧑‍💼",
+      done: stepDone("perfil"),
+    },
+    {
+      href: `${base}/conocimiento`,
+      label: "Lo que sabe",
+      hint: "Precios, horarios, dirección y dudas",
+      icon: "📚",
+      done: stepDone("conocimiento"),
+    },
+    {
+      href: `${base}/conexiones`,
+      label: "Dónde atiende",
+      hint: "Conectar WhatsApp e Instagram",
+      icon: "🔌",
+      done: stepDone("canal"),
+    },
+  ];
+
+  const logo = business.logoVersion ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/api/imagenes/negocio/${businessId}?v=${business.logoVersion}`}
+      alt=""
+      className="h-7 w-7 shrink-0 rounded-full object-cover"
+    />
+  ) : (
+    <span aria-hidden="true">{template?.emoji ?? "✨"}</span>
+  );
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 shrink-0 border-r border-gray-800 bg-gray-900/40 p-6">
-        <Link href="/">
-          <BrandLockup />
-        </Link>
-
-        <Link
-          href="/panel"
-          className="mt-8 block text-xs text-gray-500 hover:text-gray-300"
-        >
-          ← Todos los negocios
-        </Link>
-        <div className="mt-2 flex items-center gap-2">
-          {business.logoVersion ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`/api/imagenes/negocio/${businessId}?v=${business.logoVersion}`}
-              alt=""
-              className="h-6 w-6 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <span>{template?.emoji ?? '✨'}</span>
-          )}
-          <span className="truncate text-base font-medium text-white">
-            {business.config.businessName}
-          </span>
-        </div>
-
-        {isPlatformAdmin(user) && (
-          <Link
-            href="/admin"
-            className="mt-4 block rounded-md border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-base font-medium text-amber-300 hover:bg-amber-500/20"
-          >
-            Panel del dueño
-          </Link>
-        )}
-
-        <nav className="mt-6 flex flex-col gap-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-2.5 text-base text-gray-200 hover:bg-gray-800 hover:text-white"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
+    <div className="min-h-screen md:flex">
+      <PanelNav
+        businessName={business.config.businessName}
+        logo={logo}
+        adminLink={isPlatformAdmin(user)}
+        setup={
+          progress && !progress.ready
+            ? {
+                href: `${base}/primeros-pasos`,
+                completed: progress.completed,
+                required: progress.required,
+              }
+            : null
+        }
+        daily={daily}
+        agent={agent}
+      />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
-  )
+  );
 }

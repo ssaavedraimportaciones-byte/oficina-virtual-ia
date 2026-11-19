@@ -2,6 +2,7 @@ import { getBusinessAnalytics } from '@/lib/store'
 import { formatPrice } from '@/lib/catalog'
 import { getAgentUsage } from '@/lib/usage'
 import { PLAN_LABEL } from '@/lib/plans'
+import SetupNext from '../SetupNext'
 
 function Stat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
@@ -21,7 +22,8 @@ export default async function ResumenPage({
   const [stats, usage] = await Promise.all([getBusinessAnalytics(businessId), getAgentUsage(businessId)])
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-8 sm:px-8 sm:py-10">
+      <SetupNext businessId={businessId} />
       <h1 className="text-2xl font-bold text-white">Resumen</h1>
       <p className="mt-1 text-sm text-gray-400">Cómo viene el negocio, de un vistazo.</p>
 

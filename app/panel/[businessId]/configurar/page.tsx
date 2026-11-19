@@ -7,6 +7,7 @@ import type { PublicBusiness } from '@/lib/publicBusiness'
 import { getIndustryTemplate } from '@/lib/industries'
 import AgentConfigForm, { type ConfigFormState } from '../../AgentConfigForm'
 import LogoUploader from './LogoUploader'
+import StepIntro from '../StepIntro'
 
 export default function ConfigurarPage() {
   const params = useParams<{ businessId: string }>()
@@ -61,8 +62,14 @@ export default function ConfigurarPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-8 py-12">
-      <h1 className="text-2xl font-bold text-white">Configura tu agente</h1>
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8 sm:py-12">
+      <StepIntro
+        businessId={params.businessId}
+        step="perfil"
+        why="Aquí le dices a tu agente quién es: su nombre, cómo habla y qué tiene que lograr con cada cliente. Escríbelo como se lo explicarías a una persona nueva en tu equipo."
+        next={{ href: `/panel/${params.businessId}/conocimiento`, label: 'Enseñarle lo que tiene que saber' }}
+      />
+      <h1 className="text-2xl font-bold text-white">Quién es tu agente y cómo habla</h1>
       <p className="mt-2 text-sm text-gray-400">
         Esto define cómo habla y qué busca lograr. Los datos concretos (precios, catálogo, tu
         sitio web) se cargan aparte en{' '}
@@ -70,7 +77,7 @@ export default function ConfigurarPage() {
           href={`/panel/${params.businessId}/conocimiento`}
           className="text-amber-400 hover:underline"
         >
-          Base de conocimiento
+          Lo que sabe
         </Link>
         .
       </p>

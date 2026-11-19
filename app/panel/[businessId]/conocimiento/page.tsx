@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getIndustryTemplate } from '@/lib/industries'
 import type { Business, KnowledgeEntry, KnowledgeSource } from '@/lib/types'
+import StepIntro from '../StepIntro'
 
 const SOURCE_LABEL: Record<KnowledgeSource, string> = {
   manual: 'Manual',
@@ -136,8 +137,20 @@ export default function ConocimientoPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-8 py-12">
-      <h1 className="text-2xl font-bold text-white">Base de conocimiento</h1>
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8 sm:py-12">
+      <StepIntro
+        businessId={businessId}
+        step="conocimiento"
+        why="Tu agente responde solo con lo que le enseñas aquí. Lo que no sepa, no lo inventa: dice que lo confirma. Crea una ficha por tema (horarios, precios, dirección, formas de pago, preguntas frecuentes)."
+        next={
+          business
+            ? ['gastronomia', 'ecommerce'].includes(business.templateId)
+              ? { href: `/panel/${businessId}/pedidos`, label: 'Subir tu carta o catálogo' }
+              : { href: `/panel/${businessId}/agenda`, label: 'Cargar tus servicios y horarios' }
+            : undefined
+        }
+      />
+      <h1 className="text-2xl font-bold text-white">Lo que sabe tu agente</h1>
       <p className="mt-2 text-sm text-gray-400">
         Todo lo que cargues acá el agente lo va a usar para responder con datos reales en vez de
         inventar.

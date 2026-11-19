@@ -6,6 +6,7 @@ import { formatPrice, isSoldOut } from '@/lib/catalog'
 import { resizeForUpload } from '@/lib/imageResize'
 import type { Order, OrderStatus, Product } from '@/lib/types'
 import ImportCatalog from './ImportCatalog'
+import StepIntro from '../StepIntro'
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pendiente: 'text-amber-400 border-amber-500/40',
@@ -119,7 +120,15 @@ export default function PedidosPage() {
   const pending = orders.filter((o) => o.status === 'pendiente')
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8 sm:py-12">
+      {products.length === 0 && (
+        <StepIntro
+          businessId={businessId}
+          step="operacion"
+          why="Sube tu carta o catálogo con precios (y stock si quieres). Con eso el agente recomienda, toma el pedido, calcula el total y descuenta el stock."
+          next={{ href: `/panel/${businessId}`, label: 'Probar a tu agente' }}
+        />
+      )}
       <h1 className="text-2xl font-bold text-white">Catálogo y pedidos</h1>
       <p className="mt-2 text-sm text-gray-400">
         El agente consulta este catálogo antes de confirmar precios, y descuenta el stock cuando

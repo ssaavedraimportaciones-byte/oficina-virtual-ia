@@ -47,7 +47,7 @@ export default function NuevoNegocioPage() {
     }
 
     const { business } = await res.json()
-    router.push(`/panel/${business.id}/conocimiento`)
+    router.push(`/panel/${business.id}/primeros-pasos`)
   }
 
   if (!template || !form) {

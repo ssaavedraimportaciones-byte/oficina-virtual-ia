@@ -26,6 +26,7 @@ import type {
   WeekHours,
 } from './types'
 import { DEFAULT_WEEK_HOURS } from './types'
+import type { SetupFacts } from './onboarding'
 
 export const EMPTY_CREDENTIALS: ChannelCredentials = {
   whatsappPhoneNumberId: null,
@@ -1031,4 +1032,35 @@ export async function getProductBusinessId(id: string): Promise<string | null> {
 export async function getOrderBusinessId(id: string): Promise<string | null> {
   const row = await prisma.order.findUnique({ where: { id }, select: { businessId: true } })
   return row?.businessId ?? null
+}
+
+/** Lo que hace falta para calcular los primeros pasos del negocio (ver lib/onboarding.ts). */
+export async function getSetupFacts(businessId: string): Promise<SetupFacts | null> {
+  const b = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: {
+      templateId: true,
+      description: true,
+      goals: true,
+      whatsappPhoneNumberId: true,
+      instagramPageId: true,
+      logo: { select: { businessId: true } },
+      _count: { select: { knowledge: true, services: true, products: true, floors: true } },
+    },
+  })
+  if (!b) return null
+  const simulatorCount = await prisma.conversation.count({ where: { businessId, channel: 'simulador' } })
+  return {
+    templateId: b.templateId,
+    description: b.description,
+    goals: b.goals,
+    knowledgeCount: b._count.knowledge,
+    serviceCount: b._count.services,
+    productCount: b._count.products,
+    floorCount: b._count.floors,
+    simulatorCount,
+    whatsappConnected: Boolean(b.whatsappPhoneNumberId),
+    instagramConnected: Boolean(b.instagramPageId),
+    hasLogo: Boolean(b.logo),
+  }
 }

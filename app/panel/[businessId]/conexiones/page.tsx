@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import type { PublicBusiness } from '@/lib/publicBusiness'
 import ChannelConnect from './ChannelConnect'
 import CopyField from './CopyField'
+import StepIntro from '../StepIntro'
 
 const WHATSAPP_HELP = 'https://developers.facebook.com/docs/whatsapp/cloud-api/get-started'
 const INSTAGRAM_HELP = 'https://developers.facebook.com/docs/messenger-platform/instagram'
@@ -31,8 +32,13 @@ export default function ConexionesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-8 py-12">
-      <h1 className="text-2xl font-bold text-white">Conexiones</h1>
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8 sm:py-12">
+      <StepIntro
+        businessId={businessId}
+        step="canal"
+        why="Último paso: conecta tu WhatsApp o Instagram y tu agente empieza a atender a tus clientes reales. ¿Prefieres no hacerlo tú? Con la implementación lo dejamos conectado y verificado ante Meta."
+      />
+      <h1 className="text-2xl font-bold text-white">Dónde atiende tu agente</h1>
       <p className="mt-2 text-sm text-gray-400">
         Dos pasos: pega el token de cada canal acá abajo (cada uno trae la guía de cómo conseguirlo)
         y después pega las URLs de webhook en Meta. Se valida contra Meta antes de guardar, así no

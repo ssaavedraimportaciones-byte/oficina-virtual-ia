@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { formatDateLabel, splitLocal } from '@/lib/agenda'
 import type { Appointment, Professional, Service, WeekHours } from '@/lib/types'
+import StepIntro from '../StepIntro'
 
 const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -129,7 +130,15 @@ export default function AgendaPage() {
   const upcoming = appointments.filter((a) => a.status === 'confirmado')
 
   return (
-    <div className="mx-auto max-w-2xl px-8 py-12">
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8 sm:py-12">
+      {services.length === 0 && (
+        <StepIntro
+          businessId={businessId}
+          step="operacion"
+          why="Carga tus servicios con su duración y precio, y revisa tus horarios. Con eso el agente mira tu disponibilidad real y agenda horas solo, sin topes."
+          next={{ href: `/panel/${businessId}`, label: 'Probar a tu agente' }}
+        />
+      )}
       <h1 className="text-2xl font-bold text-white">Agenda</h1>
       <p className="mt-2 text-sm text-gray-400">
         Carga tus servicios y horarios, y el agente va a poder consultar disponibilidad y agendar

@@ -25,6 +25,8 @@ const SESSION_COOKIE = 'agentsapp_session'
 const PUBLIC_API = [
   '/api/health',
   '/api/webhooks/',
+  // API v1 de solo lectura: se autentica con clave (ver lib/apiV1.ts), no con cookie; health y openapi.json son públicos.
+  '/api/v1/',
   // Fotos de productos: las piden los <img> y Meta (sin sesión) al mandarlas por WhatsApp.
   '/api/imagenes/',
   '/api/auth/login',

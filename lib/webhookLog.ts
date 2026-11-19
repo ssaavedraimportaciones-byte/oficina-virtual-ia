@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { recordIncident } from './incidents'
 
 /**
  * Bitácora de los avisos que Meta manda al webhook de WhatsApp.
@@ -64,6 +65,16 @@ export async function recordWebhook(result: string, changes: WebhookChangeOutcom
       create: { key: KEY, value },
       update: { value },
     })
+    if (result !== 'ok') {
+      // Una firma mala puede ser un secreto mal puesto o alguien probando la
+      // URL; un error al procesar sí es un mensaje de cliente que se perdió.
+      await recordIncident({
+        source: 'whatsapp',
+        severity: result.startsWith('error') ? 'alta' : result.includes('cuerpo') ? 'baja' : 'media',
+        code: result.startsWith('error') ? 'webhook_error' : 'webhook_rechazado',
+        message: `Webhook de WhatsApp: ${result}`,
+      })
+    }
   } catch (error) {
     console.error('[webhook whatsapp] no se pudo anotar en la bitácora:', error)
   }

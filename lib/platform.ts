@@ -95,12 +95,14 @@ export async function deleteAnnouncement(id: string): Promise<void> {
 export interface BusinessAdminMeta {
   adminNotes: string
   replyLimitOverride: number | null
+  /** RUT de la empresa (normalizado), para facturar y para la API v1. */
+  rut: string | null
 }
 
 export async function getBusinessAdminMeta(businessId: string): Promise<BusinessAdminMeta | null> {
   const row = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { adminNotes: true, replyLimitOverride: true },
+    select: { adminNotes: true, replyLimitOverride: true, rut: true },
   })
   return row
 }
@@ -115,8 +117,9 @@ export async function setBusinessAdminMeta(
       data: {
         ...(input.adminNotes !== undefined ? { adminNotes: input.adminNotes } : {}),
         ...(input.replyLimitOverride !== undefined ? { replyLimitOverride: input.replyLimitOverride } : {}),
+        ...(input.rut !== undefined ? { rut: input.rut } : {}),
       },
-      select: { adminNotes: true, replyLimitOverride: true },
+      select: { adminNotes: true, replyLimitOverride: true, rut: true },
     })
     .catch(() => null)
   return row
@@ -234,6 +237,7 @@ export interface BusinessAdminRow {
   planLimit: number | null
   replyLimitOverride: number | null
   adminNotes: string
+  rut: string | null
 }
 
 /** Todas las empresas de la plataforma, con su consumo, su límite y las notas del propietario. */
@@ -245,6 +249,7 @@ export async function listBusinessAdminRows(now: Date = new Date()): Promise<Bus
       businessName: true,
       adminNotes: true,
       replyLimitOverride: true,
+      rut: true,
       members: { where: { role: 'OWNER' }, select: { user: { select: { email: true } } } },
     },
   })
@@ -260,6 +265,7 @@ export async function listBusinessAdminRows(now: Date = new Date()): Promise<Bus
         planLimit: monthlyLimit(usage.plan),
         replyLimitOverride: row.replyLimitOverride,
         adminNotes: row.adminNotes,
+        rut: row.rut,
       }
     }),
   )

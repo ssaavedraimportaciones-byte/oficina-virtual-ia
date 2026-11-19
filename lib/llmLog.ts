@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { llmSeverity, recordIncident } from './incidents'
 
 /**
  * Bitácora de las veces que la IA falló al responder un mensaje real.
@@ -50,6 +51,7 @@ export async function recordLlmError(businessId: string, error: unknown, reason:
     }
     const value = JSON.stringify([entry, ...(await listLlmErrors())].slice(0, MAX_ENTRIES))
     await prisma.platformSetting.upsert({ where: { key: KEY }, create: { key: KEY, value }, update: { value } })
+    await recordIncident({ source: 'ia', severity: llmSeverity(entry.status), code: entry.status ? `http_${entry.status}` : 'error', message: entry.reason, businessId })
   } catch (logError) {
     console.error('[pipeline] no se pudo anotar el error de la IA:', logError)
   }

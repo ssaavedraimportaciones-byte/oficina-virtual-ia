@@ -39,3 +39,33 @@ export function businessNow(at: Date = new Date()): { date: string; time: string
     time: `${parts.hour}:${parts.minute}`,
   }
 }
+
+/** Instante UTC en que empieza el día (o el mes) de `at` en la zona del negocio. */
+function startOfLocal(at: Date, unit: 'day' | 'month'): Date {
+  const tz = businessTimezone()
+  const wall = (d: Date) => {
+    const p = Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(d)
+        .map((x) => [x.type, x.value]),
+    )
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute)
+  }
+  const p = businessNow(at).date.split('-').map(Number)
+  const target = Date.UTC(p[0], p[1] - 1, unit === 'month' ? 1 : p[2])
+  // Dos pasadas: el desfase (-3 / -4 h) cambia con el horario de verano.
+  let guess = target
+  for (let i = 0; i < 2; i += 1) guess = target - (wall(new Date(guess)) - guess)
+  return new Date(guess)
+}
+
+export const startOfBusinessDay = (at: Date = new Date()) => startOfLocal(at, 'day')
+export const startOfBusinessMonth = (at: Date = new Date()) => startOfLocal(at, 'month')

@@ -5,6 +5,7 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp'
 import type { Business } from '@/lib/types'
 import { verifyMetaSignature } from '@/lib/webhookSignature'
 import { recordWebhook, type WebhookChangeOutcome } from '@/lib/webhookLog'
+import { recordIncident } from '@/lib/incidents'
 import { audioMessageText } from '@/lib/incomingMedia'
 import { receiptMessageText } from '@/lib/receipts'
 
@@ -150,6 +151,13 @@ async function processWebhook(body: WhatsAppWebhookBody): Promise<WebhookChangeO
           )
         } catch (error) {
           console.error('[webhook whatsapp] no se pudo responder:', error)
+          await recordIncident({
+            source: 'whatsapp',
+            severity: 'alta',
+            code: 'respuesta_fallida',
+            message: `No se pudo responder un mensaje: ${error instanceof Error ? error.message : 'error desconocido'}`,
+            businessId: business.id,
+          })
         }
       }
     }

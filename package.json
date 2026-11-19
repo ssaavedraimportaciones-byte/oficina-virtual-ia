@@ -35,6 +35,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@scalar/openapi-parser": "^0.29.25",
     "@types/node": "^22",
     "@types/nodemailer": "^8.0.1",
     "@types/qrcode": "^1.5.5",

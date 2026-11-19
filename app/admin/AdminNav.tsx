@@ -6,6 +6,7 @@ const ITEMS = [
   { href: '/admin/usuarios', label: 'Usuarios' },
   { href: '/admin/cobros', label: 'Cobros' },
   { href: '/admin/sistema', label: 'Sistema' },
+  { href: '/admin/api', label: 'API' },
 ]
 
 /** Navegación entre las pantallas del dueño de la plataforma. */

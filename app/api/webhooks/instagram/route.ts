@@ -7,6 +7,7 @@ import {
   findConversationByContact,
 } from '@/lib/store'
 import { verifyMetaSignature } from '@/lib/webhookSignature'
+import { recordIncident } from '@/lib/incidents'
 
 // Handshake de verificación que pide Meta al configurar el webhook.
 export async function GET(request: NextRequest) {
@@ -106,6 +107,13 @@ async function processWebhook(body: InstagramWebhookBody): Promise<void> {
         )
       } catch (error) {
         console.error('[webhook instagram] no se pudo responder:', error)
+        await recordIncident({
+          source: 'instagram',
+          severity: 'alta',
+          code: 'respuesta_fallida',
+          message: `No se pudo responder un mensaje: ${error instanceof Error ? error.message : 'error desconocido'}`,
+          businessId: business.id,
+        })
       }
     }
   }

@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { prisma } from './db'
 import { BUSINESS_LIMIT, PAID_PLANS, PLAN_PRICE_ENV, isPaidPlan, type PaidPlan, type PlanName } from './plans'
 import type { SystemRole } from './generated/prisma/enums'
+import { recordInvoice, recordPaymentFailed, syncSubscription } from './billingRecords'
 
 /**
  * Igual patrón que lib/email.ts: si no está configurado (sin
@@ -183,8 +184,24 @@ export async function handleStripeWebhook(
       }
       break
     }
+    case 'customer.subscription.created': {
+      await syncSubscription(event.data.object as Stripe.Subscription)
+      break
+    }
+    case 'invoice.finalized':
+    case 'invoice.paid':
+    case 'invoice.voided':
+    case 'invoice.marked_uncollectible': {
+      await recordInvoice(event.data.object as Stripe.Invoice)
+      break
+    }
+    case 'invoice.payment_failed': {
+      await recordPaymentFailed(event.data.object as Stripe.Invoice)
+      break
+    }
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription
+      await syncSubscription(subscription)
       await prisma.user.updateMany({
         where: { stripeSubscriptionId: subscription.id },
         data: { plan: 'FREE', stripeSubscriptionId: null },
@@ -193,6 +210,7 @@ export async function handleStripeWebhook(
     }
     case 'customer.subscription.updated': {
       const subscription = event.data.object as Stripe.Subscription
+      await syncSubscription(subscription)
       const active = subscription.status === 'active' || subscription.status === 'trialing'
       // El cliente puede cambiar de plan desde el portal de Stripe: ahí
       // cambia el price del ítem, no el metadata del checkout original.

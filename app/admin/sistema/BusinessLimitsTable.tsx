@@ -14,16 +14,18 @@ export interface BusinessRow {
   planLimit: number | null
   replyLimitOverride: number | null
   adminNotes: string
+  rut: string | null
 }
 
 function Row({ row }: { row: BusinessRow }) {
   const router = useRouter()
   const [limit, setLimit] = useState(row.replyLimitOverride === null ? '' : String(row.replyLimitOverride))
   const [notes, setNotes] = useState(row.adminNotes)
+  const [rut, setRut] = useState(row.rut ?? '')
   const [busy, setBusy] = useState(false)
   const [state, setState] = useState<'idle' | 'saved' | 'error'>('idle')
 
-  const dirty = limit !== (row.replyLimitOverride === null ? '' : String(row.replyLimitOverride)) || notes !== row.adminNotes
+  const dirty = limit !== (row.replyLimitOverride === null ? '' : String(row.replyLimitOverride)) || notes !== row.adminNotes || rut !== (row.rut ?? '')
 
   async function save() {
     setBusy(true)
@@ -31,7 +33,7 @@ function Row({ row }: { row: BusinessRow }) {
     const res = await fetch(`/api/admin/businesses/${row.businessId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminNotes: notes, replyLimitOverride: limit.trim() === '' ? null : Number(limit) }),
+      body: JSON.stringify({ adminNotes: notes, replyLimitOverride: limit.trim() === '' ? null : Number(limit), rut: rut.trim() === '' ? null : rut }),
     })
     setBusy(false)
     setState(res.ok ? 'saved' : 'error')
@@ -57,6 +59,15 @@ function Row({ row }: { row: BusinessRow }) {
           placeholder={row.planLimit === null ? 'plan' : String(row.planLimit)}
           className="input w-24"
           aria-label={`Límite mensual de ${row.name}`}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <input
+          value={rut}
+          onChange={(e) => setRut(e.target.value)}
+          placeholder="76.543.210-K"
+          className="input w-32"
+          aria-label={`RUT de ${row.name}`}
         />
       </td>
       <td className="px-4 py-3">
@@ -91,6 +102,7 @@ export default function BusinessLimitsTable({ rows }: { rows: BusinessRow[] }) {
             <th className="px-4 py-3 font-medium">Empresa</th>
             <th className="px-4 py-3 font-medium">Respuestas del mes</th>
             <th className="px-4 py-3 font-medium">Límite manual</th>
+            <th className="px-4 py-3 font-medium">RUT</th>
             <th className="px-4 py-3 font-medium">Notas internas</th>
             <th className="px-4 py-3" />
           </tr>

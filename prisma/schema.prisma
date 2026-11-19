@@ -52,6 +52,9 @@ model User {
   sessions    Session[]
   memberships BusinessMember[]
   authTokens  AuthToken[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  invoices      Invoice[]
 
   @@map("users")
 }
@@ -157,6 +160,9 @@ model Business {
   /// Límite mensual de respuestas del agente fijado a mano para esta empresa.
   /// null = vale el del plan.
   replyLimitOverride Int?
+  /// RUT de la empresa cliente, para facturar y para sistemas externos
+  /// (API v1). Lo carga el administrador; los clientes no lo ven editable.
+  rut String?
   /// Cuándo se pagó el cobro único de implementación DE ESTE NEGOCIO (conectar
   /// su número, cargar su información). Es por negocio, no por cliente: quien
   /// maneja 2 negocios paga la implementación 2 veces. null = todavía no.
@@ -552,4 +558,122 @@ model OrderReceipt {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_receipts")
+}
+
+// --- API v1 de solo lectura (Houston Ops) ---
+
+/// Clave de acceso a /api/v1. Se guarda solo el hash (SHA-256): la clave en
+/// texto se muestra una vez al crearla. `revokedAt` en el futuro = período de
+/// gracia al rotar: la clave vieja sigue sirviendo hasta esa hora.
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  /// Primeros caracteres, para reconocerla en el panel sin exponerla.
+  prefix      String
+  keyHash     String    @unique
+  scope       String    @default("read")
+  createdAt   DateTime  @default(now())
+  createdById String?
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+
+  accessLogs ApiAccessLog[]
+
+  @@map("api_keys")
+}
+
+/// Cada pedido a /api/v1 (también los rechazados). Sin cuerpos ni parámetros
+/// sensibles: solo qué se pidió, quién y cómo terminó.
+model ApiAccessLog {
+  id        String   @id @default(uuid())
+  keyId     String?
+  keyPrefix String?
+  method    String
+  path      String
+  status    Int
+  ip        String?
+  at        DateTime @default(now())
+
+  key ApiKey? @relation(fields: [keyId], references: [id], onDelete: SetNull)
+
+  @@index([at])
+  @@index([keyId, at])
+  @@map("api_access_logs")
+}
+
+/// Suscripción de un usuario en Stripe (se llena desde el webhook firmado).
+model Subscription {
+  id                 String    @id // id de la suscripción en Stripe
+  userId             String
+  plan               String
+  /// Estado de Stripe: active | trialing | past_due | unpaid | canceled | ...
+  status             String
+  amountClp          Int
+  currentPeriodEnd   DateTime?
+  canceledAt         DateTime?
+  /// Desde cuándo está impaga (primer cobro fallido sin resolver).
+  pastDueSince       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+/// Un pago recibido (Stripe `invoice.paid`). Montos en CLP, enteros.
+model Payment {
+  id               String   @id @default(uuid())
+  stripeInvoiceId  String   @unique
+  userId           String?
+  amountClp        Int
+  method           String
+  status           String   @default("pagado")
+  paidAt           DateTime
+  createdAt        DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([paidAt])
+  @@map("payments")
+}
+
+/// Factura de cobro (Stripe). `folio` y `siiStatus` quedan vacíos hasta que
+/// haya un emisor de DTE conectado: no se inventan.
+model Invoice {
+  id              String    @id @default(uuid())
+  stripeInvoiceId String    @unique
+  userId          String?
+  number          String?
+  folio           String?
+  siiStatus       String?
+  amountClp       Int
+  /// pagada | pendiente | vencida | anulada
+  status          String
+  issuedAt        DateTime
+  dueDate         DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([issuedAt])
+  @@map("invoices")
+}
+
+/// Fallos de integración (WhatsApp, Instagram, IA, pagos). Sin datos de
+/// clientes finales: solo origen, gravedad y un motivo sin claves.
+model Incident {
+  id         String   @id @default(uuid())
+  source     String
+  severity   String
+  code       String
+  message    String
+  businessId String?
+  occurredAt DateTime @default(now())
+
+  @@index([occurredAt])
+  @@index([source, occurredAt])
+  @@map("incidents")
 }

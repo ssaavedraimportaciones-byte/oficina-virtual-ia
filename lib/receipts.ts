@@ -248,7 +248,13 @@ export function visionConfig():
   return override ? { kind: 'openai', url, apiKey, model: override } : null
 }
 
-export async function readReceiptImage(bytes: Uint8Array, mimeType: string): Promise<ReceiptData | null> {
+/**
+ * Manda una imagen a un modelo con visión y devuelve el texto de la
+ * respuesta tal cual (sin interpretar). null si no hay ningún modelo con
+ * visión configurado. La usan tanto la lectura de comprobantes como la
+ * importación de catálogo desde una foto de la carta.
+ */
+export async function callVisionText(bytes: Uint8Array, mimeType: string, prompt: string): Promise<string | null> {
   const config = visionConfig()
   if (!config) return null
   const b64 = Buffer.from(bytes).toString('base64')
@@ -257,7 +263,7 @@ export async function readReceiptImage(bytes: Uint8Array, mimeType: string): Pro
     const client = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY'), timeout: VISION_TIMEOUT_MS, maxRetries: 1 })
     const res = await client.messages.create({
       model: config.model,
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [
         {
           role: 'user',
@@ -266,13 +272,12 @@ export async function readReceiptImage(bytes: Uint8Array, mimeType: string): Pro
               type: 'image',
               source: { type: 'base64', media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/webp', data: b64 },
             },
-            { type: 'text', text: PROMPT },
+            { type: 'text', text: prompt },
           ],
         },
       ],
     })
-    const text = res.content.map((c) => (c.type === 'text' ? c.text : '')).join('')
-    return toReceiptData(parseJson(text))
+    return res.content.map((c) => (c.type === 'text' ? c.text : '')).join('')
   }
 
   const res = await fetch(config.url, {
@@ -281,12 +286,12 @@ export async function readReceiptImage(bytes: Uint8Array, mimeType: string): Pro
     body: JSON.stringify({
       model: config.model,
       temperature: 0,
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [
         {
           role: 'user',
           content: [
-            { type: 'text', text: PROMPT },
+            { type: 'text', text: prompt },
             { type: 'image_url', image_url: { url: `data:${mimeType};base64,${b64}` } },
           ],
         },
@@ -296,7 +301,13 @@ export async function readReceiptImage(bytes: Uint8Array, mimeType: string): Pro
   })
   if (!res.ok) throw new Error(`El modelo de visión respondió ${res.status}: ${(await res.text()).slice(0, 200)}`)
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
-  return toReceiptData(parseJson(data.choices?.[0]?.message?.content ?? ''))
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
+export async function readReceiptImage(bytes: Uint8Array, mimeType: string): Promise<ReceiptData | null> {
+  const text = await callVisionText(bytes, mimeType, PROMPT)
+  if (text === null) return null
+  return toReceiptData(parseJson(text))
 }
 
 // ---------------------------------------------------------------------------

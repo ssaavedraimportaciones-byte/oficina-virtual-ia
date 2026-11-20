@@ -25,25 +25,18 @@ export interface ImportSummary {
 }
 
 /**
- * Trae el catálogo de la plataforma y lo deja en el catálogo del negocio:
- * actualiza por nombre lo que ya existe (precio y stock) y crea lo nuevo. No
- * borra ni desactiva nada que el dueño haya cargado a mano. Es seguro repetir
- * la importación: vuelve a sincronizar sin duplicar.
+ * Deja una lista de productos en el catálogo del negocio: actualiza por
+ * nombre lo que ya existe (precio y stock) y crea lo nuevo. No borra ni
+ * desactiva nada que el dueño haya cargado a mano. Es seguro repetirlo: vuelve
+ * a sincronizar sin duplicar. La usan tanto la importación desde tiendas
+ * (WooCommerce, Jumpseller) como la importación desde un archivo (PDF, Excel,
+ * foto de la carta).
  */
-export async function importCatalog(
-  businessId: string,
-  source: string,
-  credentials: Record<string, string>,
-  fetchImpl?: typeof fetch,
-): Promise<ImportSummary> {
-  const adapter = getAdapter(source)
-  if (!adapter) throw new IntegrationError('Esa plataforma todavía no está disponible.')
-
-  const incoming = await adapter.fetchCatalog(credentials, fetchImpl)
+export async function applyCatalogItems(businessId: string, incoming: CatalogItem[]): Promise<ImportSummary> {
   const existing = await listProducts(businessId)
   const byName = new Map(existing.map((p) => [p.name.trim().toLowerCase(), p]))
 
-  // La tienda puede traer el mismo nombre repetido: se procesa una sola vez.
+  // Puede traer el mismo nombre repetido: se procesa una sola vez.
   const unique = dedupe(incoming)
   const summary: ImportSummary = {
     total: incoming.length,
@@ -63,6 +56,22 @@ export async function importCatalog(
     }
   }
   return summary
+}
+
+/**
+ * Trae el catálogo de la plataforma y lo deja en el catálogo del negocio.
+ */
+export async function importCatalog(
+  businessId: string,
+  source: string,
+  credentials: Record<string, string>,
+  fetchImpl?: typeof fetch,
+): Promise<ImportSummary> {
+  const adapter = getAdapter(source)
+  if (!adapter) throw new IntegrationError('Esa plataforma todavía no está disponible.')
+
+  const incoming = await adapter.fetchCatalog(credentials, fetchImpl)
+  return applyCatalogItems(businessId, incoming)
 }
 
 function dedupe(items: CatalogItem[]): CatalogItem[] {

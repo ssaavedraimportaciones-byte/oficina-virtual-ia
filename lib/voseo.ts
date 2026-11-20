@@ -32,6 +32,8 @@ export const VOSEO_MAP: Record<string, string> = {
   decí: 'di',
   necesitás: 'necesitas',
   preferís: 'prefieres',
+  referís: 'refieres',
+  referite: 'refiérete',
   elegís: 'eliges',
   elegí: 'elige',
   ponés: 'pones',

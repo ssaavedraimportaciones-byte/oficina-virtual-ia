@@ -44,10 +44,20 @@ export default function ConversationPage() {
 
   // Los mensajes de WhatsApp/Instagram entran por webhook: sin esto, quien
   // tomó la conversación no ve lo que responde el cliente hasta recargar.
+  // Con la pestaña oculta no se consulta (nadie está mirando); al volver, se pone al día al tiro.
   useEffect(() => {
     if (!loaded || isSimulator) return
-    const timer = setInterval(load, POLL_MS)
-    return () => clearInterval(timer)
+    const timer = setInterval(() => {
+      if (!document.hidden) load()
+    }, POLL_MS)
+    const onVisible = () => {
+      if (!document.hidden) load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [loaded, isSimulator, load])
 
   useEffect(() => {

@@ -4,7 +4,6 @@ import { getBusiness, getSetupFacts } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import { getSetupProgress } from '@/lib/onboarding'
 import { getSalesSettings } from '@/lib/payments'
-import { prisma } from '@/lib/db'
 import PanelNav, { type NavItem } from './PanelNav'
 
 export const dynamic = 'force-dynamic'
@@ -21,17 +20,22 @@ export default async function BusinessLayout({
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const business = await getBusiness(businessId)
   // Mismo 404 tanto si el negocio no existe como si el usuario no tiene
   // acceso: no le confirma a nadie que un negocio ajeno existe.
-  if (!business || !canAccessBusiness(user, businessId)) notFound()
+  if (!canAccessBusiness(user, businessId)) notFound()
+  // Todo en paralelo: este menú se arma en cada página del panel.
+  const [business, facts, sales] = await Promise.all([
+    getBusiness(businessId),
+    getSetupFacts(businessId),
+    getSalesSettings(businessId),
+  ])
+  if (!business) notFound()
 
   const template = getIndustryTemplate(business.templateId)
-  const [facts, sales] = await Promise.all([getSetupFacts(businessId), getSalesSettings(businessId)])
   const progress = facts ? getSetupProgress(businessId, facts) : null
   const stepDone = (id: string) => progress?.steps.find((s) => s.id === id)?.done
 
-  const hasTables = business.templateId === 'gastronomia' || (await prisma.floor.count({ where: { businessId } })) > 0
+  const hasTables = business.templateId === 'gastronomia' || (facts?.floorCount ?? 0) > 0
   const base = `/panel/${businessId}`
 
   const daily: NavItem[] = [

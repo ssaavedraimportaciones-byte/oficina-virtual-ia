@@ -12,13 +12,16 @@ import type { PlanName } from './plans'
 
 let transporter: Transporter | null | undefined
 
+/** Con usuario pero sin contraseña el servidor rechaza cada envío (530): eso es "a medio configurar", no configurado. */
 export function emailConfigured(): boolean {
-  return Boolean(process.env.SMTP_HOST)
+  if (!process.env.SMTP_HOST) return false
+  return !process.env.SMTP_USER || Boolean(process.env.SMTP_PASS)
 }
 
 function getTransporter(): Transporter | null {
   if (transporter !== undefined) return transporter
   if (!emailConfigured()) {
+    if (process.env.SMTP_HOST) console.warn('[email] falta SMTP_PASS: los correos no se envían hasta cargarla.')
     transporter = null
     return transporter
   }

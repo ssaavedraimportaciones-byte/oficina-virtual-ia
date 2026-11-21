@@ -24,6 +24,37 @@ const PAYMENT_BADGE: Record<PaymentStatus, { label: string; style: string } | nu
   vencido: { label: 'No pagó a tiempo', style: 'text-gray-500 border-gray-700' },
 }
 
+/**
+ * El stock se edita en local y se guarda al salir del campo o con Enter: guardar en cada
+ * tecla mandaba un pedido y recargaba todo el catálogo por dígito, y una respuesta atrasada
+ * podía pisar lo que el dueño estaba escribiendo.
+ */
+function StockInput({ stock, onSave }: { stock: number | null; onSave: (stock: number | null) => void }) {
+  const [value, setValue] = useState(stock === null ? '' : String(stock))
+  const commit = () => {
+    const next = value.trim() === '' ? null : Math.max(0, Math.floor(Number(value)))
+    if (next !== null && !Number.isFinite(next)) return setValue(stock === null ? '' : String(stock))
+    if (next !== stock) onSave(next)
+  }
+  return (
+    <label className="flex items-center gap-2 text-xs text-gray-500">
+      Stock
+      <input
+        type="number"
+        min={0}
+        value={value}
+        placeholder="∞"
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+        }}
+        className="input w-20"
+      />
+    </label>
+  )
+}
+
 export default function PedidosPage() {
   const params = useParams<{ businessId: string }>()
   const businessId = params.businessId
@@ -263,21 +294,11 @@ export default function PedidosPage() {
                     <div className="text-xs text-gray-500">{formatPrice(product.price)}</div>
                   </div>
 
-                  <label className="flex items-center gap-2 text-xs text-gray-500">
-                    Stock
-                    <input
-                      type="number"
-                      min={0}
-                      value={product.stock ?? ''}
-                      placeholder="∞"
-                      onChange={(e) =>
-                        patchProduct(product.id, {
-                          stock: e.target.value === '' ? null : Number(e.target.value),
-                        })
-                      }
-                      className="input w-20"
-                    />
-                  </label>
+                  <StockInput
+                    key={`${product.id}-${product.stock}`}
+                    stock={product.stock}
+                    onSave={(stock) => patchProduct(product.id, { stock })}
+                  />
 
                   {product.imageVersion && (
                     <button

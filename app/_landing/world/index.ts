@@ -384,8 +384,10 @@ export async function createWorld(canvas: HTMLCanvasElement, bus: typeof Bus): P
   resize()
   window.addEventListener('resize', resize)
 
-  // Compilar los shaders antes de mostrar nada: evita el tirón del primer scroll.
-  renderer.compile(scene, camera)
+  // Compilar los shaders antes de mostrar nada: evita el tirón del primer scroll. Asíncrono
+  // (KHR_parallel_shader_compile): el navegador compila en paralelo y la pantalla de carga
+  // sigue animándose, en vez de congelarse mientras se compila todo de una vez.
+  await renderer.compileAsync(scene, camera)
   bus.load = 0.8
 
   // --- Bucle ----------------------------------------------------------------------

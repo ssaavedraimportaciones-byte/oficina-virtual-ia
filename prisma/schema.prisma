@@ -318,6 +318,8 @@ model Appointment {
   professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
 
   @@index([businessId, startsAt])
+  @@index([serviceId])
+  @@index([professionalId])
   @@map("appointments")
 }
 
@@ -507,6 +509,7 @@ model OrderItem {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("order_items")
 }
 
@@ -651,6 +654,7 @@ model Payment {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([paidAt])
+  @@index([userId])
   @@map("payments")
 }
 
@@ -674,6 +678,7 @@ model Invoice {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([issuedAt])
+  @@index([userId])
   @@map("invoices")
 }
 

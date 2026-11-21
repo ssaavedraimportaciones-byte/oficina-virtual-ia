@@ -62,6 +62,7 @@ export default function PedidosPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [sales, setSales] = useState<SalesSettings | null>(null)
+  const [food, setFood] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const [name, setName] = useState('')
@@ -79,6 +80,7 @@ export default function PedidosPage() {
       setProducts(data.products ?? [])
       setOrders(data.orders ?? [])
       setSales(data.sales ?? null)
+      setFood(Boolean(data.food))
     }
     setLoading(false)
   }, [businessId])
@@ -213,7 +215,7 @@ export default function PedidosPage() {
         </div>
       )}
 
-      {sales && <SalesSettingsPanel businessId={businessId} initial={sales} onSaved={setSales} />}
+      {sales && <SalesSettingsPanel businessId={businessId} initial={sales} onSaved={setSales} food={food} />}
 
       <section className="mt-6 rounded-lg border border-gray-800 p-6">
         <h2 className="font-medium text-white">Productos</h2>

@@ -119,7 +119,7 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     tone: 'cercano',
     knowledgeHints: [
       'Carta con precios',
-      'Horarios y días que abre',
+      'Horarios y días que abre (y desde qué hora reciben pedidos)',
       'Dirección y si hay estacionamiento',
       'Opciones sin gluten / vegetarianas / veganas',
       'Cómo se manejan reservas y eventos',
@@ -195,4 +195,16 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
 
 export function getIndustryTemplate(id: string): IndustryTemplate | undefined {
   return INDUSTRY_TEMPLATES.find((t) => t.id === id)
+}
+
+/**
+ * Locales de comida (restaurantes, sushi, pizzas, completos, food trucks,
+ * cafeterías…): por plantilla o por cómo describieron su rubro. Las opciones
+ * pensadas para cocina, como el horario para recibir pedidos, se muestran solo a ellos.
+ */
+const FOOD_WORDS =
+  /comida|restaur|gastronom|sushi|pizz|completos\b|sandwich|sándwich|hambur|burger|food ?truck|empanad|cafeter|\bcaf[eé](?![a-zñáéíóú])|pasteler|panader|helad|\bpoke\b|ramen|\bwok\b|chifa|parrill|\basad|picada|bar\b|pub\b|fuente de soda|colaci|almuerzo/i
+
+export function isFoodBusiness(business: { templateId: string; config: { industry: string; businessName?: string } }): boolean {
+  return business.templateId === 'gastronomia' || FOOD_WORDS.test(business.config.industry)
 }

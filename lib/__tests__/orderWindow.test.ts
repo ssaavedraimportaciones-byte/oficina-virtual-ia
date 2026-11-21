@@ -144,3 +144,18 @@ describe('prompt', () => {
     expect(on).toContain('pedidos de 18:00 a 23:30')
   })
 })
+
+describe('solo para locales de comida', () => {
+  it('reconoce locales de comida por plantilla o por rubro', async () => {
+    const { isFoodBusiness } = await import('../industries')
+    const b = (templateId: string, industry: string) => ({ templateId, config: { industry } })
+    expect(isFoodBusiness(b('gastronomia', 'Restaurante'))).toBe(true)
+    expect(isFoodBusiness(b('otro', 'Sushi delivery'))).toBe(true)
+    expect(isFoodBusiness(b('otro', 'comida rapida'))).toBe(true)
+    expect(isFoodBusiness(b('ecommerce', 'Pizzería y empanadas'))).toBe(true)
+    expect(isFoodBusiness(b('manicura', 'Manicura y depilación'))).toBe(false)
+    expect(isFoodBusiness(b('odontologia', 'Consultorio odontológico'))).toBe(false)
+    expect(isFoodBusiness(b('ecommerce', 'Tienda de ropa'))).toBe(false)
+    expect(isFoodBusiness(b('taller', 'Taller mecánico'))).toBe(false)
+  })
+})

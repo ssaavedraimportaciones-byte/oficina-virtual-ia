@@ -65,10 +65,13 @@ export default function SalesSettingsPanel({
   businessId,
   initial,
   onSaved,
+  food = false,
 }: {
   businessId: string
   initial: SalesSettings
   onSaved: (s: SalesSettings) => void
+  /** Local de comida: ve el horario para recibir pedidos. */
+  food?: boolean
 }) {
   const [s, setS] = useState(initial)
   const [mpToken, setMpToken] = useState('')
@@ -97,7 +100,7 @@ export default function SalesSettingsPanel({
 
   return (
     <section className="mt-6 rounded-lg border border-gray-800 p-6">
-      <h2 className="font-medium text-white">Cobros, horario de pedidos, cocina e inventario</h2>
+      <h2 className="font-medium text-white">{food ? 'Cobros, horario de pedidos, cocina e inventario' : 'Cobros, cocina e inventario'}</h2>
       <p className="mt-1 text-sm text-gray-400">Activa solo lo que te sirva. Puedes apagarlo cuando quieras.</p>
 
       <div className="mt-4 flex flex-col gap-3">
@@ -210,10 +213,11 @@ export default function SalesSettingsPanel({
           </button>
         </Block>
 
+        {(food || s.ordersOnlyInHours) && (
         <Block
           icon="🕕"
           title="Recibir pedidos solo en horario"
-          desc="Apagado, el agente toma pedidos a cualquier hora. Encendido, solo en tu horario de atención, y puedes empezar a recibirlos antes de abrir o dejar de tomarlos antes de cerrar."
+          desc="Para locales de comida. Apagado, el agente toma pedidos a cualquier hora. Encendido, solo en tu horario, y puedes recibirlos antes de abrir (ej.: un sushi que abre a las 13:00 recibe desde las 12:00 y prepara al abrir) o dejar de tomarlos antes de cerrar."
           checked={s.ordersOnlyInHours}
           onToggle={(v) => save({ ordersOnlyInHours: v })}
         >
@@ -257,6 +261,7 @@ export default function SalesSettingsPanel({
             .
           </span>
         </Block>
+        )}
 
         <Block
           icon="🧾"

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireBusinessAccess } from '@/lib/authz'
-import { addProduct, listOrders, listProducts } from '@/lib/store'
+import { addProduct, getBusiness, listOrders, listProducts } from '@/lib/store'
+import { isFoodBusiness } from '@/lib/industries'
 import { expireUnpaidOrders, getSalesSettings } from '@/lib/payments'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,8 +12,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   // Los pedidos que vencieron sin pago se anulan antes de mostrarse (y el stock vuelve).
   await expireUnpaidOrders(id)
-  const [products, orders, sales] = await Promise.all([listProducts(id), listOrders(id), getSalesSettings(id)])
-  return NextResponse.json({ products, orders, sales })
+  const [products, orders, sales, business] = await Promise.all([
+    listProducts(id),
+    listOrders(id),
+    getSalesSettings(id),
+    getBusiness(id),
+  ])
+  // food: muestra las opciones pensadas para cocina (horario para recibir pedidos)
+  return NextResponse.json({ products, orders, sales, food: business ? isFoodBusiness(business) : false })
 }
 
 const productSchema = z.object({

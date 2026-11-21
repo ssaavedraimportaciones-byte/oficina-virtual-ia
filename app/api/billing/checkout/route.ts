@@ -22,10 +22,12 @@ export async function POST(request: NextRequest) {
   // suyos y todavía no la tienen pagada.
   const owned = await prisma.businessMember.findMany({
     where: { userId: user.id, role: 'OWNER' },
-    select: { business: { select: { id: true, setupFeePaidAt: true } } },
+    select: { business: { select: { id: true, setupFeePaidAt: true, setupTier: true } } },
   })
-  const unbilledBusinessIds = owned.filter((m) => !m.business.setupFeePaidAt).map((m) => m.business.id)
+  const unbilled = owned.filter((m) => !m.business.setupFeePaidAt)
+  const unbilledBusinessIds = unbilled.map((m) => m.business.id)
   const firstSetupPaid = owned.some((m) => m.business.setupFeePaidAt)
+  const firstTier = unbilled[0]?.business.setupTier ?? 'ESTANDAR'
 
   const result = await createUpgradeCheckout(
     { id: user.id, email: user.email, stripeCustomerId: row.stripeCustomerId },
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest) {
     `${appUrl()}/account?upgrade=ok`,
     `${appUrl()}/account?upgrade=cancelado`,
     firstSetupPaid,
+    firstTier,
   )
 
   if (!result.ok) {

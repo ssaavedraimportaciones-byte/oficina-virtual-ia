@@ -1,4 +1,6 @@
-import type { Plan } from './generated/prisma/enums'
+import type { Plan, SetupTier } from './generated/prisma/enums'
+
+export type { SetupTier }
 
 /**
  * Los planes pagos, en un solo lugar: cuántos negocios incluye cada uno, en
@@ -64,22 +66,50 @@ export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
 }
 
 /**
- * Pago único de implementación, informativo (los montos reales los traen
- * `STRIPE_PRICE_ID_SETUP` y `STRIPE_PRICE_ID_SETUP_EXTRA`). Es POR LOCAL: cada
- * local nuevo es trabajo aparte (su número verificado ante Meta, su carta o
- * agenda, probarlo), pero el segundo en adelante reutiliza la configuración
- * del primero (tono, rubro, buena parte de la información), así que cuesta
- * menos. Referencia de mercado en Chile (2026): implementaciones de agentes
- * con IA para pymes desde $300.000.
+ * Pago único de implementación del PRIMER local, informativo (los montos
+ * reales los traen `STRIPE_PRICE_ID_SETUP_*`). Varía según qué se activa: no
+ * es lo mismo dejar un solo canal sin cobros que un local con mesas,
+ * pedidos, cobros y varios canales. Lo fija el administrador por negocio
+ * (`Business.setupTier`) según este criterio. Referencia de mercado en Chile
+ * (2026): implementaciones de agentes con IA para pymes desde $300.000, así
+ * que incluso el nivel Avanzado queda por debajo.
  */
-export const SETUP_FEE_CLP = 190_000
-/** Cada local adicional del mismo cliente. */
+export const SETUP_FEE_BY_TIER: Record<SetupTier, number> = {
+  SIMPLE: 150_000,
+  ESTANDAR: 190_000,
+  AVANZADO: 250_000,
+}
+
+export const SETUP_TIER_ORDER = ['SIMPLE', 'ESTANDAR', 'AVANZADO'] as const satisfies readonly SetupTier[]
+
+export const SETUP_TIER_LABEL: Record<SetupTier, string> = {
+  SIMPLE: 'Simple',
+  ESTANDAR: 'Estándar',
+  AVANZADO: 'Avanzado',
+}
+
+export const SETUP_TIER_DESC: Record<SetupTier, string> = {
+  SIMPLE: 'Un solo canal, solo agenda o solo catálogo, sin cobros integrados.',
+  ESTANDAR: 'Agenda o catálogo con cobros, ticket de cocina o avisos de stock.',
+  AVANZADO: 'Mesas con croquis, pedidos, cobros y más de un canal (WhatsApp e Instagram).',
+}
+
+/** Compatibilidad: el nivel Estándar es el de referencia histórico. */
+export const SETUP_FEE_CLP = SETUP_FEE_BY_TIER.ESTANDAR
+/** Cada local adicional del mismo cliente, sin importar el nivel de su primer local. */
 export const SETUP_FEE_EXTRA_CLP = 90_000
 
-/** Total de implementación por `locales` locales nuevos; si ya pagó el primero, todos van a precio adicional. */
-export function setupFeeTotal(locales: number, firstAlreadyPaid = false): number {
+/**
+ * Total de implementación por `locales` locales nuevos: el primero paga
+ * según su nivel (`firstTier`); del segundo en adelante, el precio plano de
+ * local adicional. Si ya pagó el primero (`firstAlreadyPaid`), todos los
+ * nuevos van a precio de adicional.
+ */
+export function setupFeeTotal(locales: number, firstAlreadyPaid = false, firstTier: SetupTier = 'ESTANDAR'): number {
   if (locales <= 0) return 0
-  return firstAlreadyPaid ? locales * SETUP_FEE_EXTRA_CLP : SETUP_FEE_CLP + (locales - 1) * SETUP_FEE_EXTRA_CLP
+  return firstAlreadyPaid
+    ? locales * SETUP_FEE_EXTRA_CLP
+    : SETUP_FEE_BY_TIER[firstTier] + (locales - 1) * SETUP_FEE_EXTRA_CLP
 }
 
 /** Variable de entorno que trae el Price de Stripe de cada plan pago. */

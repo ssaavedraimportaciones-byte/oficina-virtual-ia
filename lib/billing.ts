@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { prisma } from './db'
-import { BUSINESS_LIMIT, PAID_PLANS, PLAN_PRICE_ENV, isPaidPlan, type PaidPlan, type PlanName } from './plans'
+import { BUSINESS_LIMIT, PAID_PLANS, PLAN_PRICE_ENV, isPaidPlan, type PaidPlan, type PlanName, type SetupTier } from './plans'
 import type { SystemRole } from './generated/prisma/enums'
 import { recordInvoice, recordPaymentFailed, syncSubscription } from './billingRecords'
 
@@ -42,6 +42,13 @@ function priceIdFor(plan: PaidPlan): string | null {
   return process.env[PLAN_PRICE_ENV[plan]] ?? null
 }
 
+/** Variable de entorno del Price de Stripe de la implementación del primer local, por nivel. */
+const SETUP_PRICE_ENV: Record<SetupTier, string> = {
+  SIMPLE: 'STRIPE_PRICE_ID_SETUP_SIMPLE',
+  ESTANDAR: 'STRIPE_PRICE_ID_SETUP',
+  AVANZADO: 'STRIPE_PRICE_ID_SETUP_AVANZADO',
+}
+
 /** priceId de Stripe -> plan, para leer de vuelta qué plan trae una suscripción. */
 function planForPriceId(priceId: string | null | undefined): PlanName | null {
   if (!priceId) return null
@@ -71,6 +78,8 @@ export async function createUpgradeCheckout(
   cancelUrl: string,
   /** Si ya pagó la implementación de algún local: entonces todos los nuevos van a precio de local adicional. */
   firstSetupPaid = false,
+  /** Nivel de implementación del primer local sin pagar (el de `unbilledBusinessIds[0]`). Ignorado si `firstSetupPaid`. */
+  firstTier: SetupTier = 'ESTANDAR',
 ): Promise<BillingLinkResult> {
   const stripe = getStripe()
   if (!stripe) return { ok: false, reason: 'La facturación no está configurada todavía.' }
@@ -78,18 +87,18 @@ export async function createUpgradeCheckout(
   const priceId = priceIdFor(plan)
   if (!priceId) return { ok: false, reason: `Falta configurar el plan ${plan} (${PLAN_PRICE_ENV[plan]}).` }
 
-  const setupPriceId = process.env.STRIPE_PRICE_ID_SETUP
+  const setupPriceId = process.env[SETUP_PRICE_ENV[firstTier]]
   const extraPriceId = process.env.STRIPE_PRICE_ID_SETUP_EXTRA
   // El metadata de Stripe tiene 500 caracteres por valor: con más negocios no
   // entrarían todos los ids. No pasa en la práctica (el plan con más negocios
   // tiene 3), pero se corta la lista antes que mandar algo que el webhook no
   // pueda leer entero.
   const toBill = unbilledBusinessIds.slice(0, MAX_SETUP_FEE_BUSINESSES)
-  // El primer local paga la implementación completa; los demás, la de local adicional.
+  // El primer local paga la implementación completa, según su nivel; los demás, la de local adicional.
   const firstQty = toBill.length > 0 && !firstSetupPaid ? 1 : 0
   const extraQty = toBill.length - firstQty
   if (firstQty > 0 && !setupPriceId) {
-    return { ok: false, reason: 'Falta configurar el cobro de implementación (STRIPE_PRICE_ID_SETUP).' }
+    return { ok: false, reason: `Falta configurar el cobro de implementación (${SETUP_PRICE_ENV[firstTier]}).` }
   }
   if (extraQty > 0 && !extraPriceId) {
     return { ok: false, reason: 'Falta configurar el cobro de local adicional (STRIPE_PRICE_ID_SETUP_EXTRA).' }

@@ -111,6 +111,22 @@ describe('RUT del cliente', () => {
   })
 })
 
+describe('Nivel de implementación del primer local', () => {
+  it('el administrador lo cambia por la ruta; un valor que no es un nivel válido se rechaza', async () => {
+    const b = await prisma.business.create({ data: { templateId: 'otro', agentName: 'A', businessName: 'Tier test', industry: 'i', description: 'd', goals: 'g', tone: 'cercano', channels: [], hours: [] } })
+    expect(b.setupTier).toBe('ESTANDAR')
+    actAs(admin)
+    const patch = (body: unknown) => adminBusinessRoute.PATCH(req('PATCH', body), ctx(b.id))
+    expect((await patch({ setupTier: 'AVANZADO' })).status).toBe(200)
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: b.id } })).setupTier).toBe('AVANZADO')
+    expect((await patch({ setupTier: 'no_existe' })).status).toBe(400)
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: b.id } })).setupTier).toBe('AVANZADO')
+    actAs(normalUser)
+    expect((await patch({ setupTier: 'SIMPLE' })).status).toBe(403)
+    await prisma.business.delete({ where: { id: b.id } })
+  })
+})
+
 describe('inicio del día y del mes en hora de Chile', () => {
   it('21:30 en Chile ya es "mañana" en UTC: el día sigue siendo el de Chile', () => {
     // 2026-07-15 23:30 UTC = 19:30 en Chile (UTC-4 en invierno)

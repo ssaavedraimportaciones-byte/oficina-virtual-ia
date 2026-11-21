@@ -76,6 +76,6 @@ describe('fotos: el agente deriva a las redes del negocio', () => {
     })
     expect(prompt).toContain('pide fotos')
     expect(prompt).toContain('redes sociales')
-    expect(prompt).toContain('Nunca inventes usuarios ni direcciones')
+    expect(prompt).toContain('Nunca inventes usuarios, direcciones ni links')
   })
 })

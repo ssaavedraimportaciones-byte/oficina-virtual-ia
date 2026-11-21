@@ -33,7 +33,9 @@ beforeEach(() => {
     STRIPE_PRICE_ID_BASICO: 'price_basico',
     STRIPE_PRICE_ID_NEGOCIOS: 'price_negocios',
     STRIPE_PRICE_ID_ILIMITADO: 'price_ilimitado',
+    STRIPE_PRICE_ID_SETUP_SIMPLE: 'price_setup_simple',
     STRIPE_PRICE_ID_SETUP: 'price_setup',
+    STRIPE_PRICE_ID_SETUP_AVANZADO: 'price_setup_avanzado',
     STRIPE_PRICE_ID_SETUP_EXTRA: 'price_setup_extra',
   }
   sessionsCreate.mockReset().mockResolvedValue({ url: 'https://checkout.stripe.test/x' })
@@ -52,15 +54,17 @@ async function newUser(): Promise<string> {
   return created.id
 }
 
-/** Un negocio de este usuario, con o sin la implementación ya pagada. */
-async function newBusiness(userId: string, setupFeePaidAt: Date | null = null): Promise<string> {
+/** Un negocio de este usuario, con o sin la implementación ya pagada, y con su nivel. */
+async function newBusiness(userId: string, setupFeePaidAt: Date | null = null, setupTier?: 'SIMPLE' | 'ESTANDAR' | 'AVANZADO'): Promise<string> {
   const business = await store.createBusiness(
     { agentName: 'A', businessName: `Negocio ${randomUUID()}`, industry: 'i', description: 'd',
       goals: 'g', tone: 'cercano', channels: ['whatsapp'], configuredAt: '' },
     'manicura',
   )
   await addBusinessMember(userId, business.id, 'OWNER')
-  if (setupFeePaidAt) await prisma.business.update({ where: { id: business.id }, data: { setupFeePaidAt } })
+  if (setupFeePaidAt || setupTier) {
+    await prisma.business.update({ where: { id: business.id }, data: { setupFeePaidAt: setupFeePaidAt ?? undefined, setupTier } })
+  }
   return business.id
 }
 
@@ -151,13 +155,61 @@ describe('createUpgradeCheckout: la implementación se cobra por negocio', () =>
     )
   })
 
-  it('el total de implementación: primer local completo, los demás a precio de adicional', async () => {
-    const { setupFeeTotal, SETUP_FEE_CLP, SETUP_FEE_EXTRA_CLP } = await import('../plans')
+  it('el total de implementación: primer local completo (según su nivel), los demás a precio de adicional', async () => {
+    const { setupFeeTotal, SETUP_FEE_CLP, SETUP_FEE_BY_TIER, SETUP_FEE_EXTRA_CLP } = await import('../plans')
     expect(setupFeeTotal(1)).toBe(SETUP_FEE_CLP)
     expect(setupFeeTotal(3)).toBe(SETUP_FEE_CLP + 2 * SETUP_FEE_EXTRA_CLP)
     expect(setupFeeTotal(2, true)).toBe(2 * SETUP_FEE_EXTRA_CLP)
     expect(setupFeeTotal(0)).toBe(0)
-    expect(SETUP_FEE_EXTRA_CLP).toBeLessThan(SETUP_FEE_CLP)
+    expect(setupFeeTotal(1, false, 'SIMPLE')).toBe(SETUP_FEE_BY_TIER.SIMPLE)
+    expect(setupFeeTotal(2, false, 'AVANZADO')).toBe(SETUP_FEE_BY_TIER.AVANZADO + SETUP_FEE_EXTRA_CLP)
+    // Si ya pagó el primero, el nivel pasado no importa: todo es precio de adicional.
+    expect(setupFeeTotal(1, true, 'AVANZADO')).toBe(SETUP_FEE_EXTRA_CLP)
+    expect(SETUP_FEE_EXTRA_CLP).toBeLessThan(SETUP_FEE_BY_TIER.SIMPLE)
+    expect(SETUP_FEE_BY_TIER.SIMPLE).toBeLessThan(SETUP_FEE_BY_TIER.ESTANDAR)
+    expect(SETUP_FEE_BY_TIER.ESTANDAR).toBeLessThan(SETUP_FEE_BY_TIER.AVANZADO)
+  })
+
+  it('el checkout cobra la implementación del nivel del primer local', async () => {
+    const { createUpgradeCheckout } = await import('../billing')
+    const userId = await newUser()
+    const simple = await newBusiness(userId, null, 'SIMPLE')
+    const result = await createUpgradeCheckout(
+      { id: userId, email: 'a@b.test', stripeCustomerId: null },
+      [simple],
+      'BASICO',
+      'https://x/ok',
+      'https://x/cancel',
+      false,
+      'SIMPLE',
+    )
+    expect(result.ok).toBe(true)
+    expect(sessionsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        line_items: [
+          { price: 'price_basico', quantity: 1 },
+          { price: 'price_setup_simple', quantity: 1 },
+        ],
+      }),
+    )
+  })
+
+  it('sin el Price del nivel configurado, avisa en vez de cobrar el nivel equivocado', async () => {
+    delete process.env.STRIPE_PRICE_ID_SETUP_AVANZADO
+    const { createUpgradeCheckout } = await import('../billing')
+    const userId = await newUser()
+    const avanzado = await newBusiness(userId, null, 'AVANZADO')
+    const result = await createUpgradeCheckout(
+      { id: userId, email: 'a@b.test', stripeCustomerId: null },
+      [avanzado],
+      'BASICO',
+      'https://x/ok',
+      'https://x/cancel',
+      false,
+      'AVANZADO',
+    )
+    expect(result).toEqual({ ok: false, reason: 'Falta configurar el cobro de implementación (STRIPE_PRICE_ID_SETUP_AVANZADO).' })
+    expect(sessionsCreate).not.toHaveBeenCalled()
   })
 
   it('si todos sus negocios ya pagaron la implementación, el checkout no la vuelve a cobrar', async () => {

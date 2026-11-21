@@ -1,6 +1,20 @@
 import { COMPANY_WHATSAPP_URL } from '@/lib/legal'
-import { BUSINESS_LIMIT, PAID_PLANS, PLAN_LABEL, PLAN_MONTHLY_CLP, SETUP_FEE_CLP, SETUP_FEE_EXTRA_CLP, type PaidPlan } from '@/lib/plans'
+import {
+  BUSINESS_LIMIT,
+  PAID_PLANS,
+  PLAN_LABEL,
+  PLAN_MONTHLY_CLP,
+  SETUP_FEE_BY_TIER,
+  SETUP_FEE_EXTRA_CLP,
+  SETUP_TIER_DESC,
+  SETUP_TIER_LABEL,
+  SETUP_TIER_ORDER,
+  type PaidPlan,
+} from '@/lib/plans'
 import { monthlyLimit } from '@/lib/planLimits'
+
+const SETUP_MIN = SETUP_FEE_BY_TIER.SIMPLE
+const SETUP_MAX = SETUP_FEE_BY_TIER.AVANZADO
 
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`
 
@@ -53,8 +67,8 @@ export default function Precios() {
                 </p>
                 <p className="zv-price-iva">IVA incluido</p>
                 <p className="zv-price-setup">
-                  + {clp(SETUP_FEE_CLP)} de implementación, una vez
-                  <span>{negocios === 1 ? 'pago único' : `cada local adicional: ${clp(SETUP_FEE_EXTRA_CLP)}`}</span>
+                  + {clp(SETUP_MIN)}–{clp(SETUP_MAX)} de implementación, una vez
+                  <span>{negocios === 1 ? 'según lo que actives' : `cada local adicional: ${clp(SETUP_FEE_EXTRA_CLP)}`}</span>
                 </p>
                 <ul className="zv-price-list">
                   <li>{negocios === null ? 'Negocios sin límite' : negocios === 1 ? '1 negocio' : `Hasta ${negocios} negocios`}</li>
@@ -83,10 +97,12 @@ export default function Precios() {
         <div className="zv-setup" data-reveal>
           <div className="zv-setup-amount" data-reveal-item>
             <p className="zv-setup-k">Implementación · pago único</p>
-            <p className="zv-setup-v">{clp(SETUP_FEE_CLP)}</p>
-            <p className="zv-setup-s">tu primer local · IVA incluido</p>
+            <p className="zv-setup-v">
+              {clp(SETUP_MIN)}–{clp(SETUP_MAX)}
+            </p>
+            <p className="zv-setup-s">tu primer local, según lo que actives · IVA incluido</p>
             <p className="zv-setup-v2">
-              + {clp(SETUP_FEE_EXTRA_CLP)} <span>cada local adicional</span>
+              + {clp(SETUP_FEE_EXTRA_CLP)} <span>cada local adicional, siempre al mismo precio</span>
             </p>
           </div>
           <div data-reveal-item>
@@ -100,9 +116,20 @@ export default function Precios() {
                 propio de ese local (su número, su carta o su agenda).
               </li>
             </ul>
+            <div className="zv-setup-tiers">
+              {SETUP_TIER_ORDER.map((tier) => (
+                <div key={tier} className="zv-setup-tier">
+                  <p className="zv-setup-tier-name">
+                    {SETUP_TIER_LABEL[tier]} <span>{clp(SETUP_FEE_BY_TIER[tier])}</span>
+                  </p>
+                  <p className="zv-setup-tier-desc">{SETUP_TIER_DESC[tier]}</p>
+                </div>
+              ))}
+            </div>
             <p className="zv-setup-note">
-              Un agente con IA hecho a medida suele costar desde $300.000 en Chile. Esta implementación se recupera con unos{' '}
-              {Math.ceil(SETUP_FEE_CLP / TICKET_EJEMPLO)} clientes que antes se perdían, y se paga una sola vez.
+              Un agente con IA hecho a medida suele costar desde $300.000 en Chile, incluso en su versión más simple. Esta
+              implementación se recupera con unos {Math.ceil(SETUP_MIN / TICKET_EJEMPLO)} a{' '}
+              {Math.ceil(SETUP_MAX / TICKET_EJEMPLO)} clientes que antes se perdían, y se paga una sola vez.
             </p>
           </div>
         </div>

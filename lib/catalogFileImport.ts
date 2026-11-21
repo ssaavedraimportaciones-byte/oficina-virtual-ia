@@ -1,5 +1,5 @@
 import { getProvider } from './llm'
-import { callVisionText } from './receipts'
+import { callVisionText, UnsupportedImageError } from './receipts'
 import { toPesos, type CatalogItem } from './integrations/types'
 
 /**
@@ -74,7 +74,13 @@ async function extractWithTextModel(text: string): Promise<CatalogItem[]> {
 /** Foto o escaneo de la carta: se manda directo a un modelo con visión. */
 export async function parseImageCatalog(bytes: Uint8Array, mimeType: string): Promise<CatalogItem[]> {
   if (bytes.length > MAX_FILE_BYTES) throw new CatalogFileError('La imagen es muy pesada (máximo 10 MB).')
-  const text = await callVisionText(bytes, mimeType, ITEMS_PROMPT)
+  let text: string | null
+  try {
+    text = await callVisionText(bytes, mimeType, ITEMS_PROMPT)
+  } catch (error) {
+    if (error instanceof UnsupportedImageError) throw new CatalogFileError(error.message)
+    throw error
+  }
   if (text === null) {
     throw new CatalogFileError('No hay un modelo de IA con visión configurado para leer imágenes.')
   }

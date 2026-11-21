@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PLAN_LABEL } from '@/lib/plans'
-import type { Plan } from '@/lib/generated/prisma/enums'
+import { PLAN_LABEL, SETUP_FEE_BY_TIER, SETUP_TIER_DESC, SETUP_TIER_LABEL, SETUP_TIER_ORDER } from '@/lib/plans'
+import type { Plan, SetupTier } from '@/lib/generated/prisma/enums'
+
+const clp = (n: number) => `$${n.toLocaleString('es-CL')}`
 
 export interface BusinessRow {
   businessId: string
@@ -15,6 +17,8 @@ export interface BusinessRow {
   replyLimitOverride: number | null
   adminNotes: string
   rut: string | null
+  setupTier: SetupTier
+  setupFeePaidAt: Date | null
 }
 
 function Row({ row }: { row: BusinessRow }) {
@@ -22,10 +26,15 @@ function Row({ row }: { row: BusinessRow }) {
   const [limit, setLimit] = useState(row.replyLimitOverride === null ? '' : String(row.replyLimitOverride))
   const [notes, setNotes] = useState(row.adminNotes)
   const [rut, setRut] = useState(row.rut ?? '')
+  const [tier, setTier] = useState<SetupTier>(row.setupTier)
   const [busy, setBusy] = useState(false)
   const [state, setState] = useState<'idle' | 'saved' | 'error'>('idle')
 
-  const dirty = limit !== (row.replyLimitOverride === null ? '' : String(row.replyLimitOverride)) || notes !== row.adminNotes || rut !== (row.rut ?? '')
+  const dirty =
+    limit !== (row.replyLimitOverride === null ? '' : String(row.replyLimitOverride)) ||
+    notes !== row.adminNotes ||
+    rut !== (row.rut ?? '') ||
+    tier !== row.setupTier
 
   async function save() {
     setBusy(true)
@@ -33,7 +42,12 @@ function Row({ row }: { row: BusinessRow }) {
     const res = await fetch(`/api/admin/businesses/${row.businessId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminNotes: notes, replyLimitOverride: limit.trim() === '' ? null : Number(limit), rut: rut.trim() === '' ? null : rut }),
+      body: JSON.stringify({
+        adminNotes: notes,
+        replyLimitOverride: limit.trim() === '' ? null : Number(limit),
+        rut: rut.trim() === '' ? null : rut,
+        setupTier: tier,
+      }),
     })
     setBusy(false)
     setState(res.ok ? 'saved' : 'error')
@@ -71,6 +85,24 @@ function Row({ row }: { row: BusinessRow }) {
         />
       </td>
       <td className="px-4 py-3">
+        <select
+          value={tier}
+          onChange={(e) => setTier(e.target.value as SetupTier)}
+          className="input w-32"
+          aria-label={`Nivel de implementación de ${row.name}`}
+          title={SETUP_TIER_DESC[tier]}
+        >
+          {SETUP_TIER_ORDER.map((t) => (
+            <option key={t} value={t}>
+              {SETUP_TIER_LABEL[t]} · {clp(SETUP_FEE_BY_TIER[t])}
+            </option>
+          ))}
+        </select>
+        <div className="mt-1 text-[0.65rem] text-gray-600">
+          {row.setupFeePaidAt ? 'Ya pagada: no cambia lo cobrado' : 'Pendiente de pagar'}
+        </div>
+      </td>
+      <td className="px-4 py-3">
         <textarea
           rows={2}
           maxLength={2000}
@@ -103,6 +135,7 @@ export default function BusinessLimitsTable({ rows }: { rows: BusinessRow[] }) {
             <th className="px-4 py-3 font-medium">Respuestas del mes</th>
             <th className="px-4 py-3 font-medium">Límite manual</th>
             <th className="px-4 py-3 font-medium">RUT</th>
+            <th className="px-4 py-3 font-medium">Implementación</th>
             <th className="px-4 py-3 font-medium">Notas internas</th>
             <th className="px-4 py-3" />
           </tr>

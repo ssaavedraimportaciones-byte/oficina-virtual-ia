@@ -3814,3 +3814,38 @@
   font-size: 0.88rem;
   color: var(--zv-dim);
 }
+.zv-setup-tiers {
+  margin: 0.9rem 0 0;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 760px) {
+  .zv-setup-tiers {
+    grid-template-columns: 1fr;
+  }
+}
+.zv-setup-tier {
+  border: 1px solid var(--zv-line);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+}
+.zv-setup-tier-name {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--zv-bone);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.zv-setup-tier-name span {
+  color: var(--zv-amber);
+  font-weight: 700;
+}
+.zv-setup-tier-desc {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--zv-dim);
+}

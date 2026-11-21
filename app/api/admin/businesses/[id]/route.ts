@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requirePlatformAdmin } from '@/lib/authz'
 import { setBusinessAdminMeta } from '@/lib/platform'
+import { SETUP_TIER_ORDER } from '@/lib/plans'
 import { normalizeRut } from '@/lib/rut'
 
 const schema = z.object({
@@ -10,6 +11,8 @@ const schema = z.object({
   replyLimitOverride: z.number().int().min(0).max(1_000_000).nullable().optional(),
   // null o vacío = sin RUT. Se valida el dígito verificador y se guarda normalizado.
   rut: z.string().max(20).nullable().optional(),
+  // Nivel de la implementación del primer local (ver lib/plans.ts).
+  setupTier: z.enum(SETUP_TIER_ORDER).optional(),
 })
 
 /** Notas internas y límite mensual de respuestas de una empresa. Solo administradores de plataforma. */

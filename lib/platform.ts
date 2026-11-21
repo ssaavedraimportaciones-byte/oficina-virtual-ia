@@ -1,6 +1,6 @@
 import { prisma } from './db'
 import { getAgentUsage, monthlyLimit, type AgentUsage } from './usage'
-import { isPaidPlan, type PlanName } from './plans'
+import { isPaidPlan, type PlanName, type SetupTier } from './plans'
 
 /**
  * Lo que solo ve y toca el dueño de la plataforma: modo mantenimiento, avisos a
@@ -97,12 +97,14 @@ export interface BusinessAdminMeta {
   replyLimitOverride: number | null
   /** RUT de la empresa (normalizado), para facturar y para la API v1. */
   rut: string | null
+  /** Nivel de la implementación del primer local (ver lib/plans.ts). */
+  setupTier: SetupTier
 }
 
 export async function getBusinessAdminMeta(businessId: string): Promise<BusinessAdminMeta | null> {
   const row = await prisma.business.findUnique({
     where: { id: businessId },
-    select: { adminNotes: true, replyLimitOverride: true, rut: true },
+    select: { adminNotes: true, replyLimitOverride: true, rut: true, setupTier: true },
   })
   return row
 }
@@ -118,8 +120,9 @@ export async function setBusinessAdminMeta(
         ...(input.adminNotes !== undefined ? { adminNotes: input.adminNotes } : {}),
         ...(input.replyLimitOverride !== undefined ? { replyLimitOverride: input.replyLimitOverride } : {}),
         ...(input.rut !== undefined ? { rut: input.rut } : {}),
+        ...(input.setupTier !== undefined ? { setupTier: input.setupTier } : {}),
       },
-      select: { adminNotes: true, replyLimitOverride: true, rut: true },
+      select: { adminNotes: true, replyLimitOverride: true, rut: true, setupTier: true },
     })
     .catch(() => null)
   return row
@@ -238,6 +241,8 @@ export interface BusinessAdminRow {
   replyLimitOverride: number | null
   adminNotes: string
   rut: string | null
+  setupTier: SetupTier
+  setupFeePaidAt: Date | null
 }
 
 /** Todas las empresas de la plataforma, con su consumo, su límite y las notas del propietario. */
@@ -249,6 +254,8 @@ export async function listBusinessAdminRows(now: Date = new Date()): Promise<Bus
       businessName: true,
       adminNotes: true,
       replyLimitOverride: true,
+      setupTier: true,
+      setupFeePaidAt: true,
       rut: true,
       members: { where: { role: 'OWNER' }, select: { user: { select: { email: true } } } },
     },
@@ -266,6 +273,8 @@ export async function listBusinessAdminRows(now: Date = new Date()): Promise<Bus
         replyLimitOverride: row.replyLimitOverride,
         adminNotes: row.adminNotes,
         rut: row.rut,
+        setupTier: row.setupTier,
+        setupFeePaidAt: row.setupFeePaidAt,
       }
     }),
   )

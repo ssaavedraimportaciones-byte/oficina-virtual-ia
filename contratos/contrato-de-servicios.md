@@ -69,10 +69,18 @@ El Cliente contrata el plan marcado:
 | ☐ | Negocios | hasta 3 | 4.000 | $95.000 |
 | ☐ | Ilimitado | sin límite | 10.000 | $160.000 |
 
-**Implementación (pago único, IVA incluido):** **$190.000 por el primer local** y **$90.000 por
-cada local adicional** (cada local con su propio número de WhatsApp).
-Locales a conectar: **[cantidad]** → total implementación: **$[monto]**
-(ejemplo: 3 locales = $190.000 + 2 × $90.000 = $370.000).
+**Implementación del primer local (pago único, IVA incluido), según lo que se active:**
+
+| Nivel | Qué incluye | Precio |
+|---|---|---|
+| ☐ Simple | Un solo canal, solo agenda o solo catálogo, sin cobros integrados | $150.000 |
+| ☐ Estándar | Agenda o catálogo con cobros, ticket de cocina o avisos de stock | $190.000 |
+| ☐ Avanzado | Mesas con croquis, pedidos, cobros y más de un canal (WhatsApp e Instagram) | $250.000 |
+
+**Cada local adicional del mismo Cliente** (con su propio número de WhatsApp) paga **$90.000**,
+sin importar el nivel del primero.
+Locales a conectar: **[cantidad]** · Nivel del primero: **[nivel]** → total implementación: **$[monto]**
+(ejemplo: nivel Estándar + 3 locales = $190.000 + 2 × $90.000 = $370.000).
 
 1. Todos los valores están expresados en **pesos chilenos e incluyen el IVA**.
 2. La denominación "Ilimitado" se refiere a la cantidad de negocios, **no** a la de respuestas del

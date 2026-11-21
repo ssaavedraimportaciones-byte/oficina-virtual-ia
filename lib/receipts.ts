@@ -254,9 +254,19 @@ export function visionConfig():
  * visión configurado. La usan tanto la lectura de comprobantes como la
  * importación de catálogo desde una foto de la carta.
  */
+/** Formatos que los modelos con visión aceptan de verdad. HEIC (el que usa un iPhone por defecto) no está. */
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+export class UnsupportedImageError extends Error {}
+
 export async function callVisionText(bytes: Uint8Array, mimeType: string, prompt: string): Promise<string | null> {
   const config = visionConfig()
   if (!config) return null
+  if (!SUPPORTED_IMAGE_TYPES.has(mimeType)) {
+    throw new UnsupportedImageError(
+      'Ese formato de imagen no se puede leer (si es HEIC de iPhone, cámbiale el formato a "Más compatible" en Ajustes > Cámara, o convierte la foto a JPG o PNG antes de subirla).',
+    )
+  }
   const b64 = Buffer.from(bytes).toString('base64')
 
   if (config.kind === 'anthropic') {

@@ -64,11 +64,8 @@ export default function ImportCatalog({ businessId, onImported }: { businessId: 
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mt-4 text-sm text-amber-400 hover:underline"
-      >
-        Importar catálogo desde tu tienda →
+      <button onClick={() => setOpen(true)} className="mt-3 block text-xs text-gray-500 hover:text-amber-400">
+        ¿Vendes también en una tienda online (WooCommerce o Jumpseller)? Trae tu catálogo de ahí →
       </button>
     )
   }

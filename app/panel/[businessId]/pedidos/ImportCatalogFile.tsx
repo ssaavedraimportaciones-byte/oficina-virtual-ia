@@ -89,8 +89,11 @@ export default function ImportCatalogFile({ businessId, onImported }: { business
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="ml-4 mt-4 text-sm text-amber-400 hover:underline">
-        Subir una foto, PDF o Excel de tu carta →
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-3 flex items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/5 px-4 py-2.5 text-sm font-medium text-amber-300 hover:bg-amber-500/10"
+      >
+        📷 Subir una foto, PDF o Excel de tu carta
       </button>
     )
   }

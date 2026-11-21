@@ -339,8 +339,15 @@ export default function PedidosPage() {
           </button>
         </form>
 
-        <ImportCatalogFile businessId={businessId} onImported={load} />
-        <ImportCatalog businessId={businessId} onImported={load} />
+        <div className="mt-6 border-t border-gray-800 pt-5">
+          <p className="text-sm font-medium text-gray-200">¿Tienes varios productos? Carga todos de una vez</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Lo más simple: una foto de tu carta con el celular. También sirve un PDF o un Excel/CSV si ya los
+            tienes.
+          </p>
+          <ImportCatalogFile businessId={businessId} onImported={load} />
+          <ImportCatalog businessId={businessId} onImported={load} />
+        </div>
       </section>
 
       <section className="mt-8">

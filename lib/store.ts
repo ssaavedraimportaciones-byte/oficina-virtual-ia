@@ -1,6 +1,7 @@
 import { prisma } from './db'
 import type { Prisma } from './generated/prisma/client'
-import { checkOrder, type RequestedItem } from './catalog'
+import { checkOrder, isSoldOut, type RequestedItem } from './catalog'
+import { applyIngredientLimits, consumeForOrder, IngredientShortError, loadInventory, onOrderCancelChange } from './inventory'
 import { decryptOptional, encryptOptional } from './secrets'
 import type { SessionUser } from './auth'
 import type {
@@ -662,6 +663,16 @@ export async function listProducts(businessId: string): Promise<Product[]> {
   return rows.map(mapProduct)
 }
 
+/**
+ * El catálogo tal como se puede vender ahora: si el local usa inventario de
+ * materia prima, cada producto con receta muestra lo que alcanzan sus
+ * ingredientes (y queda agotado si falta uno). Es lo que ve el agente.
+ */
+export async function listSellableProducts(businessId: string): Promise<Product[]> {
+  const [products, inventory] = await Promise.all([listProducts(businessId), loadInventory(businessId)])
+  return inventory ? applyIngredientLimits(products, inventory.ingredients, inventory.recipes) : products
+}
+
 export async function addProduct(
   input: Pick<Product, 'businessId' | 'name' | 'price' | 'stock'>,
 ): Promise<Product> {
@@ -776,15 +787,18 @@ export async function createOrder(input: {
 }): Promise<CreateOrderResult> {
   try {
     return await prisma.$transaction(async (tx) => {
-      const products = (await tx.product.findMany({ where: { businessId: input.businessId } })).map(
-        mapProduct,
-      )
+      const stored = (await tx.product.findMany({ where: { businessId: input.businessId } })).map(mapProduct)
+      // Con inventario de materia prima, el stock que se valida es lo que
+      // alcanzan los ingredientes; el stock propio del producto sigue aparte.
+      const inventory = await loadInventory(input.businessId, tx)
+      const products = inventory ? applyIngredientLimits(stored, inventory.ingredients, inventory.recipes) : stored
+      const storedStock = new Map(stored.map((p) => [p.id, p.stock]))
 
       const check = checkOrder(products, input.requested)
       if (!check.ok) return check
 
       for (const { product, quantity } of check.items) {
-        if (product.stock === null) continue
+        if (storedStock.get(product.id) == null) continue
         const updated = await tx.product.updateMany({
           where: { id: product.id, stock: { gte: quantity } },
           data: { stock: { decrement: quantity } },
@@ -817,10 +831,21 @@ export async function createOrder(input: {
         include: { items: true },
       })
 
+      if (inventory) {
+        await consumeForOrder(
+          tx,
+          input.businessId,
+          row.id,
+          check.items.map(({ product, quantity }) => ({ productId: product.id, quantity })),
+          inventory.recipes,
+          inventory.ingredients,
+        )
+      }
+
       return { ok: true, order: mapOrder(row) }
     })
   } catch (error) {
-    if (error instanceof StockRaceError) return { ok: false, reason: error.message }
+    if (error instanceof StockRaceError || error instanceof IngredientShortError) return { ok: false, reason: error.message }
     throw error
   }
 }
@@ -850,6 +875,14 @@ export async function setOrderStatus(id: string, status: Order['status']): Promi
           data: { stock: 0 },
         })
       }
+      // La materia prima que usó el pedido vuelve (o se descuenta de nuevo).
+      await onOrderCancelChange(
+        tx,
+        existing.businessId,
+        existing.id,
+        willCancel,
+        existing.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      )
     }
 
     const row = await tx.order.update({
@@ -868,7 +901,51 @@ export interface BusinessOverview {
   knowledgeCount: number
   pendingOrders: number
   soldOutProducts: number
+  /** Ingredientes agotados o bajo el mínimo (solo con inventario de materia prima). */
+  ingredientsToRestock: number
+  /** Lo que el local tiene activo, en palabras, para el panel del dueño de la plataforma. */
+  services: string[]
   lastActivityAt: string | null
+}
+
+type ServiceFacts = {
+  services: number
+  products: number
+  tables: boolean
+  sales: {
+    paymentsEnabled: boolean
+    mercadoPagoToken: string | null
+    autoConfirmReceipts: boolean
+    ordersOnlyInHours: boolean
+    preorderMinutes: number
+    orderCutoffMinutes: number
+    kitchenEnabled: boolean
+    ingredientsEnabled: boolean
+    stockAlertsEnabled: boolean
+  } | null
+}
+
+/** Los servicios activos de un local, con el mismo nombre que ve el local en su panel. */
+export function describeServices(f: ServiceFacts): string[] {
+  const out: string[] = []
+  if (f.services > 0) out.push('Agenda')
+  if (f.tables) out.push('Reservas de mesa')
+  if (f.products > 0) out.push('Pedidos')
+  const s = f.sales
+  if (!s) return out
+  if (s.paymentsEnabled) out.push('Cobro antes de preparar')
+  if (s.mercadoPagoToken) out.push('Mercado Pago')
+  if (s.autoConfirmReceipts) out.push('Comprobantes automáticos')
+  if (s.ordersOnlyInHours) {
+    const extra = [s.preorderMinutes ? `desde ${s.preorderMinutes} min antes` : '', s.orderCutoffMinutes ? `hasta ${s.orderCutoffMinutes} min antes de cerrar` : '']
+      .filter(Boolean)
+      .join(', ')
+    out.push(`Horario de pedidos${extra ? ` (${extra})` : ''}`)
+  }
+  if (s.kitchenEnabled) out.push('Ticket de cocina')
+  if (s.ingredientsEnabled) out.push('Inventario de materia prima')
+  if (s.stockAlertsEnabled) out.push('Avisos de stock')
+  return out
 }
 
 /**
@@ -919,6 +996,35 @@ export async function getAdminOverview(): Promise<BusinessOverview[]> {
   const pendingOrderCounts = countBy(orders)
   const soldOutCounts = countBy(products)
 
+  // Servicios activos de cada local (una consulta por tipo, no por negocio).
+  const [salesRows, serviceRows, productRows, tableRows, restockRows] = await Promise.all([
+    prisma.salesSettings.findMany(),
+    prisma.service.groupBy({ by: ['businessId'], _count: { _all: true } }),
+    prisma.product.groupBy({ by: ['businessId'], _count: { _all: true } }),
+    prisma.$queryRaw<{ businessId: string }[]>`
+      SELECT DISTINCT f."businessId" AS "businessId"
+      FROM floor_elements e JOIN floors f ON f.id = e."floorId"
+      WHERE e.kind = 'mesa' AND e.reservable AND e.seats > 0
+    `,
+    prisma.$queryRaw<{ businessId: string; total: bigint }[]>`
+      SELECT "businessId", COUNT(*) AS total FROM ingredients
+      WHERE stock <= 0 OR ("minStock" > 0 AND stock <= "minStock")
+      GROUP BY "businessId"
+    `,
+  ])
+  const salesBy = new Map(salesRows.map((r) => [r.businessId, r]))
+  const serviceCounts = countBy(serviceRows)
+  const productCounts = countBy(productRows)
+  const withTables = new Set(tableRows.map((r) => r.businessId))
+  const restockCounts = new Map(restockRows.map((r) => [r.businessId, Number(r.total)]))
+
+  // Locales con inventario de materia prima: un producto también está agotado
+  // si le falta un ingrediente. Son pocos, así que se recalculan aparte.
+  for (const row of salesRows.filter((r) => r.ingredientsEnabled)) {
+    const sellable = await listSellableProducts(row.businessId)
+    soldOutCounts.set(row.businessId, sellable.filter((p) => p.active && isSoldOut(p)).length)
+  }
+
   return businesses
     .map((business) => ({
       business: mapBusiness(business),
@@ -927,6 +1033,13 @@ export async function getAdminOverview(): Promise<BusinessOverview[]> {
       knowledgeCount: knowledgeCounts.get(business.id) ?? 0,
       pendingOrders: pendingOrderCounts.get(business.id) ?? 0,
       soldOutProducts: soldOutCounts.get(business.id) ?? 0,
+      ingredientsToRestock: salesBy.get(business.id)?.ingredientsEnabled ? (restockCounts.get(business.id) ?? 0) : 0,
+      services: describeServices({
+        services: serviceCounts.get(business.id) ?? 0,
+        products: productCounts.get(business.id) ?? 0,
+        tables: withTables.has(business.id),
+        sales: salesBy.get(business.id) ?? null,
+      }),
       lastActivityAt: lastActivity.get(business.id) ?? null,
     }))
     .sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? ''))
@@ -970,7 +1083,8 @@ export async function getBusinessAnalytics(businessId: string): Promise<Business
       where: { businessId, status: { not: 'cancelado' } },
       _sum: { total: true },
     }),
-    prisma.product.count({ where: { businessId, active: true, stock: { lte: 0 } } }),
+    // Con inventario de materia prima, también cuenta lo que no alcanza a prepararse.
+    listSellableProducts(businessId).then((list) => list.filter((p) => p.active && isSoldOut(p)).length),
     prisma.knowledgeEntry.count({ where: { businessId } }),
   ])
 

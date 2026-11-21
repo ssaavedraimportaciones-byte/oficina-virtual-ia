@@ -100,7 +100,7 @@ export default function SalesSettingsPanel({
 
   return (
     <section className="mt-6 rounded-lg border border-gray-800 p-6">
-      <h2 className="font-medium text-white">{food ? 'Cobros, horario de pedidos, cocina e inventario' : 'Cobros, cocina e inventario'}</h2>
+      <h2 className="font-medium text-white">{food ? 'Cobros, horario de pedidos, cocina e inventario' : 'Cobros e inventario'}</h2>
       <p className="mt-1 text-sm text-gray-400">Activa solo lo que te sirva. Puedes apagarlo cuando quieras.</p>
 
       <div className="mt-4 flex flex-col gap-3">
@@ -263,6 +263,24 @@ export default function SalesSettingsPanel({
         </Block>
         )}
 
+        {(food || s.ingredientsEnabled) && (
+          <Block
+            icon="🥑"
+            title="Inventario de materia prima y costos"
+            desc="Carga tus ingredientes y la receta de cada producto: cada venta descuenta lo que usa, el agente deja de ofrecer lo que no alcanzas a preparar y ves cuánto te cuesta y cuánto ganas con cada producto."
+            checked={s.ingredientsEnabled}
+            onToggle={async (v) => {
+              // El menú del panel se arma en el servidor: se recarga para que aparezca o se vaya.
+              if (await save({ ingredientsEnabled: v })) window.location.reload()
+            }}
+          >
+            <Link href={`/panel/${businessId}/inventario`} className="w-fit text-sm font-medium text-amber-300 hover:text-amber-200">
+              Ir a Inventario y costos →
+            </Link>
+          </Block>
+        )}
+
+        {(food || s.kitchenEnabled) && (
         <Block
           icon="🧾"
           title="Ticket para la cocina"
@@ -277,6 +295,7 @@ export default function SalesSettingsPanel({
             Ábrela en el computador o tablet conectado a la impresora (térmica de 80 mm o normal) y deja activada la impresión automática.
           </span>
         </Block>
+        )}
 
         <Block
           icon="📦"

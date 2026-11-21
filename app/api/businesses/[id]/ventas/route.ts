@@ -24,6 +24,7 @@ const schema = z.object({
   ordersOnlyInHours: z.boolean().optional(),
   preorderMinutes: z.number().int().min(0).max(MAX_PREORDER_MINUTES).optional(),
   orderCutoffMinutes: z.number().int().min(0).max(MAX_CUTOFF_MINUTES).optional(),
+  ingredientsEnabled: z.boolean().optional(),
 })
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

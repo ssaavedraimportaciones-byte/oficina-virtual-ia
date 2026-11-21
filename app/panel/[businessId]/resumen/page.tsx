@@ -3,6 +3,10 @@ import { formatPrice } from '@/lib/catalog'
 import { getAgentUsage } from '@/lib/usage'
 import { PLAN_LABEL } from '@/lib/plans'
 import SetupNext from '../SetupNext'
+import Link from 'next/link'
+import { getSalesSettings } from '@/lib/payments'
+import { getInventoryReport, listIngredients } from '@/lib/inventory'
+import { startOfBusinessMonth } from '@/lib/timezone'
 
 function Stat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
@@ -19,7 +23,15 @@ export default async function ResumenPage({
   params: Promise<{ businessId: string }>
 }) {
   const { businessId } = await params
-  const [stats, usage] = await Promise.all([getBusinessAnalytics(businessId), getAgentUsage(businessId)])
+  const [stats, usage, sales] = await Promise.all([
+    getBusinessAnalytics(businessId),
+    getAgentUsage(businessId),
+    getSalesSettings(businessId),
+  ])
+  const [inv, ingredients] = sales.ingredientsEnabled
+    ? await Promise.all([getInventoryReport(businessId, startOfBusinessMonth()), listIngredients(businessId)])
+    : [null, []]
+  const toRestock = ingredients.filter((i) => i.stock <= 0 || (i.minStock > 0 && i.stock <= i.minStock)).length
 
   return (
     <div className="px-4 py-8 sm:px-8 sm:py-10">
@@ -60,6 +72,23 @@ export default async function ResumenPage({
           accent={stats.soldOutProducts > 0}
         />
       </div>
+
+      {inv && (
+        <>
+          <h2 className="mt-10 flex items-baseline justify-between text-sm font-medium uppercase tracking-wide text-gray-500">
+            Inventario y costos · este mes
+            <Link href={`/panel/${businessId}/inventario`} className="text-xs normal-case tracking-normal text-amber-300 hover:text-amber-200">
+              Ver detalle →
+            </Link>
+          </h2>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Costo de la materia prima vendida" value={formatPrice(inv.costOfSales)} />
+            <Stat label="Ganancia bruta (con receta)" value={formatPrice(inv.revenueWithRecipe - inv.costOfSales)} />
+            <Stat label="Compras de mercadería" value={formatPrice(inv.purchases)} />
+            <Stat label="Ingredientes por reponer" value={toRestock} accent={toRestock > 0} />
+          </div>
+        </>
+      )}
     </div>
   )
 }

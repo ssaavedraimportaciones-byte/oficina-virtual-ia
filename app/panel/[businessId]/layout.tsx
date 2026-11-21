@@ -66,6 +66,9 @@ export default async function BusinessLayout({
     ...(sales.kitchenEnabled
       ? [{ href: `${base}/cocina`, label: 'Cocina', hint: 'Pedidos por preparar y sus tickets', icon: '🧾' }]
       : []),
+    ...(sales.ingredientsEnabled
+      ? [{ href: `${base}/inventario`, label: 'Inventario y costos', hint: 'Materia prima, recetas y ganancias', icon: '📦' }]
+      : []),
     ...(hasTables
       ? [
           {

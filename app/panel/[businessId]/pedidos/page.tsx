@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { formatPrice, isSoldOut } from '@/lib/catalog'
 import { resizeForUpload } from '@/lib/imageResize'
 import type { Order, OrderStatus, PaymentStatus, Product, SalesSettings } from '@/lib/types'
@@ -63,6 +64,8 @@ export default function PedidosPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [sales, setSales] = useState<SalesSettings | null>(null)
   const [food, setFood] = useState(false)
+  /** Unidades que alcanza la materia prima, por producto con receta (si usa inventario). */
+  const [portions, setPortions] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   const [name, setName] = useState('')
@@ -81,6 +84,7 @@ export default function PedidosPage() {
       setOrders(data.orders ?? [])
       setSales(data.sales ?? null)
       setFood(Boolean(data.food))
+      setPortions(data.portions ?? {})
     }
     setLoading(false)
   }, [businessId])
@@ -167,7 +171,8 @@ export default function PedidosPage() {
     return <div className="px-8 py-12 text-gray-500">Cargando…</div>
   }
 
-  const soldOut = products.filter((p) => p.active && isSoldOut(p))
+  const noIngredients = (p: Product) => portions[p.id] === 0
+  const soldOut = products.filter((p) => p.active && (isSoldOut(p) || noIngredients(p)))
   const pending = orders.filter((o) => o.status === 'pendiente')
 
   return (
@@ -199,8 +204,16 @@ export default function PedidosPage() {
             {soldOut.length === 1 ? 'Producto agotado' : `${soldOut.length} productos agotados`}
           </h2>
           <p className="mt-1 text-sm text-gray-400">
-            El agente ya dejó de ofrecerlos y avisa que no hay stock. Actualiza el stock abajo para
-            volver a venderlos.
+            El agente ya dejó de ofrecerlos y avisa que no hay stock. Actualiza el stock abajo
+            {Object.keys(portions).length > 0 && (
+              <>
+                {' '}o registra la compra de materia prima en{' '}
+                <Link href={`/panel/${businessId}/inventario`} className="text-amber-300 hover:text-amber-200">
+                  Inventario y costos
+                </Link>
+              </>
+            )}{' '}
+            para volver a venderlos.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {soldOut.map((product) => (
@@ -232,7 +245,7 @@ export default function PedidosPage() {
         {products.length > 0 && (
           <div className="mt-4 flex flex-col divide-y divide-gray-800 rounded-md border border-gray-800">
             {products.map((product) => {
-              const agotado = isSoldOut(product)
+              const agotado = isSoldOut(product) || noIngredients(product)
               return (
                 <div
                   key={product.id}
@@ -281,6 +294,14 @@ export default function PedidosPage() {
                       {!product.active && (
                         <span className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] uppercase text-gray-500">
                           Pausado
+                        </span>
+                      )}
+                      {product.active && portions[product.id] > 0 && (
+                        <span
+                          title="Lo que alcanza tu materia prima (Inventario y costos)"
+                          className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] uppercase text-gray-400"
+                        >
+                          Alcanza para {portions[product.id]}
                         </span>
                       )}
                       {!agotado &&

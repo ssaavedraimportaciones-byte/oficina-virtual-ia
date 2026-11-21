@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireBusinessAccess } from '@/lib/authz'
 import { addProduct, getBusiness, listOrders, listProducts } from '@/lib/store'
 import { isFoodBusiness } from '@/lib/industries'
+import { loadInventory, portionsAvailable } from '@/lib/inventory'
 import { expireUnpaidOrders, getSalesSettings } from '@/lib/payments'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -12,14 +13,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   // Los pedidos que vencieron sin pago se anulan antes de mostrarse (y el stock vuelve).
   await expireUnpaidOrders(id)
-  const [products, orders, sales, business] = await Promise.all([
+  const [products, orders, sales, business, inventory] = await Promise.all([
     listProducts(id),
     listOrders(id),
     getSalesSettings(id),
     getBusiness(id),
+    loadInventory(id),
   ])
+  // Con inventario de materia prima: cuántas unidades alcanzan para cada producto con receta.
+  const portions: Record<string, number> = {}
+  if (inventory) {
+    for (const p of products) {
+      const n = portionsAvailable(p.id, inventory.ingredients, inventory.recipes)
+      if (n !== null) portions[p.id] = n
+    }
+  }
   // food: muestra las opciones pensadas para cocina (horario para recibir pedidos)
-  return NextResponse.json({ products, orders, sales, food: business ? isFoodBusiness(business) : false })
+  return NextResponse.json({ products, orders, sales, portions, food: business ? isFoodBusiness(business) : false })
 }
 
 const productSchema = z.object({

@@ -29,7 +29,7 @@ import {
   addAppointment,
   createOrder,
   listAppointments,
-  listProducts,
+  listSellableProducts,
   listProfessionals,
   listServices,
   setAgentPaused,
@@ -407,7 +407,7 @@ async function runConsultarCatalogo(
   ctx: ToolContext,
   input: { busqueda?: string },
 ): Promise<string> {
-  const products = (await listProducts(ctx.business.id)).filter((p) => p.active)
+  const products = (await listSellableProducts(ctx.business.id)).filter((p) => p.active)
   if (products.length === 0) {
     return 'El negocio todavía no cargó su catálogo, así que no puedo confirmar productos ni precios. Tómale el pedido y dile que se lo confirmas a la brevedad.'
   }
@@ -479,6 +479,7 @@ async function runCrearPedido(
     ctx.business.id,
     ctx.business.config.businessName,
     result.order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+    result.order.id,
   ).catch((error) => console.error('[crear_pedido] aviso de stock:', error))
 
   const payment = await requestPayment(result.order, ctx.business.config.businessName)

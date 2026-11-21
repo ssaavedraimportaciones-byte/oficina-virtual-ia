@@ -64,7 +64,7 @@ export default async function AdminPage() {
   const instagramVerify = Boolean(process.env.INSTAGRAM_VERIFY_TOKEN)
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-12">
+    <div className="mx-auto max-w-6xl px-8 py-12">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Panel del dueño del sistema</h1>
@@ -159,6 +159,7 @@ export default async function AdminPage() {
                   <th className="px-4 py-3 font-medium">Convs.</th>
                   <th className="px-4 py-3 font-medium">Msjs.</th>
                   <th className="px-4 py-3 font-medium">Datos</th>
+                  <th className="px-4 py-3 font-medium">Servicios</th>
                   <th className="px-4 py-3 font-medium">Alertas</th>
                   <th className="px-4 py-3 font-medium">Última actividad</th>
                   <th className="px-4 py-3" />
@@ -209,7 +210,25 @@ export default async function AdminPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
+                        {item.services.length === 0 ? (
+                          <span className="text-xs text-gray-600">Solo responde</span>
+                        ) : (
+                          <div className="flex max-w-[16rem] flex-wrap gap-1">
+                            {item.services.map((s) => (
+                              <span key={s} className="rounded-md border border-gray-700 px-2 py-0.5 text-[11px] leading-snug text-gray-300">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex flex-col gap-1 text-xs">
+                          {item.ingredientsToRestock > 0 && (
+                            <span className="text-danger">
+                              {item.ingredientsToRestock} ingrediente{item.ingredientsToRestock === 1 ? '' : 's'} por reponer
+                            </span>
+                          )}
                           {item.soldOutProducts > 0 && (
                             <span className="text-danger">
                               {item.soldOutProducts} agotado{item.soldOutProducts === 1 ? '' : 's'}
@@ -220,7 +239,7 @@ export default async function AdminPage() {
                               {item.pendingOrders} pedido{item.pendingOrders === 1 ? '' : 's'}
                             </span>
                           )}
-                          {item.soldOutProducts === 0 && item.pendingOrders === 0 && (
+                          {item.soldOutProducts === 0 && item.pendingOrders === 0 && item.ingredientsToRestock === 0 && (
                             <span className="text-gray-600">—</span>
                           )}
                         </div>
@@ -243,7 +262,8 @@ export default async function AdminPage() {
         )}
         <p className="mt-3 text-xs text-gray-600">
           &ldquo;Datos&rdquo; es la cantidad de entradas en la base de conocimiento: en rojo si
-          está en cero, porque ahí el agente responde sin datos del negocio.
+          está en cero, porque ahí el agente responde sin datos del negocio. &ldquo;Servicios&rdquo; es
+          lo que cada local tiene activo en su panel (se activa y apaga desde ahí, a su ritmo).
         </p>
       </section>
 

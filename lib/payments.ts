@@ -1,6 +1,7 @@
 import { appUrl } from './auth'
 import { formatPrice } from './catalog'
 import { prisma } from './db'
+import { round3, UNIT_LABEL, type Unit } from './inventory'
 import { sendInstagramMessage } from './instagram'
 import { checkMercadoPagoToken, createPaymentLink } from './mercadopago'
 import { notifyPaymentToReview, notifyStockAlert } from './notifications'
@@ -39,6 +40,7 @@ const DEFAULTS: Omit<SalesSettings, 'mercadoPagoConnected'> = {
   ordersOnlyInHours: false,
   preorderMinutes: 0,
   orderCutoffMinutes: 0,
+  ingredientsEnabled: false,
 }
 
 export async function getSalesSettings(businessId: string): Promise<SalesSettings> {
@@ -56,6 +58,7 @@ export async function getSalesSettings(businessId: string): Promise<SalesSetting
     ordersOnlyInHours: row.ordersOnlyInHours,
     preorderMinutes: row.preorderMinutes,
     orderCutoffMinutes: row.orderCutoffMinutes,
+    ingredientsEnabled: row.ingredientsEnabled,
   }
 }
 
@@ -243,13 +246,16 @@ export async function alertLowStock(
   businessId: string,
   businessName: string,
   items: { productId: string; quantity: number }[],
+  orderId?: string,
 ): Promise<string[]> {
   const settings = await getSalesSettings(businessId)
-  if (!settings.stockAlertsEnabled || items.length === 0) return []
-  const products = await prisma.product.findMany({
-    where: { businessId, id: { in: items.map((i) => i.productId) }, stock: { not: null } },
-  })
-  const lines: string[] = []
+  if (items.length === 0) return []
+  const lines: string[] = settings.ingredientsEnabled && orderId ? await ingredientAlertLines(businessId, orderId) : []
+  const products = settings.stockAlertsEnabled
+    ? await prisma.product.findMany({
+        where: { businessId, id: { in: items.map((i) => i.productId) }, stock: { not: null } },
+      })
+    : []
   for (const p of products) {
     const sold = items.find((i) => i.productId === p.id)?.quantity ?? 0
     const now = p.stock ?? 0
@@ -260,6 +266,29 @@ export async function alertLowStock(
   await notifyStockAlert(businessId, businessName, lines).catch((error) =>
     console.error('[inventario] no se pudo avisar el stock bajo:', error),
   )
+  return lines
+}
+
+/** Ingredientes que cruzaron su mínimo (o se acabaron) con este pedido. */
+async function ingredientAlertLines(businessId: string, orderId: string): Promise<string[]> {
+  const moves = await prisma.inventoryMovement.findMany({
+    where: { orderId, kind: 'consumo' },
+    include: { ingredient: { include: { recipes: { include: { product: { select: { name: true } } } } } } },
+  })
+  const lines: string[] = []
+  for (const m of moves) {
+    const ing = m.ingredient
+    const now = ing.stock
+    const before = now - m.quantity
+    const unit = UNIT_LABEL[(ing.unit as Unit) in UNIT_LABEL ? (ing.unit as Unit) : 'unidad']
+    const amount = `${round3(now).toLocaleString('es-CL')} ${unit}`
+    if (now <= 1e-9 && before > 1e-9) {
+      const affected = ing.recipes.map((r) => r.product.name)
+      lines.push(`${ing.name} (materia prima): se acabó${affected.length ? `. El agente dejó de ofrecer: ${affected.join(', ')}` : ''}`)
+    } else if (ing.minStock > 0 && now <= ing.minStock && before > ing.minStock) {
+      lines.push(`${ing.name} (materia prima): quedan ${amount}`)
+    }
+  }
   return lines
 }
 

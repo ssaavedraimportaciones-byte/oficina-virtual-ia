@@ -156,6 +156,8 @@ export interface SalesSettings {
   ordersOnlyInHours: boolean
   preorderMinutes: number
   orderCutoffMinutes: number
+  /** Inventario de materia prima con recetas y costos (lib/inventory.ts). */
+  ingredientsEnabled: boolean
 }
 
 export interface Business {

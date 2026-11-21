@@ -13,7 +13,7 @@ import {
   findOrCreateConversation,
   getConversation,
   listKnowledge,
-  listProducts,
+  listSellableProducts,
   listProfessionals,
   listServices,
 } from './store'
@@ -81,7 +81,7 @@ export async function loadAgentInputs(business: Business) {
   const [knowledge, services, products, floors, team, sales] = await Promise.all([
     listKnowledge(business.id),
     listServices(business.id),
-    listProducts(business.id),
+    listSellableProducts(business.id),
     listFloors(business.id),
     listProfessionals(business.id),
     getSalesSettings(business.id),

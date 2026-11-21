@@ -60,9 +60,9 @@ model User {
   totpSecret    String?
   totpEnabledAt DateTime?
 
-  sessions    Session[]
-  memberships BusinessMember[]
-  authTokens  AuthToken[]
+  sessions      Session[]
+  memberships   BusinessMember[]
+  authTokens    AuthToken[]
   subscriptions Subscription[]
   payments      Payment[]
   invoices      Invoice[]
@@ -150,7 +150,7 @@ model BusinessMember {
 // --- Negocios ---
 
 model Business {
-  id         String   @id @default(uuid())
+  id         String @id @default(uuid())
   templateId String
 
   // Configuración del agente (antes AgentConfig embebido).
@@ -167,21 +167,21 @@ model Business {
   // antes de llegar acá: esta tabla nunca ve el texto plano.
   /// Notas internas del dueño de la plataforma sobre esta empresa. Nunca se
   /// muestran ni se envían al panel de la empresa (ver lib/platform.ts).
-  adminNotes String @default("")
+  adminNotes         String    @default("")
   /// Límite mensual de respuestas del agente fijado a mano para esta empresa.
   /// null = vale el del plan.
   replyLimitOverride Int?
   /// RUT de la empresa cliente, para facturar y para sistemas externos
   /// (API v1). Lo carga el administrador; los clientes no lo ven editable.
-  rut String?
+  rut                String?
   /// Cuándo se pagó el cobro único de implementación DE ESTE NEGOCIO (conectar
   /// su número, cargar su información). Es por negocio, no por cliente: quien
   /// maneja 2 negocios paga la implementación 2 veces. null = todavía no.
-  setupFeePaidAt DateTime?
+  setupFeePaidAt     DateTime?
   /// Nivel de la implementación del primer local (ver SetupTier). No afecta
   /// a locales adicionales del mismo cliente, que siempre pagan el precio
   /// plano de adicional.
-  setupTier SetupTier @default(ESTANDAR)
+  setupTier          SetupTier @default(ESTANDAR)
 
   // Únicos: todos los números de todas las empresas llegan al mismo webhook y
   // se reparten por este ID; si dos empresas tuvieran el mismo, los mensajes
@@ -197,21 +197,23 @@ model Business {
 
   createdAt DateTime @default(now())
 
-  members       BusinessMember[]
-  conversations Conversation[]
-  knowledge     KnowledgeEntry[]
-  services      Service[]
-  appointments  Appointment[]
-  products      Product[]
-  orders        Order[]
-  floors        Floor[]
-  professionals Professional[]
-  reservations  TableReservation[]
-  logo          BusinessLogo?
-  sales         SalesSettings?
+  members            BusinessMember[]
+  conversations      Conversation[]
+  knowledge          KnowledgeEntry[]
+  services           Service[]
+  appointments       Appointment[]
+  products           Product[]
+  orders             Order[]
+  floors             Floor[]
+  professionals      Professional[]
+  reservations       TableReservation[]
+  logo               BusinessLogo?
+  sales              SalesSettings?
+  ingredients        Ingredient[]
+  inventoryMovements InventoryMovement[]
 
   /// Cuánto se guarda una mesa por reserva, en minutos.
-  reservationMinutes Int @default(120)
+  reservationMinutes      Int @default(120)
   /// Tolerancia: si el cliente no llegó pasados estos minutos de la hora
   /// reservada, la mesa se libera. El agente se lo avisa al confirmar.
   reservationGraceMinutes Int @default(15)
@@ -296,25 +298,25 @@ model Service {
 }
 
 model Appointment {
-  id             String   @id @default(uuid())
-  businessId     String
-  conversationId String?
-  serviceId      String?
-  serviceName    String
+  id               String   @id @default(uuid())
+  businessId       String
+  conversationId   String?
+  serviceId        String?
+  serviceName      String
   /// Quién atiende (null = el negocio no maneja personal, o cualquiera).
   professionalId   String?
   professionalName String?
-  contactName    String
-  contactHandle  String
+  contactName      String
+  contactHandle    String
   /// Fecha y hora local del negocio sin zona horaria ("2026-08-07T14:00"),
   /// a propósito: ver la nota en lib/types.ts sobre por qué no es DateTime.
-  startsAt        String
-  durationMinutes Int
-  status          String   @default("confirmado")
-  createdAt       DateTime @default(now())
+  startsAt         String
+  durationMinutes  Int
+  status           String   @default("confirmado")
+  createdAt        DateTime @default(now())
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  service  Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service      Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
 
   @@index([businessId, startsAt])
@@ -361,24 +363,24 @@ model Floor {
 /// y zonas (un área con nombre, como "Terraza"). Solo las mesas se reservan.
 model FloorElement {
   /// Lo genera el navegador al dibujar: así el croquis se guarda entero de una.
-  id       String @id
-  floorId  String
-  kind     String
-  label    String
-  x        Int
-  y        Int
-  width    Int
-  height   Int
+  id         String   @id
+  floorId    String
+  kind       String
+  label      String
+  x          Int
+  y          Int
+  width      Int
+  height     Int
   /// "rect" o "round" (solo mesas).
-  shape    String @default("rect")
-  seats    Int    @default(0)
+  shape      String   @default("rect")
+  seats      Int      @default(0)
   /// "sol", "sombra" o null. En una mesa, null = el de la ventana más cercana.
-  sun      String?
+  sun        String?
   /// Sector a mano ("Terraza", "Salón"). Vacío = la zona dibujada que la contiene.
-  zone     String @default("")
+  zone       String   @default("")
   /// true/false fuerza "junto a ventana"; null = se calcula por cercanía.
   nearWindow Boolean?
-  reservable Boolean @default(true)
+  reservable Boolean  @default(true)
 
   floor        Floor              @relation(fields: [floorId], references: [id], onDelete: Cascade)
   reservations TableReservation[]
@@ -388,17 +390,17 @@ model FloorElement {
 }
 
 model TableReservation {
-  id             String   @id @default(uuid())
-  businessId     String
+  id              String   @id @default(uuid())
+  businessId      String
   /// null si después se borró la mesa del croquis: la reserva queda igual.
-  tableId        String?
+  tableId         String?
   /// Copia del nombre de la mesa y del piso al reservar.
-  tableLabel     String
-  floorName      String
-  conversationId String?
-  contactName    String
-  contactHandle  String
-  partySize      Int
+  tableLabel      String
+  floorName       String
+  conversationId  String?
+  contactName     String
+  contactHandle   String
+  partySize       Int
   /// Hora local del negocio, igual que Appointment.startsAt.
   startsAt        String
   durationMinutes Int
@@ -429,9 +431,75 @@ model Product {
 
   business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   image    ProductImage?
+  recipe   RecipeItem[]
 
   @@index([businessId])
   @@map("products")
+}
+
+/// Materia prima del local (pan, vienesa, palta, salmón, arroz…). Opcional:
+/// solo se usa si el local activa el inventario de materia prima.
+model Ingredient {
+  id         String   @id @default(uuid())
+  businessId String
+  name       String
+  /// unidad | g | kg | ml | l
+  unit       String   @default("unidad")
+  /// Cantidad disponible, en `unit`.
+  stock      Float    @default(0)
+  /// Costo por unidad de medida (CLP), promedio ponderado de las compras.
+  unitCost   Float    @default(0)
+  /// Aviso cuando baja de esta cantidad (0 = solo cuando se agota).
+  minStock   Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business  Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  recipes   RecipeItem[]
+  movements InventoryMovement[]
+
+  @@unique([businessId, name])
+  @@map("ingredients")
+}
+
+/// Cuánto de cada ingrediente lleva una unidad de un producto.
+model RecipeItem {
+  productId    String
+  ingredientId String
+  quantity     Float
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([productId, ingredientId])
+  @@index([ingredientId])
+  @@map("recipe_items")
+}
+
+/// Cada entrada o salida de materia prima: compras, consumo por pedidos,
+/// devoluciones al anular y ajustes (merma, conteo). Con esto cuadran el
+/// inventario y los costos.
+model InventoryMovement {
+  id           String   @id @default(uuid())
+  businessId   String
+  ingredientId String
+  /// compra | consumo | anulacion | ajuste
+  kind         String
+  /// Positivo entra, negativo sale (en la unidad del ingrediente).
+  quantity     Float
+  /// Costo por unidad al momento del movimiento.
+  unitCost     Float
+  orderId      String?
+  note         String   @default("")
+  createdAt    DateTime @default(now())
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([ingredientId])
+  @@index([orderId])
+  @@map("inventory_movements")
 }
 
 /// Foto de un producto. Va en su propia tabla para que listar el catálogo no
@@ -474,20 +542,20 @@ model Order {
 
   /// Cobro antes de preparar (ver lib/payments.ts): no_aplica | esperando |
   /// revisar (el cliente dice que pagó) | pagado | vencido.
-  paymentStatus   String    @default("no_aplica")
+  paymentStatus    String        @default("no_aplica")
   /// transferencia | mercadopago (cómo quedó pagado).
-  paymentMethod   String?
+  paymentMethod    String?
   /// Si no se paga antes de esto, se anula y el stock vuelve.
-  paymentDeadline DateTime?
-  paymentLink     String?
-  paidAt          DateTime?
+  paymentDeadline  DateTime?
+  paymentLink      String?
+  paidAt           DateTime?
   /// Cuándo salió el ticket en la pantalla de cocina. null = falta imprimir.
   kitchenPrintedAt DateTime?
   /// Lo que se leyó del comprobante y cómo se cruzó con el pedido (ver lib/receipts.ts).
-  receiptCheck    Json?
+  receiptCheck     Json?
   /// Código de operación del comprobante: uno repetido es señal de trampa.
-  receiptCode     String?
-  receipt         OrderReceipt?
+  receiptCode      String?
+  receipt          OrderReceipt?
 
   business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   items    OrderItem[]
@@ -542,29 +610,31 @@ model SalesSettings {
   businessId String @id
 
   /// Pedir el pago antes de preparar.
-  paymentsEnabled     Boolean @default(false)
+  paymentsEnabled     Boolean  @default(false)
   /// Datos para transferir (banco, tipo y número de cuenta, RUT, nombre, mail).
-  transferInfo        String  @default("")
+  transferInfo        String   @default("")
   /// Minutos que se guarda un pedido sin pagar antes de anularlo.
-  holdMinutes         Int     @default(20)
+  holdMinutes         Int      @default(20)
   /// Access token de Mercado Pago del negocio, cifrado (lib/secrets.ts).
   /// null = solo transferencia.
   mercadoPagoToken    String?
   /// Pantalla de cocina con impresión de tickets.
-  kitchenEnabled      Boolean @default(false)
+  kitchenEnabled      Boolean  @default(false)
   /// Confirmar el pago solo cuando el comprobante calza en todo (riesgoso:
   /// una imagen editada puede pasar). Apagado por defecto.
-  autoConfirmReceipts Boolean @default(false)
+  autoConfirmReceipts Boolean  @default(false)
   /// Avisar cuando un producto baja del mínimo o se agota.
-  stockAlertsEnabled  Boolean @default(false)
-  stockAlertThreshold Int     @default(5)
+  stockAlertsEnabled  Boolean  @default(false)
+  stockAlertThreshold Int      @default(5)
   /// Recibir pedidos solo en horario de atención (ver lib/orderWindow.ts).
   /// Apagado = a cualquier hora, como siempre.
-  ordersOnlyInHours   Boolean @default(false)
+  ordersOnlyInHours   Boolean  @default(false)
   /// Minutos antes de abrir en que ya se aceptan pedidos (se preparan al abrir).
-  preorderMinutes     Int     @default(0)
+  preorderMinutes     Int      @default(0)
   /// Minutos antes de cerrar en que se deja de recibir pedidos.
-  orderCutoffMinutes  Int     @default(0)
+  orderCutoffMinutes  Int      @default(0)
+  /// Inventario de materia prima con recetas y costos (lib/inventory.ts).
+  ingredientsEnabled  Boolean  @default(false)
   updatedAt           DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -628,18 +698,18 @@ model ApiAccessLog {
 
 /// Suscripción de un usuario en Stripe (se llena desde el webhook firmado).
 model Subscription {
-  id                 String    @id // id de la suscripción en Stripe
-  userId             String
-  plan               String
+  id               String    @id // id de la suscripción en Stripe
+  userId           String
+  plan             String
   /// Estado de Stripe: active | trialing | past_due | unpaid | canceled | ...
-  status             String
-  amountClp          Int
-  currentPeriodEnd   DateTime?
-  canceledAt         DateTime?
+  status           String
+  amountClp        Int
+  currentPeriodEnd DateTime?
+  canceledAt       DateTime?
   /// Desde cuándo está impaga (primer cobro fallido sin resolver).
-  pastDueSince       DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  pastDueSince     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -649,14 +719,14 @@ model Subscription {
 
 /// Un pago recibido (Stripe `invoice.paid`). Montos en CLP, enteros.
 model Payment {
-  id               String   @id @default(uuid())
-  stripeInvoiceId  String   @unique
-  userId           String?
-  amountClp        Int
-  method           String
-  status           String   @default("pagado")
-  paidAt           DateTime
-  createdAt        DateTime @default(now())
+  id              String   @id @default(uuid())
+  stripeInvoiceId String   @unique
+  userId          String?
+  amountClp       Int
+  method          String
+  status          String   @default("pagado")
+  paidAt          DateTime
+  createdAt       DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 

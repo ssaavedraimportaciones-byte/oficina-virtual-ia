@@ -60,7 +60,9 @@ export async function notifyPaymentToReview(
 /** Productos que bajaron del mínimo o se agotaron con el último pedido. */
 export async function notifyStockAlert(businessId: string, businessName: string, lines: string[]): Promise<void> {
   if (lines.length === 0) return
-  await emailOwners(businessId, stockAlertEmail(businessName, lines, `${appUrl()}/panel/${businessId}/pedidos`))
+  // Si falta materia prima, el enlace lleva a reponerla; si no, al catálogo.
+  const page = lines.some((l) => l.includes('(materia prima)')) ? 'inventario' : 'pedidos'
+  await emailOwners(businessId, stockAlertEmail(businessName, lines, `${appUrl()}/panel/${businessId}/${page}`))
 }
 
 async function emailOwners(

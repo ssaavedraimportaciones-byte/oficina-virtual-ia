@@ -191,7 +191,14 @@ export async function updateIngredient(
     if (clash) throw new InventoryError(`Ya tienes un ingrediente llamado "${clash.name}".`)
     data.name = name
   }
-  if (input.unit !== undefined) data.unit = input.unit
+  if (input.unit !== undefined) {
+    const current = await prisma.ingredient.findFirst({ where: { id, businessId }, include: { _count: { select: { recipes: true } } } })
+    if (current && current.unit !== input.unit && (current.stock > 0 || current._count.recipes > 0)) {
+      // Cambiar kg por g con stock o recetas cargadas cambia el significado de todos los números.
+      throw new InventoryError('No se puede cambiar la unidad de un ingrediente con stock o en recetas. Crea uno nuevo con la unidad correcta.')
+    }
+    data.unit = input.unit
+  }
   if (input.minStock !== undefined) data.minStock = Math.max(0, input.minStock)
   if (input.unitCost !== undefined) data.unitCost = Math.max(0, input.unitCost)
   const res = await prisma.ingredient.updateMany({ where: { id, businessId }, data })
@@ -338,6 +345,10 @@ export async function onOrderCancelChange(
     }
     return
   }
+  // Solo se vuelve a descontar si el pedido había consumido materia prima: uno
+  // tomado antes de activar el inventario nunca descontó, así que tampoco devolvió.
+  const consumed = await tx.inventoryMovement.count({ where: { orderId, kind: 'consumo' } })
+  if (consumed === 0) return
   const inv = await loadInventory(businessId, tx)
   if (!inv) return
   await consumeForOrder(tx, businessId, orderId, items, inv.recipes, inv.ingredients, { force: true })

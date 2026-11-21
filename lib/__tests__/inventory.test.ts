@@ -249,3 +249,33 @@ describe('alerta en el panel', () => {
     expect((await getStockAlerts(b.id)).soldOut).toEqual([])
   })
 })
+
+describe('casos borde', () => {
+  it('reactivar un pedido anterior al inventario no descuenta materia prima', async () => {
+    const b = await store.createBusiness(
+      { agentName: 'X', businessName: 'Pizza previa', industry: 'Pizzería', description: '', goals: '', tone: 'cercano', channels: [], configuredAt: '' },
+      'gastronomia',
+    )
+    const pizza = await store.addProduct({ businessId: b.id, name: 'Pizza', price: 9000, stock: null })
+    const res = await store.createOrder({ businessId: b.id, conversationId: null, contactName: 'A', contactHandle: '1', requested: [{ producto: 'Pizza', cantidad: 1 }], note: '' })
+    if (!res.ok) throw new Error(res.reason)
+    await saveSalesSettings(b.id, { ingredientsEnabled: true })
+    const queso = await addIngredient(b.id, { name: 'Queso', unit: 'g', stock: 1000 })
+    await setRecipe(b.id, pizza.id, [{ ingredientId: queso.id, quantity: 200 }])
+    await store.setOrderStatus(res.order.id, 'cancelado')
+    await store.setOrderStatus(res.order.id, 'pendiente')
+    expect((await listIngredients(b.id))[0].stock).toBe(1000)
+  })
+
+  it('no deja cambiar la unidad de un ingrediente con stock', async () => {
+    const { updateIngredient } = await import('../inventory')
+    const b = await store.createBusiness(
+      { agentName: 'X', businessName: 'Unidades', industry: 'Sushi', description: '', goals: '', tone: 'cercano', channels: [], configuredAt: '' },
+      'gastronomia',
+    )
+    const arroz = await addIngredient(b.id, { name: 'Arroz', unit: 'kg', stock: 2 })
+    await expect(updateIngredient(b.id, arroz.id, { unit: 'g' })).rejects.toThrow('No se puede cambiar la unidad')
+    const vacio = await addIngredient(b.id, { name: 'Nori', unit: 'unidad' })
+    expect((await updateIngredient(b.id, vacio.id, { unit: 'g' })).unit).toBe('g')
+  })
+})

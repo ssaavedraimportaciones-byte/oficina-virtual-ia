@@ -6,14 +6,8 @@ import { updateContactNotes } from '@/lib/contactNotes'
 import { sendHumanReply } from '@/lib/humanReply'
 import { getMaintenance } from '@/lib/platform'
 import { getAgentUsage, quotaMessage } from '@/lib/usage'
-import {
-  appendMessage,
-  getBusiness,
-  getConversation,
-  listKnowledge,
-  listProducts,
-  listServices,
-} from '@/lib/store'
+import { loadAgentInputs } from '@/lib/agentPipeline'
+import { appendMessage, getBusiness, getConversation } from '@/lib/store'
 
 const messageSchema = z.object({
   sender: z.enum(['contact', 'human']),
@@ -90,14 +84,9 @@ export async function POST(
   }
 
   try {
-    const [knowledge, services, products] = await Promise.all([
-      listKnowledge(business.id),
-      listServices(business.id),
-      listProducts(business.id),
-    ])
+    const { knowledge, options } = await loadAgentInputs(business)
     const reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
-      services,
-      products,
+      ...options,
       toolContext: { business, conversation },
       contactNotes: conversation.notes,
     })

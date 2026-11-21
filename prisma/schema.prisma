@@ -558,6 +558,13 @@ model SalesSettings {
   /// Avisar cuando un producto baja del mínimo o se agota.
   stockAlertsEnabled  Boolean @default(false)
   stockAlertThreshold Int     @default(5)
+  /// Recibir pedidos solo en horario de atención (ver lib/orderWindow.ts).
+  /// Apagado = a cualquier hora, como siempre.
+  ordersOnlyInHours   Boolean @default(false)
+  /// Minutos antes de abrir en que ya se aceptan pedidos (se preparan al abrir).
+  preorderMinutes     Int     @default(0)
+  /// Minutos antes de cerrar en que se deja de recibir pedidos.
+  orderCutoffMinutes  Int     @default(0)
   updatedAt           DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)

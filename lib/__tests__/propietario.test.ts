@@ -320,7 +320,11 @@ describe('avisos a los clientes', () => {
   })
 
   it('el panel de los clientes muestra a lo sumo 5 avisos, los más nuevos primero', async () => {
-    for (let i = 1; i <= 7; i += 1) await createAnnouncement({ message: `Aviso ${i}`, level: 'info' })
+    // Se ordenan por fecha de creación: separados por unos ms para que no empaten.
+    for (let i = 1; i <= 7; i += 1) {
+      await createAnnouncement({ message: `Aviso ${i}`, level: 'info' })
+      await new Promise((r) => setTimeout(r, 3))
+    }
     const active = await listActiveAnnouncements()
     expect(active).toHaveLength(5)
     expect(active[0].message).toBe('Aviso 7')

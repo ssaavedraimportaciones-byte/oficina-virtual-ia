@@ -1,5 +1,6 @@
 import { describeApiError, generateAgentReply } from './agentEngine'
 import { expireUnpaidOrders, getSalesSettings } from './payments'
+import { describeOrderWindow } from './orderWindow'
 import { recordLlmError } from './llmLog'
 import { listFloors } from './mesasStore'
 import { updateContactNotes } from './contactNotes'
@@ -67,6 +68,35 @@ function lastContactMessageId(conversation: Conversation): string | undefined {
     if (conversation.messages[i].sender === 'contact') return conversation.messages[i].id
   }
   return undefined
+}
+
+/**
+ * Todo lo que el agente necesita saber del negocio para responder. Lo usan
+ * WhatsApp/Instagram y el simulador del panel: así lo que el dueño prueba es
+ * exactamente lo que va a ver su cliente (mesas, equipo, cobros, horario de pedidos).
+ */
+export async function loadAgentInputs(business: Business) {
+  // Antes de leer el catálogo: los pedidos vencidos sin pago devuelven su stock.
+  await expireUnpaidOrders(business.id).catch((error) => console.error('[pipeline] vencer pedidos impagos:', error))
+  const [knowledge, services, products, floors, team, sales] = await Promise.all([
+    listKnowledge(business.id),
+    listServices(business.id),
+    listProducts(business.id),
+    listFloors(business.id),
+    listProfessionals(business.id),
+    getSalesSettings(business.id),
+  ])
+  return {
+    knowledge,
+    options: {
+      services,
+      products,
+      floors,
+      team,
+      paymentsEnabled: sales.paymentsEnabled,
+      orderWindow: describeOrderWindow(business.hours, sales),
+    },
+  }
 }
 
 /**
@@ -146,26 +176,13 @@ export async function handleIncomingMessage(
     return { status: 'quota', conversation }
   }
 
-  // Antes de leer el catálogo: los pedidos vencidos sin pago devuelven su stock.
-  await expireUnpaidOrders(business.id).catch((error) => console.error('[pipeline] vencer pedidos impagos:', error))
-  const [knowledge, services, products, floors, team, sales] = await Promise.all([
-    listKnowledge(business.id),
-    listServices(business.id),
-    listProducts(business.id),
-    listFloors(business.id),
-    listProfessionals(business.id),
-    getSalesSettings(business.id),
-  ])
+  const { knowledge, options } = await loadAgentInputs(business)
   let reply: string
   try {
     reply = await generateAgentReply(business.config, knowledge, conversation.messages, {
-      services,
-      products,
-      floors,
-      team,
+      ...options,
       toolContext: { business, conversation },
       contactNotes: conversation.notes,
-      paymentsEnabled: sales.paymentsEnabled,
     })
   } catch (error) {
     // La IA falló (caída del proveedor, sin saldo, límite de uso…). Antes el

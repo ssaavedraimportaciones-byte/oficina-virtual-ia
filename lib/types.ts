@@ -152,6 +152,10 @@ export interface SalesSettings {
   autoConfirmReceipts: boolean
   stockAlertsEnabled: boolean
   stockAlertThreshold: number
+  /** Recibir pedidos solo en horario (ver lib/orderWindow.ts). */
+  ordersOnlyInHours: boolean
+  preorderMinutes: number
+  orderCutoffMinutes: number
 }
 
 export interface Business {

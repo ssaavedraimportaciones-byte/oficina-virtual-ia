@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireBusinessAccess } from '@/lib/authz'
 import { getSalesSettings, saveSalesSettings } from '@/lib/payments'
+import { MAX_CUTOFF_MINUTES, MAX_PREORDER_MINUTES } from '@/lib/orderWindow'
 
 /** Cobros, cocina e inventario del negocio. El token de Mercado Pago nunca se devuelve. */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +21,9 @@ const schema = z.object({
   autoConfirmReceipts: z.boolean().optional(),
   stockAlertsEnabled: z.boolean().optional(),
   stockAlertThreshold: z.number().int().min(0).max(10000).optional(),
+  ordersOnlyInHours: z.boolean().optional(),
+  preorderMinutes: z.number().int().min(0).max(MAX_PREORDER_MINUTES).optional(),
+  orderCutoffMinutes: z.number().int().min(0).max(MAX_CUTOFF_MINUTES).optional(),
 })
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

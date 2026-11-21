@@ -78,6 +78,8 @@ export async function generateAgentReply(
     contactNotes?: string
     /** Si cobra antes de preparar, el agente da las formas de pago y puede avisar transferencias. */
     paymentsEnabled?: boolean
+    /** Horario para recibir pedidos, en palabras (lib/orderWindow.ts). Vacío = a cualquier hora. */
+    orderWindow?: string
   },
 ): Promise<string> {
   const provider = getProvider()
@@ -105,6 +107,7 @@ export async function generateAgentReply(
 
   const system = buildSystemPrompt(config, knowledge, services, products, floors, options?.team ?? [], {
     paymentsEnabled: Boolean(options?.paymentsEnabled),
+    orderWindow: options?.orderWindow ?? '',
   })
   const context = buildConversationContext(businessNow(), options?.contactNotes)
 

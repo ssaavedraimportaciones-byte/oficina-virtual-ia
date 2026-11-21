@@ -36,6 +36,9 @@ const DEFAULTS: Omit<SalesSettings, 'mercadoPagoConnected'> = {
   autoConfirmReceipts: false,
   stockAlertsEnabled: false,
   stockAlertThreshold: 5,
+  ordersOnlyInHours: false,
+  preorderMinutes: 0,
+  orderCutoffMinutes: 0,
 }
 
 export async function getSalesSettings(businessId: string): Promise<SalesSettings> {
@@ -50,6 +53,9 @@ export async function getSalesSettings(businessId: string): Promise<SalesSetting
     autoConfirmReceipts: row.autoConfirmReceipts,
     stockAlertsEnabled: row.stockAlertsEnabled,
     stockAlertThreshold: row.stockAlertThreshold,
+    ordersOnlyInHours: row.ordersOnlyInHours,
+    preorderMinutes: row.preorderMinutes,
+    orderCutoffMinutes: row.orderCutoffMinutes,
   }
 }
 

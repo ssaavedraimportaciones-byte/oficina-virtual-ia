@@ -51,7 +51,16 @@ function Block({
   )
 }
 
-/** Cobro antes de preparar, ticket de cocina y avisos de inventario: todo activable por separado. */
+const PREORDER_OPTIONS = [0, 15, 30, 45, 60, 90, 120, 180, 240]
+const CUTOFF_OPTIONS = [0, 10, 15, 20, 30, 45, 60, 90]
+
+function minutesLabel(m: number): string {
+  if (m < 60) return `${m} minutos`
+  const h = m / 60
+  return Number.isInteger(h) ? `${h} ${h === 1 ? 'hora' : 'horas'}` : `${Math.floor(h)} h ${m % 60} min`
+}
+
+/** Cobro antes de preparar, horario de pedidos, ticket de cocina y avisos de inventario: todo activable por separado. */
 export default function SalesSettingsPanel({
   businessId,
   initial,
@@ -88,7 +97,7 @@ export default function SalesSettingsPanel({
 
   return (
     <section className="mt-6 rounded-lg border border-gray-800 p-6">
-      <h2 className="font-medium text-white">Cobros, cocina e inventario</h2>
+      <h2 className="font-medium text-white">Cobros, horario de pedidos, cocina e inventario</h2>
       <p className="mt-1 text-sm text-gray-400">Activa solo lo que te sirva. Puedes apagarlo cuando quieras.</p>
 
       <div className="mt-4 flex flex-col gap-3">
@@ -199,6 +208,54 @@ export default function SalesSettingsPanel({
           >
             Guardar datos de pago
           </button>
+        </Block>
+
+        <Block
+          icon="🕕"
+          title="Recibir pedidos solo en horario"
+          desc="Apagado, el agente toma pedidos a cualquier hora. Encendido, solo en tu horario de atención, y puedes empezar a recibirlos antes de abrir o dejar de tomarlos antes de cerrar."
+          checked={s.ordersOnlyInHours}
+          onToggle={(v) => save({ ordersOnlyInHours: v })}
+        >
+          <label className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+            Empezar a recibir pedidos
+            <select
+              value={s.preorderMinutes}
+              onChange={(e) => save({ preorderMinutes: Number(e.target.value) })}
+              className="input"
+              style={{ width: 'auto' }}
+            >
+              {PREORDER_OPTIONS.map((m) => (
+                <option key={m} value={m}>
+                  {m === 0 ? 'al abrir' : `${minutesLabel(m)} antes de abrir`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+            Dejar de recibir pedidos
+            <select
+              value={s.orderCutoffMinutes}
+              onChange={(e) => save({ orderCutoffMinutes: Number(e.target.value) })}
+              className="input"
+              style={{ width: 'auto' }}
+            >
+              {CUTOFF_OPTIONS.map((m) => (
+                <option key={m} value={m}>
+                  {m === 0 ? 'al cerrar' : `${minutesLabel(m)} antes de cerrar`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="text-xs text-gray-500">
+            Los pedidos que llegan antes de abrir quedan anotados como «pedido anticipado» y el agente le dice al cliente a qué
+            hora se empiezan a preparar. Fuera de horario igual responde dudas y muestra la carta, y le dice desde qué hora puede
+            pedir. Usa el horario que tienes en{' '}
+            <Link href={`/panel/${businessId}/agenda`} className="text-amber-300 hover:text-amber-200">
+              Agenda y horas
+            </Link>
+            .
+          </span>
         </Block>
 
         <Block

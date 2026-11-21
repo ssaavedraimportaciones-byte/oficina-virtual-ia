@@ -10,7 +10,8 @@ import {
   getAvailableTeamSlots,
   isSlotFree,
 } from './agenda'
-import { alertLowStock, claimPayment, requestPayment } from './payments'
+import { alertLowStock, claimPayment, getSalesSettings, requestPayment } from './payments'
+import { closedMessage, orderWindowAt } from './orderWindow'
 import { formatPrice, isOrderable, isSoldOut, stockLabel } from './catalog'
 import {
   describeTable,
@@ -444,13 +445,19 @@ async function runCrearPedido(
     return 'Falta el detalle del pedido: qué productos y en qué cantidad.'
   }
 
+  // Se valida acá y no solo en el prompt: fuera de la ventana el pedido no entra.
+  const now = businessNow()
+  const orderWin = orderWindowAt(ctx.business.hours, await getSalesSettings(ctx.business.id), now)
+  if (orderWin.state === 'closed') return closedMessage(orderWin, now)
+  const preorderNote = orderWin.state === 'preorder' ? `Pedido anticipado: se prepara desde las ${orderWin.prepareAt}.` : ''
+
   const result = await createOrder({
     businessId: ctx.business.id,
     conversationId: ctx.conversation.id,
     contactName: input.nombre_cliente,
     contactHandle: ctx.conversation.contactHandle,
     requested: input.items,
-    note: input.nota ?? '',
+    note: [preorderNote, input.nota?.trim() ?? ''].filter(Boolean).join(' '),
   })
 
   if (!result.ok) {
@@ -461,7 +468,11 @@ async function runCrearPedido(
     .map((i) => `${i.quantity}x ${i.name} (${formatPrice(i.unitPrice * i.quantity)})`)
     .join(', ')
 
-  const summary = `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}.`
+  const summary = `Pedido registrado a nombre de ${result.order.contactName}: ${detail}. Total ${formatPrice(result.order.total)}.${
+    orderWin.state === 'preorder'
+      ? ` El local todavía no abre: dile al cliente que su pedido quedó anotado y que se empieza a preparar a las ${orderWin.prepareAt}.`
+      : ''
+  }`
 
   // Best-effort: que falle el aviso de stock no puede dejar al cliente sin respuesta.
   await alertLowStock(

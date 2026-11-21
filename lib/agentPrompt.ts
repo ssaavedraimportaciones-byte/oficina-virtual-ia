@@ -78,7 +78,7 @@ Las personas que atienden en este negocio son: ${team.map((p) => p.name).join(',
 - Al confirmar una hora, dile con quién queda.`
 }
 
-function buildCatalogSection(products: Product[], paymentsEnabled = false): string {
+function buildCatalogSection(products: Product[], paymentsEnabled = false, orderWindow = ''): string {
   const active = products.filter((p) => p.active)
   if (active.length === 0) return ''
 
@@ -109,6 +109,17 @@ Tienes herramientas para tomar pedidos de verdad:
 - Si la herramienta te avisa que no alcanza el stock, cuéntale al cliente cuántas unidades quedan
   en vez de registrar un pedido que no se puede cumplir.
 - Después de registrar, confírmale el detalle y el total.${
+    orderWindow
+      ? `
+
+# Horario para recibir pedidos
+Este local recibe pedidos solo en este horario:
+${orderWindow}
+- Si te escriben fuera de ese horario, igual responde sus dudas y muéstrale la carta, pero dile
+  desde qué hora puede pedir. crear_pedido te avisa si todavía no se puede.
+- Si el pedido llega antes de abrir, anótalo y dile a qué hora se empieza a preparar.`
+      : ''
+  }${
     paymentsEnabled
       ? `
 
@@ -171,7 +182,7 @@ export function buildSystemPrompt(
   products: Product[] = [],
   floors: Floor[] = [],
   team: Professional[] = [],
-  sales: { paymentsEnabled: boolean } = { paymentsEnabled: false },
+  sales: { paymentsEnabled: boolean; orderWindow?: string } = { paymentsEnabled: false },
 ): string {
   return `Eres ${config.agentName}, la persona que responde los mensajes de ${config.businessName} por chat.
 
@@ -209,7 +220,7 @@ Después de derivar, avísale en una frase que alguien del equipo le va a respon
 
 ${buildKnowledgeSection(knowledge)}
 
-${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildTeamSection(team)}${buildCatalogSection(products, sales.paymentsEnabled)}${buildMesasSection(floors)}
+${buildAgendaSection(services, summarizeFloors(floors) !== '')}${buildTeamSection(team)}${buildCatalogSection(products, sales.paymentsEnabled, sales.orderWindow)}${buildMesasSection(floors)}
 
 Responde siempre en el idioma en el que te escribe el contacto.`
 }

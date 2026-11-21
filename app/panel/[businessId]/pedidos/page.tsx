@@ -6,6 +6,7 @@ import { formatPrice, isSoldOut } from '@/lib/catalog'
 import { resizeForUpload } from '@/lib/imageResize'
 import type { Order, OrderStatus, PaymentStatus, Product, SalesSettings } from '@/lib/types'
 import ImportCatalog from './ImportCatalog'
+import ImportCatalogFile from './ImportCatalogFile'
 import StepIntro from '../StepIntro'
 import SalesSettingsPanel from './SalesSettingsPanel'
 
@@ -338,6 +339,7 @@ export default function PedidosPage() {
           </button>
         </form>
 
+        <ImportCatalogFile businessId={businessId} onImported={load} />
         <ImportCatalog businessId={businessId} onImported={load} />
       </section>
 

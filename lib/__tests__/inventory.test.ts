@@ -226,3 +226,26 @@ describe('margen honesto', () => {
     expect(r2.costOfSales).toBe(200)
   })
 })
+
+describe('alerta en el panel', () => {
+  it('muestra lo que se acabó, lo que está bajo y los productos que dejaron de venderse', async () => {
+    const { getStockAlerts } = await import('../stockAlerts')
+    const b = await store.createBusiness(
+      { agentName: 'X', businessName: 'Alerta sushi', industry: 'Sushi', description: '', goals: '', tone: 'cercano', channels: [], configuredAt: '' },
+      'gastronomia',
+    )
+    await saveSalesSettings(b.id, { ingredientsEnabled: true })
+    const salmon = await addIngredient(b.id, { name: 'Salmón', unit: 'g', stock: 0 })
+    await addIngredient(b.id, { name: 'Arroz', unit: 'kg', stock: 1.5, minStock: 2 })
+    const roll = await store.addProduct({ businessId: b.id, name: 'Sake roll', price: 6000, stock: null })
+    await setRecipe(b.id, roll.id, [{ ingredientId: salmon.id, quantity: 60 }])
+    const a = await getStockAlerts(b.id)
+    expect(a.ingredients).toEqual([
+      { name: 'Arroz', out: false, text: 'quedan 1,5 kg' },
+      { name: 'Salmón', out: true, text: 'se acabó' },
+    ])
+    expect(a.soldOut).toEqual(['Sake roll'])
+    await recordPurchase(b.id, salmon.id, 1000, 18000)
+    expect((await getStockAlerts(b.id)).soldOut).toEqual([])
+  })
+})

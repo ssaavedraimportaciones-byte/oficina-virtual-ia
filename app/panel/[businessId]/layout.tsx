@@ -4,6 +4,8 @@ import { getBusiness, getSetupFacts } from '@/lib/store'
 import { getIndustryTemplate } from '@/lib/industries'
 import { getSetupProgress } from '@/lib/onboarding'
 import { getSalesSettings } from '@/lib/payments'
+import { getStockAlerts } from '@/lib/stockAlerts'
+import StockAlertBanner from './StockAlertBanner'
 import PanelNav, { type NavItem } from './PanelNav'
 
 export const dynamic = 'force-dynamic'
@@ -115,6 +117,8 @@ export default async function BusinessLayout({
     <span aria-hidden="true">{template?.emoji ?? '✨'}</span>
   )
 
+  const alerts = await getStockAlerts(businessId)
+
   return (
     <div className="min-h-screen md:flex">
       <PanelNav
@@ -134,7 +138,10 @@ export default async function BusinessLayout({
         daily={daily}
         agent={agent}
       />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">
+        <StockAlertBanner businessId={businessId} initial={alerts} />
+        {children}
+      </div>
     </div>
   )
 }

@@ -3429,6 +3429,87 @@
 .zv-demo-measure strong {
   color: var(--zv-amber);
 }
+
+/* ── Por qué se te van los clientes ──────────────────────────────── */
+.zv-lead strong {
+  color: var(--zv-amber);
+  font-weight: 600;
+}
+.zv-porque {
+  padding-top: clamp(4rem, 12svh, 8rem);
+  padding-bottom: clamp(1rem, 4svh, 3rem);
+}
+.zv-porque-grid {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.zv-porque-card {
+  padding: 1.2rem 1.25rem 1.3rem;
+  border: 1px solid var(--zv-line);
+  border-radius: 12px;
+  background: rgba(5, 9, 19, 0.74);
+  backdrop-filter: blur(6px);
+}
+.zv-porque-icon {
+  font-size: 1.5rem;
+}
+.zv-porque-card h3 {
+  margin-top: 0.6rem;
+  font-family: var(--zv-sans);
+  font-weight: 420;
+  font-stretch: 108%;
+  font-size: clamp(1.05rem, 1.4vw, 1.3rem);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--zv-bone);
+}
+.zv-porque-card p {
+  margin-top: 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.58;
+  color: var(--zv-soft);
+}
+.zv-porque-card--fix {
+  border-color: rgba(255, 179, 71, 0.7);
+  background: linear-gradient(160deg, rgba(255, 179, 71, 0.15), rgba(5, 9, 19, 0.78) 60%);
+  box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.25), 0 20px 60px -30px rgba(255, 179, 71, 0.45);
+}
+.zv-porque-card--fix h3 {
+  color: var(--zv-amber);
+}
+.zv-247 {
+  margin-top: 1.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.6rem;
+}
+.zv-247-v {
+  font-family: var(--zv-sans);
+  font-weight: 250;
+  font-stretch: 112%;
+  font-size: clamp(3.4rem, 7vw, 6rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--zv-amber);
+  text-shadow: 0 0 40px rgba(255, 179, 71, 0.35);
+}
+.zv-247-t {
+  max-width: 46ch;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--zv-soft);
+  text-shadow:
+    0 1px 2px rgba(3, 5, 12, 0.9),
+    0 0 16px rgba(3, 5, 12, 0.6);
+}
+.zv-247-t strong {
+  color: var(--zv-bone);
+}
 /* En el celular el QR no sirve (ya estás en el teléfono): queda el botón. */
 @media (max-width: 720px), (pointer: coarse) {
   .zv-demo-qr,

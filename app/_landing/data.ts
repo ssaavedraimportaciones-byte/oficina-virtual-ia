@@ -1,4 +1,4 @@
-import { SETUP_FEE_CLP } from '@/lib/plans'
+import { SETUP_FEE_BY_TIER } from '@/lib/plans'
 export type Who = 'contact' | 'agent' | 'human'
 
 export interface Message {
@@ -139,7 +139,7 @@ export const CHAPTERS: Chapter[] = [
     time: '08:05',
     kicker: 'Buenos días',
     title: 'Despiertas con todo resuelto.',
-    body: 'Una hora agendada y una venta hecha mientras dormías. Solo te queda contestar el reclamo.',
+    body: 'Una hora agendada y una venta hecha mientras dormías: tu agente trabajó toda la noche, como lo hace 24/7. Solo te queda contestar el reclamo.',
     vertical: 'Amanece',
     shot: {
       src: '/landing/conversacion.webp',
@@ -311,11 +311,34 @@ export const streetX = (i: number) => 15.6 + i * 7
 /** Datos del producto (no métricas de clientes): lo que trae ZeroVisto hoy. */
 /** Solo cifras comprobables: ver app/_landing/resultados.ts. */
 export const FACTS = [
+  { value: '24/7', label: 'atiende de noche, fines de semana y feriados: tu WhatsApp nunca cierra' },
   { value: '3,3 s', label: 'en responder (mediana medida en respuestas reales)' },
-  { value: '24/7', label: 'agenda y vende de noche, fines de semana y feriados' },
   { value: '3', label: 'bots en vivo para que los pruebes hoy' },
-  { value: '$45.000', label: `al mes + $${SETUP_FEE_CLP.toLocaleString('es-CL')} de implementación, una sola vez` },
+  { value: '$45.000', label: `al mes + implementación desde $${SETUP_FEE_BY_TIER.SIMPLE.toLocaleString('es-CL')}, una sola vez` },
 ]
+
+/**
+ * Por qué se pierden clientes: las dos causas que el dueño reconoce de su día a
+ * día, y lo que cambia con el agente. Sin cifras de mercado inventadas: el
+ * argumento es el comportamiento que cualquiera ha visto (se va con el primero que contesta).
+ */
+export const LOSS_CAUSES = [
+  {
+    icon: '⏳',
+    title: 'Contestas tarde',
+    text: 'Estás atendiendo, en la cocina o con las manos ocupadas, y el WhatsApp se acumula. Cuando por fin respondes, horas después, ese cliente ya agendó o compró en otra parte.',
+  },
+  {
+    icon: '🌙',
+    title: 'Tu local está cerrado',
+    text: 'Cierras a las 20:00, pero tus clientes siguen escribiendo de noche, el domingo y el feriado. Su mensaje espera hasta mañana… y mañana ya eligieron a otro.',
+  },
+]
+export const LOSS_FIX = {
+  icon: '⚡',
+  title: 'Tu agente atiende 24/7',
+  text: 'Contesta en segundos, las 24 horas, los 7 días de la semana, también feriados. Agenda, vende y reserva aunque estés ocupado o con el local cerrado: ningún cliente queda en visto.',
+}
 
 /** Capítulos del riel lateral: toda la página. */
 export const RAIL = [

@@ -16,7 +16,8 @@ import Demo from './_landing/Demo'
 import Ticker from './_landing/Ticker'
 import Precios from './_landing/Precios'
 import { CasoPhone, CasoSteps } from './_landing/CasoParts'
-import { BENEFITS, CASES, FACTS, GUARDRAILS, INTEGRATIONS, MULTI, STEPS, STREET } from './_landing/data'
+import { BENEFITS, CASES, FACTS, GUARDRAILS, INTEGRATIONS, LOSS_CAUSES, LOSS_FIX, MULTI, STEPS, STREET } from './_landing/data'
+import { MEASURED } from './_landing/resultados'
 import '@fontsource-variable/archivo/wdth.css'
 import '@fontsource-variable/fraunces/index.css'
 import '@fontsource-variable/fraunces/wght-italic.css'
@@ -25,14 +26,14 @@ import './_landing/landing.css'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-function SectionHead({ id, n, label, title, intro, accent = [], big = false }: { id: string; n: string; label: string; title: string; intro?: string; accent?: number[]; big?: boolean }) {
+function SectionHead({ id, n, label, title, intro, accent = [], breakAfter = [], big = false }: { id: string; n: string; label: string; title: string; intro?: string; accent?: number[]; breakAfter?: number[]; big?: boolean }) {
   return (
     <header className={`zv-head${big ? ' zv-head--big' : ''}`} data-reveal>
       <p className="zv-label" data-reveal-item>
         <span>{n}</span> — {label}
       </p>
       <h2 id={id} className={`zv-h2${big ? ' zv-h2--case' : ''}`}>
-        <SplitWords text={title} accent={accent} />
+        <SplitWords text={title} accent={accent} breakAfter={breakAfter} />
       </h2>
       {intro && (
         <p className="zv-intro" data-reveal-item>
@@ -58,8 +59,9 @@ function Hero() {
           </div>
           <div className="zv-hero-side">
             <p className="zv-lead">
-              Tu WhatsApp e Instagram contestan en segundos, de día y de noche: agendan horas, reservan mesas y toman
-              pedidos mientras tú atiendes. El cliente que escribe a las 23:47 ya no se va con la competencia.
+              Cuando nadie contesta —porque estás ocupado o ya cerraste—, tu cliente le escribe a otro local. Con
+              ZeroVisto tu WhatsApp e Instagram contestan en segundos, <strong>24/7</strong>: agendan horas, reservan
+              mesas y toman pedidos aunque tu local esté cerrado.
             </p>
             <div className="zv-cta-row">
               <a href="#demo" className="zv-btn" data-magnetic data-cursor="Probar">
@@ -82,6 +84,56 @@ function Hero() {
         <p className="zv-cue" aria-hidden="true">
           <i /> Baja: empieza la noche
         </p>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * El porqué, antes de la demo y de la noche: el cliente que no recibe respuesta
+ * (por lentitud o por horario) se va con otro, y el agente lo evita atendiendo 24/7.
+ */
+function Porque() {
+  return (
+    <section id="porque" className="zv-sec zv-porque" data-section="porque" aria-labelledby="zv-porque-title">
+      <div className="zv-col zv-col--wide">
+        <SectionHead
+          id="zv-porque-title"
+          n="!"
+          label="Por qué se te van los clientes"
+          title="Si no contestas, le escriben al de al lado."
+          accent={[3, 4, 5, 6, 7, 8]}
+          breakAfter={[2]}
+          intro="Quien escribe por WhatsApp quiere respuesta ahora. Si no la recibe, no espera: le escribe a otro negocio y se queda con el primero que contesta. Cada mensaje sin responder es un cliente que se va con tu competencia."
+        />
+        <ul className="zv-porque-grid" data-reveal>
+          {LOSS_CAUSES.map((c) => (
+            <li key={c.title} className="zv-porque-card" data-reveal-item>
+              <span className="zv-porque-icon" aria-hidden="true">
+                {c.icon}
+              </span>
+              <h3>{c.title}</h3>
+              <p>{c.text}</p>
+            </li>
+          ))}
+          <li className="zv-porque-card zv-porque-card--fix" data-reveal-item>
+            <span className="zv-porque-icon" aria-hidden="true">
+              {LOSS_FIX.icon}
+            </span>
+            <h3>{LOSS_FIX.title}</h3>
+            <p>{LOSS_FIX.text}</p>
+          </li>
+        </ul>
+        <div className="zv-247" data-reveal>
+          <p className="zv-247-v" data-reveal-item>
+            24/7
+          </p>
+          <p className="zv-247-t" data-reveal-item>
+            Tu agente no duerme, no sale a almorzar y no se toma feriados. Responde en{' '}
+            <strong>{MEASURED.medianSeconds} segundos</strong> (mediana medida en respuestas reales), a las 3 de la
+            tarde o a las 3 de la mañana.
+          </p>
+        </div>
       </div>
     </section>
   )
@@ -409,6 +461,7 @@ export default function Home() {
       <main id="contenido">
         <Hero />
         <Ticker />
+        <Porque />
         <Demo />
         <div id="noche" data-section="noche">
           <Stage />

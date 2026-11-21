@@ -7,14 +7,12 @@ import {
   SETUP_FEE_BY_TIER,
   SETUP_FEE_EXTRA_CLP,
   SETUP_TIER_DESC,
+  SETUP_TIER_EXAMPLE,
   SETUP_TIER_LABEL,
   SETUP_TIER_ORDER,
   type PaidPlan,
 } from '@/lib/plans'
 import { monthlyLimit } from '@/lib/planLimits'
-
-const SETUP_MIN = SETUP_FEE_BY_TIER.SIMPLE
-const SETUP_MAX = SETUP_FEE_BY_TIER.AVANZADO
 
 const clp = (n: number) => `$${n.toLocaleString('es-CL')}`
 
@@ -27,12 +25,20 @@ const PITCH: Record<PaidPlan, string> = {
   ILIMITADO: 'Para agencias y cadenas con muchos negocios.',
 }
 
+/** El nivel que más se contrata: se destaca para que el cliente tenga un punto de partida. */
+const COMMON_TIER = 'ESTANDAR' as const
+
 /**
  * Precios a la vista: esconderlos detrás de un registro frena la venta. Los
  * montos salen de lib/plans.ts y los cupos de lib/usage.ts, los mismos que
  * cobra y aplica el sistema, para que la landing nunca prometa otra cosa.
+ *
+ * Dos números y nada más por tarjeta: lo que se paga al mes y lo que se paga una
+ * vez al empezar. El detalle de la implementación va aparte, con ejemplos de
+ * negocios reales para que cada uno se ubique sin saber de "canales".
  */
 export default function Precios() {
+  const example = { plan: 'BASICO' as const, tier: COMMON_TIER }
   return (
     <section id="precios" className="zv-sec zv-precios" data-section="precios" aria-labelledby="zv-precios-title">
       <div className="zv-col zv-col--wide">
@@ -44,10 +50,10 @@ export default function Precios() {
             Se paga solo con <em>tres clientes</em> al mes.
           </h2>
           <p className="zv-intro">
-            Si cada hora agendada o pedido te deja {clp(TICKET_EJEMPLO)}, el plan Básico se paga con{' '}
-            {Math.ceil(PLAN_MONTHLY_CLP.BASICO / TICKET_EJEMPLO)} clientes que antes se perdían
-            esperando respuesta. Todo lo demás es ganancia. Haz la cuenta con tus propios números{' '}
-            <a href="#ahorro">en la calculadora</a>.
+            Pagas una mensualidad y, una sola vez al empezar, la implementación: te lo dejamos funcionando. Si cada
+            hora agendada o pedido te deja {clp(TICKET_EJEMPLO)}, el plan Básico se paga con{' '}
+            {Math.ceil(PLAN_MONTHLY_CLP.BASICO / TICKET_EJEMPLO)} clientes que antes se perdían.{' '}
+            <a href="#ahorro">Haz la cuenta con tus números</a>.
           </p>
         </header>
 
@@ -65,17 +71,20 @@ export default function Precios() {
                   {clp(PLAN_MONTHLY_CLP[plan])}
                   <span>/mes</span>
                 </p>
-                <p className="zv-price-iva">IVA incluido</p>
+                <p className="zv-price-iva">IVA incluido · sin permanencia</p>
                 <p className="zv-price-setup">
-                  + {clp(SETUP_MIN)}–{clp(SETUP_MAX)} de implementación, una vez
-                  <span>{negocios === 1 ? 'según lo que actives' : `cada local adicional: ${clp(SETUP_FEE_EXTRA_CLP)}`}</span>
+                  + implementación desde {clp(SETUP_FEE_BY_TIER.SIMPLE)}
+                  <span>
+                    pago único al empezar
+                    {negocios !== 1 && ` · cada local extra ${clp(SETUP_FEE_EXTRA_CLP)}`}
+                  </span>
                 </p>
                 <ul className="zv-price-list">
                   <li>{negocios === null ? 'Negocios sin límite' : negocios === 1 ? '1 negocio' : `Hasta ${negocios} negocios`}</li>
                   <li>
                     {respuestas === null ? 'Respuestas sin límite' : `${respuestas.toLocaleString('es-CL')} respuestas del agente al mes`}
                   </li>
-                  <li>Se paga solo con {Math.ceil(PLAN_MONTHLY_CLP[plan] / TICKET_EJEMPLO)} clientes al mes</li>
+                  <li>Atiende 24/7: noches, fines de semana y feriados</li>
                   <li>Agenda, reservas de mesa, pedidos y notas de voz</li>
                   <li>WhatsApp e Instagram en un solo panel</li>
                 </ul>
@@ -95,41 +104,41 @@ export default function Precios() {
         </ul>
 
         <div className="zv-setup" data-reveal>
-          <div className="zv-setup-amount" data-reveal-item>
-            <p className="zv-setup-k">Implementación · pago único</p>
-            <p className="zv-setup-v">
-              {clp(SETUP_MIN)}–{clp(SETUP_MAX)}
+          <div className="zv-setup-intro" data-reveal-item>
+            <p className="zv-setup-k">Implementación · se paga una sola vez</p>
+            <h3 className="zv-setup-title">¿Cuánto cuesta dejarlo funcionando?</h3>
+            <p className="zv-setup-lead">
+              Depende de lo que tu agente tenga que hacer. Ubica tu negocio en una de estas tres opciones; si tienes
+              dudas, te decimos cuál te corresponde antes de contratar, sin sorpresas.
             </p>
-            <p className="zv-setup-s">tu primer local, según lo que actives · IVA incluido</p>
-            <p className="zv-setup-v2">
-              + {clp(SETUP_FEE_EXTRA_CLP)} <span>cada local adicional, siempre al mismo precio</span>
-            </p>
-          </div>
-          <div data-reveal-item>
-            <p className="zv-setup-lead">Te lo dejamos funcionando, no te pasamos un programa para que te arregles solo:</p>
             <ul className="zv-setup-list">
-              <li>Conectamos tu WhatsApp Business y lo dejamos verificado ante Meta.</li>
-              <li>Cargamos tu negocio: servicios o carta, precios, horarios y preguntas frecuentes.</li>
-              <li>Probamos al agente contigo antes de que hable con tus clientes.</li>
-              <li>
-                ¿Más locales? Cada uno suma {clp(SETUP_FEE_EXTRA_CLP)}: reutilizamos tu configuración y solo cargamos lo
-                propio de ese local (su número, su carta o su agenda).
-              </li>
+              <li>Conectamos tu WhatsApp y lo dejamos verificado ante Meta.</li>
+              <li>Cargamos tu carta o servicios, precios, horarios y preguntas frecuentes.</li>
+              <li>Lo probamos contigo antes de que hable con tus clientes.</li>
             </ul>
-            <div className="zv-setup-tiers">
-              {SETUP_TIER_ORDER.map((tier) => (
-                <div key={tier} className="zv-setup-tier">
-                  <p className="zv-setup-tier-name">
-                    {SETUP_TIER_LABEL[tier]} <span>{clp(SETUP_FEE_BY_TIER[tier])}</span>
-                  </p>
-                  <p className="zv-setup-tier-desc">{SETUP_TIER_DESC[tier]}</p>
-                </div>
-              ))}
-            </div>
-            <p className="zv-setup-note">
-              Un agente con IA hecho a medida suele costar desde $300.000 en Chile, incluso en su versión más simple. Esta
-              implementación se recupera con unos {Math.ceil(SETUP_MIN / TICKET_EJEMPLO)} a{' '}
-              {Math.ceil(SETUP_MAX / TICKET_EJEMPLO)} clientes que antes se perdían, y se paga una sola vez.
+          </div>
+
+          <ol className="zv-setup-tiers" data-reveal-item>
+            {SETUP_TIER_ORDER.map((tier) => (
+              <li key={tier} className={`zv-setup-tier${tier === COMMON_TIER ? ' zv-setup-tier--common' : ''}`}>
+                {tier === COMMON_TIER && <span className="zv-setup-tier-badge">El más común</span>}
+                <p className="zv-setup-tier-name">{SETUP_TIER_LABEL[tier]}</p>
+                <p className="zv-setup-tier-price">{clp(SETUP_FEE_BY_TIER[tier])}</p>
+                <p className="zv-setup-tier-desc">{SETUP_TIER_DESC[tier]}</p>
+                <p className="zv-setup-tier-ex">Ej.: {SETUP_TIER_EXAMPLE[tier]}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="zv-setup-foot" data-reveal-item>
+            <p>
+              <strong>¿Más de un local?</strong> Cada local adicional suma {clp(SETUP_FEE_EXTRA_CLP)}: reutilizamos tu
+              configuración y solo cargamos lo propio de ese local.
+            </p>
+            <p className="zv-setup-example">
+              <strong>Ejemplo:</strong> un food truck en plan {PLAN_LABEL[example.plan]} paga{' '}
+              {clp(SETUP_FEE_BY_TIER[example.tier])} una vez al empezar y después {clp(PLAN_MONTHLY_CLP[example.plan])} al
+              mes. Nada más.
             </p>
           </div>
         </div>

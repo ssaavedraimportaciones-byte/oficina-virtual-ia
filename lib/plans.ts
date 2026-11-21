@@ -88,10 +88,18 @@ export const SETUP_TIER_LABEL: Record<SetupTier, string> = {
   AVANZADO: 'Avanzado',
 }
 
+/** Qué incluye cada nivel, en palabras del dueño del negocio (sin "canales" ni "integraciones"). */
 export const SETUP_TIER_DESC: Record<SetupTier, string> = {
-  SIMPLE: 'Un solo canal, solo agenda o solo catálogo, sin cobros integrados.',
-  ESTANDAR: 'Agenda o catálogo con cobros, ticket de cocina o avisos de stock.',
-  AVANZADO: 'Mesas con croquis, pedidos, cobros y más de un canal (WhatsApp e Instagram).',
+  SIMPLE: 'Responde, agenda horas o toma pedidos por WhatsApp. Sin cobrar por el chat.',
+  ESTANDAR: 'Lo anterior, y además cobra por el chat (transferencia o Mercado Pago) y avisa a la cocina o cuando se acaba el stock.',
+  AVANZADO: 'Restaurante completo: reservas de mesa en el plano del local, pedidos, cobros, y WhatsApp e Instagram juntos.',
+}
+
+/** Negocios típicos de cada nivel, para que el cliente se ubique solo. */
+export const SETUP_TIER_EXAMPLE: Record<SetupTier, string> = {
+  SIMPLE: 'Peluquería, uñas, taller, consulta',
+  ESTANDAR: 'Food truck, tienda, pastelería, delivery',
+  AVANZADO: 'Restaurante con salón y terraza',
 }
 
 /** Compatibilidad: el nivel Estándar es el de referencia histórico. */

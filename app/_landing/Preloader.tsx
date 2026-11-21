@@ -22,6 +22,7 @@ export default function Preloader() {
     let raf = 0
     let done = false
     const t0 = performance.now()
+    let prev = t0
     const finish = () => {
       if (done) return
       done = true
@@ -30,10 +31,15 @@ export default function Preloader() {
       window.setTimeout(() => el.remove(), 1100)
     }
     const loop = () => {
-      const elapsed = performance.now() - t0
+      const now = performance.now()
+      const elapsed = now - t0
+      const dt = Math.min(0.25, (now - prev) / 1000)
+      prev = now
       // Nunca más de 7 segundos tapando la página.
       const target = elapsed > 7000 ? 1 : Math.max(bus.load, Math.min(0.15, elapsed / 4000))
-      shown += (target - shown) * 0.12
+      // Avance por tiempo, no por cuadro: en un celular que dibuja pocos cuadros mientras arma
+      // la cuadra, la barra igual llega al final ~medio segundo después de que todo está listo.
+      shown += (target - shown) * (1 - Math.exp(-dt * 7))
       if (target >= 1 && shown > 0.985) shown = 1
       if (bar) bar.style.transform = `scaleX(${shown.toFixed(3)})`
       if (pct) pct.textContent = `${Math.round(shown * 100)}%`

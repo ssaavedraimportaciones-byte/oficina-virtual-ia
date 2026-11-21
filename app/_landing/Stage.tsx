@@ -102,11 +102,6 @@ export function buildNight(gsap: typeof Gsap, stage: HTMLElement, lite: boolean)
     tl.fromTo(bits, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, o + 0.8)
     if (i < CHAPTERS.length - 1) tl.to(copy, { autoAlpha: 0, y: -12, duration: 0.5, ease: 'power1.in' }, o + CHAPTER_UNITS - 0.6)
   })
-  q<HTMLElement>('[data-scene]').forEach((card, i) => {
-    const o = i * CHAPTER_UNITS
-    tl.fromTo(card, { autoAlpha: 0, x: -16 }, { autoAlpha: 1, x: 0, duration: 0.6, ease: 'power3.out' }, o)
-    if (i < CHAPTERS.length - 1) tl.to(card, { autoAlpha: 0, duration: 0.4 }, o + CHAPTER_UNITS - 0.5)
-  })
   ;[1, 2, 3, 4].forEach((i) => {
     tl.to(proxy, { m: CHAPTERS[i].minutes, duration: 1.4, ease: 'power1.inOut', onUpdate: renderClock }, i * CHAPTER_UNITS - 0.8)
   })
@@ -164,9 +159,17 @@ export function buildNight(gsap: typeof Gsap, stage: HTMLElement, lite: boolean)
   tl.to(bus, { cam: 4, dawn: 1, duration: 3.6, ease: 'power2.inOut' }, 46.2)
   tl.to(labels, { autoAlpha: 0, duration: 0.6 }, 46.4)
 
+  // Un solo mensaje a la vez: cuando aparece el siguiente, el anterior se va. En los primeros
+  // planos del local las dos burbujas caen en el mismo lugar y montadas no se lee ninguna.
+  const outAt = (i: number) => {
+    const next = FLIGHTS[i + 1] && FLIGHT_CUES[FLIGHTS[i + 1].id]
+    const cue = FLIGHT_CUES[FLIGHTS[i].id]
+    return next ? Math.min(cue.out, next.in - 0.2) : cue.out
+  }
+
   // Mensajes que viajan de ventana en ventana
-  FLIGHTS.forEach((f) => {
-    const cue = FLIGHT_CUES[f.id]
+  FLIGHTS.forEach((f, i) => {
+    const cue = { ...FLIGHT_CUES[f.id], out: outAt(i) }
     const el = one<HTMLElement>(`[data-flight="${f.id}"]`)
     if (!el) return
     // El contenedor lo posiciona el mundo 3D (transform); acá solo se anima la burbuja de adentro.
@@ -176,6 +179,31 @@ export function buildNight(gsap: typeof Gsap, stage: HTMLElement, lite: boolean)
     const ticks = el.querySelector('[data-ticks]')
     if (ticks) tl.fromTo(ticks, { color: '#8a6a3a' }, { color: '#1d6fa0', duration: 0.3 }, cue.land + 0.2)
     tl.to(el, { autoAlpha: 0, duration: 0.4 }, cue.out)
+  })
+
+  // Quién habla: mientras sale un mensaje se enciende el rótulo de la ventana de quien lo
+  // escribe, para que la burbuja se lea como diálogo de ese personaje y no como texto suelto.
+  // Los tramos del mismo personaje que se pisan se juntan, si no uno apagaría al otro.
+  const speaking = new Map<string, [number, number][]>()
+  FLIGHTS.forEach((f, i) => {
+    const cue = FLIGHT_CUES[f.id]
+    if (cue) speaking.set(f.from, [...(speaking.get(f.from) ?? []), [cue.in, outAt(i)]])
+  })
+  const QUIET = { color: '#efe7d8', borderColor: 'rgba(239, 231, 216, 0.22)', boxShadow: '0 0 0px rgba(255, 179, 71, 0)' }
+  const TALKING = { color: '#ffb347', borderColor: 'rgba(255, 179, 71, 0.95)', boxShadow: '0 0 22px rgba(255, 179, 71, 0.5)' }
+  speaking.forEach((spans, who) => {
+    const tag = one<HTMLElement>(`[data-anchor="${who}"] .zv-anchor-n`)
+    if (!tag) return
+    const merged: [number, number][] = []
+    for (const [a, b] of spans.sort((x, y) => x[0] - y[0])) {
+      const last = merged[merged.length - 1]
+      if (last && a <= last[1]) last[1] = Math.max(last[1], b)
+      else merged.push([a, b])
+    }
+    for (const [a, b] of merged) {
+      tl.fromTo(tag, QUIET, { ...TALKING, duration: 0.3, immediateRender: false }, a)
+      tl.fromTo(tag, TALKING, { ...QUIET, duration: 0.4, immediateRender: false }, b)
+    }
   })
 
   // Insertos: las capturas reales del panel, como un corte de cámara. El corte se lleva
@@ -244,7 +272,7 @@ export default function Stage() {
             <span data-st="owner-d">responde desde el panel</span>
           </span>
         </div>
-        <div className="zv-anchor zv-anchor--shelf" data-anchor="shelf">
+        <div className="zv-anchor zv-anchor--up zv-anchor--shelf" data-anchor="shelf">
           <i />
           <span className="zv-anchor-n">Esmalte semipermanente</span>
           <span className="zv-anchor-s zv-anchor-s--stock">
@@ -319,15 +347,8 @@ export default function Stage() {
         ))}
       </div>
 
-      {/* Tarjeta de escena: número, hora y lugar */}
+      {/* La hora de la noche: ambiente, no lo primero que se lee */}
       <div className="zv-scenes">
-        {CHAPTERS.map((c, i) => (
-          <div key={c.id} className="zv-scene" data-scene aria-hidden="true">
-            <p className="zv-label">
-              <span>{pad(i + 1)}</span> — {c.kicker}
-            </p>
-          </div>
-        ))}
         <p className="zv-clock" data-clock aria-hidden="true">
           {CHAPTERS[0].time}
         </p>
@@ -336,14 +357,37 @@ export default function Stage() {
         </p>
       </div>
 
-      {/* Subtítulos */}
+      {/* Subtítulos: la historia se lee siempre aquí, abajo al centro. El rótulo
+          "Escena N de 5" lo marca como el lugar de lectura desde la primera escena. */}
       <div className="zv-subs">
-        {CHAPTERS.map((c) => (
+        {CHAPTERS.map((c, i) => (
           <article key={c.id} className="zv-sub" data-copy>
+            <p className="zv-sub-k">
+              <span className="zv-sub-dots" aria-hidden="true">
+                {CHAPTERS.map((_, j) => (
+                  <i key={j} className={j <= i ? 'on' : undefined} />
+                ))}
+              </span>
+              <span>
+                Escena {i + 1} de {CHAPTERS.length}
+              </span>
+              <span className="zv-sub-kk">{c.kicker}</span>
+            </p>
             <h2 className="zv-sub-h">
               <SplitWords text={c.title} />
             </h2>
             <p className="zv-sub-b">{c.body}</p>
+            {i === 0 && (
+              <p className="zv-sub-b zv-sub-legend">
+                <span>
+                  <i className="zv-key zv-key--contact" aria-hidden="true" /> tu clienta
+                </span>
+                <span>
+                  <i className="zv-key zv-key--agent" aria-hidden="true" /> tu agente ZeroVisto
+                </span>
+                <span className="zv-sub-scroll">baja para avanzar la noche ↓</span>
+              </p>
+            )}
           </article>
         ))}
       </div>

@@ -181,16 +181,16 @@ const msg = (id: string) => MESSAGES.find((m) => m.id === id)!.text
 
 /** Los mensajes que viajan entre las ventanas de la cuadra, en orden. */
 export const FLIGHTS: Flight[] = [
-  { id: 'f1', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m03') },
-  { id: 'f2', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m04') },
-  { id: 'f3', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m05') },
-  { id: 'f4', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m06') },
-  { id: 'f5', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m09') },
-  { id: 'f6', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m10') },
-  { id: 'f7', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana', text: msg('m11') },
-  { id: 'f8', from: 'shop', to: 'ana', kind: 'agent', label: 'Uñas Bella · responde ZeroVisto', text: msg('m12') },
+  { id: 'f1', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana · tu clienta', text: msg('m03') },
+  { id: 'f2', from: 'shop', to: 'ana', kind: 'agent', label: 'ZeroVisto responde por Uñas Bella', text: msg('m04') },
+  { id: 'f3', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana · tu clienta', text: msg('m05') },
+  { id: 'f4', from: 'shop', to: 'ana', kind: 'agent', label: 'ZeroVisto responde por Uñas Bella', text: msg('m06') },
+  { id: 'f5', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana · tu clienta', text: msg('m09') },
+  { id: 'f6', from: 'shop', to: 'ana', kind: 'agent', label: 'ZeroVisto responde por Uñas Bella', text: msg('m10') },
+  { id: 'f7', from: 'ana', to: 'shop', kind: 'contact', label: 'Ana · tu clienta', text: msg('m11') },
+  { id: 'f8', from: 'shop', to: 'ana', kind: 'agent', label: 'ZeroVisto responde por Uñas Bella', text: msg('m12') },
   { id: 'f9', from: 'shop', to: 'owner', kind: 'mail', label: 'Correo para Caro', text: '' },
-  { id: 'f10', from: 'owner', to: 'ana', kind: 'human', label: 'Caro, la dueña', text: msg('m13') },
+  { id: 'f10', from: 'owner', to: 'ana', kind: 'human', label: 'Caro, la dueña · desde el panel', text: msg('m13') },
 ]
 
 export const DEMO_NOTE = 'Capturas del panel con datos de demostración · negocio ficticio «Uñas Bella»'

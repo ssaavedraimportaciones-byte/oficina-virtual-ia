@@ -32,7 +32,9 @@ function useTween(target: number, ms = 650) {
     const t0 = performance.now()
     let raf = 0
     const step = (now: number) => {
-      const p = Math.min(1, (now - t0) / ms)
+      // La marca de tiempo del cuadro puede ser anterior a t0: sin el piso en 0, el
+      // primer cuadro extrapola hacia atrás y muestra un instante números negativos.
+      const p = Math.min(1, Math.max(0, (now - t0) / ms))
       const e = 1 - Math.pow(1 - p, 3)
       shown.current = from.current + (target - from.current) * e
       setValue(shown.current)
@@ -110,6 +112,9 @@ export default function Ahorro() {
     const r = el.getBoundingClientRect()
     if (r.top < window.innerHeight && r.bottom > 0) return
     setArmed(false)
+    // Se arma cuando el bloque asoma al último cuarto de la pantalla. Un umbral por
+    // proporción (35% visible) nunca se cumplía si la calculadora es más alta que la
+    // pantalla (celular apaisado): se quedaba mostrando $0.
     const io = new IntersectionObserver(
       ([e]) => {
         if (!e.isIntersecting) return
@@ -118,7 +123,7 @@ export default function Ahorro() {
         window.setTimeout(() => setIntro(false), 1500)
         io.disconnect()
       },
-      { threshold: 0.35 },
+      { threshold: 0, rootMargin: '0px 0px -25% 0px' },
     )
     io.observe(el)
     return () => io.disconnect()

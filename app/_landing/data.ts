@@ -157,7 +157,7 @@ export const CHAPTERS: Chapter[] = [
 /** El resumen del panel, que se ve al final de la noche. */
 export const SUMMARY_SHOT: { src: string; alt: string; caption: string; width: number; height: number; ring: { left: number; top: number; width: number; height: number }; mobile?: ShotZoom } = {
   src: '/landing/resumen.webp',
-  alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 respuestas del agente este mes, 1 hora agendada y 1 pedido por $9.000.',
+  alt: 'Resumen del panel: 1 conversación, 13 mensajes, 6 de 1.500 respuestas del agente este mes en plan Básico, 1 hora agendada y 1 pedido por $9.000.',
   caption: 'Tu resumen de la mañana',
   width: 1600,
   height: 1000,
@@ -539,7 +539,7 @@ export const STEPS = [
   { title: 'Elige tu rubro', text: 'El agente parte con el tono y las preguntas de tu tipo de negocio. Tú ajustas lo que quieras.' },
   {
     title: 'Cárgale tu información',
-    text: 'Precios, horarios, servicios y productos. Es lo único que el agente puede afirmar, así que no inventa. Puedes importarla desde tu sitio o tu Instagram.',
+    text: 'Precios, horarios, servicios y productos. Es lo único que el agente puede afirmar, así que no inventa. Sube tu carta en foto, PDF o Excel, o tráela desde tu sitio o tu Instagram.',
   },
   { title: 'Conecta tus canales', text: 'Tu WhatsApp Business o tu Instagram. Antes lo pruebas en el simulador, escribiendo como si fueras el cliente.' },
   { title: 'Tú te dedicas a tu negocio', text: 'El agente atiende. Tú recibes las horas agendadas, los pedidos registrados y los casos que necesitan a una persona.' },
@@ -571,4 +571,7 @@ export const INTEGRATIONS: { name: string; emoji: string; text: string; group: s
   { name: 'WooCommerce', emoji: '🧩', text: 'Importa tu catálogo y precios desde tu tienda WordPress.', group: 'Tienda', status: 'live' },
   { name: 'Jumpseller', emoji: '🛒', text: 'Importa productos, precios y stock desde tu tienda.', group: 'Tienda', status: 'live' },
   { name: 'Reservas de mesa', emoji: '🍽️', text: 'Dibuja tu salón y el agente reserva la mesa por chat.', group: 'Agenda', status: 'live' },
+  { name: 'Carta en foto, PDF o Excel', emoji: '📄', text: 'Sube tu carta como la tengas: productos y precios se cargan solos.', group: 'Catálogo', status: 'live' },
+  { name: 'Mercado Pago', emoji: '💳', text: 'El agente manda el link de pago y marca el pedido como pagado.', group: 'Cobros', status: 'live' },
+  { name: 'Comprobantes', emoji: '🧾', text: 'Lee la foto de la transferencia y revisa monto y cuenta por ti.', group: 'Cobros', status: 'live' },
 ]

@@ -89,8 +89,10 @@ export function buildNight(gsap: typeof Gsap, stage: HTMLElement, lite: boolean)
   })
   tl.set({}, {}, CHAPTER_UNITS * CHAPTERS.length)
 
-  // Barras de cine: se cierran al entrar a la noche
+  // Barras de cine: se cierran al entrar a la noche, y con ellas aparece el reloj
   tl.fromTo(q('[data-bar]'), { scaleY: 0 }, { scaleY: 1, duration: 0.8, ease: 'power2.out' }, 0)
+  const scenes = one('.zv-scenes')
+  if (scenes) tl.fromTo(scenes, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, immediateRender: false }, 0.1)
 
   // Subtítulos y tarjeta de escena
   q<HTMLElement>('[data-copy]').forEach((copy, i) => {

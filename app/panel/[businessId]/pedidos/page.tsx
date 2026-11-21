@@ -197,8 +197,8 @@ export default function PedidosPage() {
             {soldOut.length === 1 ? 'Producto agotado' : `${soldOut.length} productos agotados`}
           </h2>
           <p className="mt-1 text-sm text-gray-400">
-            El agente ya dejó de ofrecerlos y avisa que no hay stock. Reponé abajo para volver a
-            venderlos.
+            El agente ya dejó de ofrecerlos y avisa que no hay stock. Actualiza el stock abajo para
+            volver a venderlos.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {soldOut.map((product) => (

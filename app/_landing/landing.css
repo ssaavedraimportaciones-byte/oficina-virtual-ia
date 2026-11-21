@@ -724,6 +724,15 @@
   border-top: 1px solid var(--zv-line);
   margin: 0;
 }
+/* Las cifras caen sobre los letreros encendidos de la calle: una franja oscura difusa detrás */
+.zv-facts::before {
+  content: '';
+  position: absolute;
+  inset: -0.4rem -2rem -0.8rem;
+  z-index: -1;
+  background: radial-gradient(120% 140% at 30% 50%, rgba(3, 5, 12, 0.72), rgba(3, 5, 12, 0.35) 70%, rgba(3, 5, 12, 0) 100%);
+  pointer-events: none;
+}
 .zv-fact {
   padding: 1rem 1.2rem 0.4rem 0;
 }
@@ -942,6 +951,11 @@
   top: calc(var(--zv-bar) + 1.4rem);
   z-index: 6;
   display: grid;
+}
+/* El reloj de la noche entra con la historia (lo anima Stage.tsx), no mientras sube la demo. */
+.js-motion .zv-scenes {
+  opacity: 0;
+  visibility: hidden;
 }
 /* El reloj es ambiente: más chico y apagado que el subtítulo, para que el ojo vaya primero a la historia. */
 .zv-clock {
@@ -1879,8 +1893,15 @@
   text-transform: uppercase;
   color: var(--zv-dim);
 }
+/* Los pasos caen encima del carro o la clínica iluminados: panel propio para que siempre se lean */
 .zv-ft-side {
-  padding-top: 0.5rem;
+  align-self: start;
+  padding: 1rem 1.15rem 1.05rem;
+  border: 1px solid var(--zv-line);
+  border-radius: 14px;
+  background: rgba(5, 9, 19, 0.7);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 .zv-ft-kick {
   font-family: var(--zv-mono);
@@ -2607,12 +2628,19 @@
 }
 .zv-foot-nav {
   display: flex;
-  gap: 1.6rem;
+  /* Seis enlaces: en celular no caben en una fila y sin wrap Términos, Privacidad
+     e Ingresar quedaban fuera de la pantalla (el pie corta con overflow hidden). */
+  flex-wrap: wrap;
+  gap: 0.9rem 1.6rem;
+  line-height: 1.5;
   font-family: var(--zv-mono);
   font-size: 0.64rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--zv-dim);
+}
+.zv-foot-nav a {
+  white-space: nowrap;
 }
 .zv-foot-nav a:hover {
   color: var(--zv-bone);
@@ -3431,6 +3459,24 @@
 }
 
 /* ── Por qué se te van los clientes ──────────────────────────────── */
+/* Estas secciones pasan sobre la cuadra iluminada (el local, los letreros): velo de lectura
+   que se funde arriba y abajo, igual que en Ahorro, sin cortes duros con las vecinas. */
+.zv-porque::before,
+.zv-envivo::before,
+.zv-precios::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(3, 5, 12, 0) 0%,
+    rgba(3, 5, 12, 0.66) 8%,
+    rgba(3, 5, 12, 0.56) 50%,
+    rgba(3, 5, 12, 0.68) 92%,
+    rgba(3, 5, 12, 0) 100%
+  );
+  pointer-events: none;
+}
 .zv-lead strong {
   color: var(--zv-amber);
   font-weight: 600;
@@ -3633,6 +3679,15 @@
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+/* Las notas quedan sobre la calle iluminada: un panel leve para que no compitan con las ventanas */
+.zv-precios-notes {
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--zv-line);
+  border-radius: 14px;
+  background: rgba(5, 9, 19, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 .zv-precios-notes a {
   color: var(--zv-amber);

@@ -59,7 +59,7 @@ export function waLink(bot: DemoBot): string {
  * volver a medir.
  */
 export const MEASURED = {
-  medianSeconds: '3,3',
-  sample: 38,
+  medianSeconds: '3,5',
+  sample: 11,
   measuredOn: 'noviembre de 2026',
 }

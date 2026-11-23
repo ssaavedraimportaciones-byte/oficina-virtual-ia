@@ -312,7 +312,7 @@ export const streetX = (i: number) => 15.6 + i * 7
 /** Solo cifras comprobables: ver app/_landing/resultados.ts. */
 export const FACTS = [
   { value: '24/7', label: 'atiende de noche, fines de semana y feriados: tu WhatsApp nunca cierra' },
-  { value: '3,3 s', label: 'en responder (mediana medida en respuestas reales)' },
+  { value: '3,5 s', label: 'en responder (mediana medida en respuestas reales)' },
   { value: '3', label: 'bots en vivo para que los pruebes hoy' },
   { value: '$45.000', label: `al mes + implementación desde $${SETUP_FEE_BY_TIER.SIMPLE.toLocaleString('es-CL')}, una sola vez` },
 ]

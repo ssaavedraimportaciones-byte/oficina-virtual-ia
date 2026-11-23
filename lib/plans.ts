@@ -56,8 +56,9 @@ export const PLAN_LABEL: Record<PlanName, string> = {
  * entiende lenguaje natural, agenda horas y reservas de mesa con croquis,
  * toma pedidos con catálogo y stock, escucha notas de voz, deriva a una
  * persona cuando corresponde, y atiende WhatsApp e Instagram del mismo panel.
- * Sigue por debajo de la competencia con WhatsApp (Whaticket, Callbell,
- * Landbot rondan $47.000–$170.000 CLP/mes y son bots de opciones, no IA).
+ * Referencia de precios de herramientas de WhatsApp (Whaticket, Callbell,
+ * Landbot, Kommo): unos USD 15–80 al mes sin contar WhatsApp ni IA, que suelen
+ * cobrarse aparte. Cifras de comparadores, no de páginas oficiales.
  */
 export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
   BASICO: 45_000,
@@ -71,7 +72,8 @@ export const PLAN_MONTHLY_CLP: Record<PaidPlan, number> = {
  * es lo mismo dejar un solo canal sin cobros que un local con mesas,
  * pedidos, cobros y varios canales. Lo fija el administrador por negocio
  * (`Business.setupTier`) según este criterio. Referencia de mercado en Chile
- * (2026): implementaciones de agentes con IA para pymes desde $300.000, así
+ * (2026): implementaciones de agentes con IA para pymes desde $800.000 y mensualidades
+ * desde $300.000 en proveedores a medida, así
  * que incluso el nivel Avanzado queda por debajo.
  */
 export const SETUP_FEE_BY_TIER: Record<SetupTier, number> = {

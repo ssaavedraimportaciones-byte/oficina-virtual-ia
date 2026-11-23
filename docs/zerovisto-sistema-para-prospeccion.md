@@ -31,7 +31,7 @@ El cliente final se va con el primero que contesta. **ZeroVisto contesta primero
 ## 3. La solución (propuesta de valor)
 
 - **Atiende 24/7**: noches, fines de semana y feriados.
-- **Responde en segundos**: mediana de 3,3 segundos medida en respuestas reales.
+- **Responde en segundos**: mediana de 3,5 segundos medida en respuestas reales (noviembre de 2026, 11 respuestas; la muestra es chica y conviene ampliarla antes de usarla en ventas).
 - **Hace el trabajo, no solo conversa**: agenda la hora, reserva la mesa, registra el pedido, manda los datos de pago, verifica el comprobante.
 - **No inventa**: solo afirma lo que el negocio cargó (precios, horarios, servicios, stock). Si no sabe algo, lo dice o pasa el caso a una persona.
 - **Deriva a una persona** cuando corresponde (reclamo, caso delicado, el cliente lo pide) y le avisa al equipo con todo el contexto.
@@ -126,7 +126,7 @@ Todos los planes incluyen atención 24/7, agenda, reservas de mesa, pedidos, not
 ### 5.3 Argumento de retorno
 - Si cada hora agendada o pedido le deja $20.000 al negocio, **el plan Básico se paga con 3 clientes que antes se perdían**.
 - Ejemplo completo: un food truck en plan Básico paga $190.000 una vez al empezar y después $45.000 al mes. Nada más.
-- Referencia de mercado: las herramientas de WhatsApp de la competencia (Whaticket, Callbell, Landbot) cuestan entre $47.000 y $170.000 al mes y son bots de opciones, no IA. Las implementaciones de agentes con IA para pymes en Chile parten desde $300.000.
+- Referencia de mercado: herramientas de WhatsApp como Whaticket, Callbell, Kommo o Landbot cuestan unos USD 15 a 80 al mes sin contar el WhatsApp y, en varios casos, la IA se cobra aparte. Proveedores de agentes con IA a medida en Chile citan implementaciones desde unos $800.000 y mensualidades desde $300.000. Son cifras de comparadores y de proveedores; verifícalas en cada página antes de citarlas.
 
 ## 6. Cliente ideal (ICP)
 
@@ -219,12 +219,12 @@ Ganchos por rubro:
 ### 9.4 Objeciones frecuentes y respuesta
 | Objeción | Respuesta |
 |---|---|
-| "Es caro" | $45.000 al mes. Se paga con 3 clientes que antes se perdían. Menos que media jornada de una persona contestando. |
+| "Es caro" | $45.000 al mes. Si cada hora agendada o pedido deja $20.000 (supuesto: cámbialo por el ticket real del negocio), se paga con 3 clientes al mes que antes se perdían. |
 | "Va a responder cualquier cosa / va a inventar" | Solo responde con lo que el negocio carga. Si no sabe, lo dice o pasa el caso a una persona. Se prueba en el simulador antes de conectarlo. |
 | "A mis clientes les gusta hablar con una persona" | Cuando alguien reclama o pide una persona, el agente se pausa y el equipo responde desde el panel con todo el contexto. |
 | "No tengo tiempo para configurarlo" | La implementación la hacemos nosotros: conectamos el WhatsApp, cargamos la carta (basta una foto) y lo probamos juntos. |
 | "¿Y si no me sirve?" | No hay permanencia: se cancela cuando se quiera. Antes de pagar puedes probar los bots en vivo. |
-| "Ya uso un bot de opciones" | Esos bots hacen elegir números en un menú. ZeroVisto entiende lo que escribe el cliente (y sus audios) y además agenda, vende y cobra. |
+| "Ya uso un bot de opciones" | Muchos bots funcionan con menús. ZeroVisto entiende lo que escribe el cliente (y sus audios) y además agenda, vende y cobra. Revisa qué hace tu herramienta actual antes de comparar. |
 | "¿Pierdo mi número de WhatsApp?" | Se usa el número del negocio, conectado a la API oficial de Meta. |
 
 ### 9.5 Buenas prácticas de contacto (obligatorias)
@@ -257,7 +257,7 @@ Ganchos por rubro:
     "email": "contacto@zerovistochile.com"
   },
   "mercado": { "pais": "CL", "idioma": "es-CL", "moneda": "CLP", "precios_incluyen_iva": true },
-  "metricas": { "disponibilidad": "24/7", "respuesta_mediana_segundos": 3.3 },
+  "metricas": { "disponibilidad": "24/7", "respuesta_mediana_segundos": 3.5, "muestra_respuestas": 11 },
   "canales": ["WhatsApp Business (API oficial de Meta)", "Instagram DM", "Notas de voz"],
   "funciones": [
     "Conversación con IA en lenguaje natural, sin menús",
@@ -343,7 +343,7 @@ Ganchos por rubro:
   "competencia": {
     "referencias": ["Whaticket", "Callbell", "Landbot"],
     "rango_precio_mensual_clp": [47000, 170000],
-    "diferencia": "Son bots de opciones (menús); ZeroVisto es IA que entiende texto y audios, y además agenda, vende, cobra e inventaría."
+    "diferencia": "ZeroVisto entiende texto y audios y además agenda, vende, cobra e inventaría en un solo panel. Las herramientas listadas son bandejas de atención y bots; algunas ofrecen IA aparte. Verificar en cada producto antes de afirmarlo."
   },
   "reglas_contacto": [
     "Uno a uno y personalizado; sin envíos masivos",

@@ -138,37 +138,83 @@ export default function SalesSettingsPanel({
           </label>
           <div className="rounded-md border border-gray-800 p-3">
             <p className="text-sm font-medium text-gray-200">
-              Mercado Pago {s.mercadoPagoConnected && <span className="ml-1 text-xs text-emerald-400">✓ conectado</span>}
+              💳 Mercado Pago {s.mercadoPagoConnected && <span className="ml-1 text-xs text-emerald-400">✓ conectado</span>}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              Opcional: el agente manda un link para pagar con tarjeta y el pago se confirma solo, sin que revises nada. Usa el
-              access token de producción de tu cuenta (Mercado Pago → Tus integraciones → Credenciales). Mercado Pago cobra su comisión.
+              Opcional: el agente manda un link para pagar con tarjeta o billetera, y el pago se confirma solo, sin que revises nada.
+              Cada local cobra en su propia cuenta de Mercado Pago (ZeroVisto nunca toca la plata); Mercado Pago cobra su comisión aparte.
             </p>
             {s.mercadoPagoConnected ? (
               <button type="button" onClick={() => save({ mercadoPagoToken: null })} className="mt-2 text-xs text-gray-400 hover:text-danger">
                 Desconectar Mercado Pago
               </button>
             ) : (
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={mpToken}
-                  onChange={(e) => setMpToken(e.target.value)}
-                  placeholder="APP_USR-…"
-                  className="input flex-1"
-                />
-                <button
-                  type="button"
-                  disabled={saving || mpToken.trim().length < 10}
-                  onClick={async () => {
-                    if (await save({ mercadoPagoToken: mpToken.trim() })) setMpToken('')
-                  }}
-                  className="rounded-md border border-gray-700 px-4 py-2 text-sm text-gray-200 hover:border-amber-500 disabled:opacity-50"
-                >
-                  Conectar
-                </button>
-              </div>
+              <>
+                <details className="mt-3 rounded-md border border-gray-800 bg-gray-900/40 p-3 text-xs text-gray-400">
+                  <summary className="cursor-pointer select-none font-medium text-gray-200">
+                    ¿Dónde consigo el access token? (abrir pasos)
+                  </summary>
+                  <ol className="mt-2 flex list-decimal flex-col gap-1.5 pl-4">
+                    <li>
+                      ¿Todavía no tienes cuenta de Mercado Pago a nombre de tu negocio? Primero créala (elige &ldquo;cuenta de
+                      empresa&rdquo; si te lo pregunta):{' '}
+                      <a
+                        href="https://www.mercadopago.cl/hub/registration/landing"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-400 hover:underline"
+                      >
+                        Crear cuenta en Mercado Pago ↗
+                      </a>
+                    </li>
+                    <li>
+                      Entra a{' '}
+                      <a
+                        href="https://www.mercadopago.cl/developers/panel/app"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-400 hover:underline"
+                      >
+                        mercadopago.cl/developers/panel/app ↗
+                      </a>{' '}
+                      (con la misma cuenta del negocio).
+                    </li>
+                    <li>
+                      Si es la primera vez, te va a pedir crear una &ldquo;aplicación&rdquo;: dale cualquier nombre (por ejemplo, el
+                      nombre de tu negocio) y, cuando te pregunte para qué la usarás, elige la opción de cobrar online / pagos con
+                      checkout.
+                    </li>
+                    <li>Dentro de la aplicación, busca la pestaña o sección &ldquo;Credenciales de producción&rdquo;.</li>
+                    <li>
+                      Copia el <strong className="text-gray-300">Access Token</strong> de esa sección (empieza con{' '}
+                      <code className="text-gray-300">APP_USR-</code>). <strong>No copies el &ldquo;Public Key&rdquo;</strong> ni las
+                      credenciales de prueba (&ldquo;Credenciales de prueba&rdquo;, que empiezan con <code>TEST-</code>): con esas no se
+                      cobra de verdad.
+                    </li>
+                    <li>Pégalo abajo y presiona &ldquo;Conectar&rdquo;.</li>
+                  </ol>
+                </details>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    value={mpToken}
+                    onChange={(e) => setMpToken(e.target.value)}
+                    placeholder="APP_USR-…"
+                    className="input flex-1"
+                  />
+                  <button
+                    type="button"
+                    disabled={saving || mpToken.trim().length < 10}
+                    onClick={async () => {
+                      if (await save({ mercadoPagoToken: mpToken.trim() })) setMpToken('')
+                    }}
+                    className="rounded-md border border-gray-700 px-4 py-2 text-sm text-gray-200 hover:border-amber-500 disabled:opacity-50"
+                  >
+                    Conectar
+                  </button>
+                </div>
+              </>
             )}
           </div>
           <div className="rounded-md border border-gray-800 p-3">
